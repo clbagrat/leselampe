@@ -2,6 +2,8 @@ const reader = document.getElementById("reader");
 const selectionGerman = document.getElementById("selectionGerman");
 const selectionEnglish = document.getElementById("selectionEnglish");
 const selectionGrammar = document.getElementById("selectionGrammar");
+const selectionLemmaDiff = document.getElementById("selectionLemmaDiff");
+const lemmaDiffDivider = document.getElementById("lemmaDiffDivider");
 const grammarMeta = document.getElementById("grammarMeta");
 const metaLemma = document.getElementById("metaLemma");
 const metaHead = document.getElementById("metaHead");
@@ -127,6 +129,13 @@ const escapeRegExp = (value) => {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
+const normalizeCompare = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/-/g, "");
+
 const formatGrammarHtml = (text, highlights, { wholeWord = false } = {}) => {
   const safeText = escapeHtml(text || "");
   const items = (highlights || [])
@@ -216,6 +225,14 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   sheetGoverningLegend.classList.toggle("is-hidden", !hasLegend);
   selectionGrammar.classList.toggle("is-hidden", !isWord);
   sheetGrammar.classList.toggle("is-hidden", !isWord);
+  if (selectionLemmaDiff) {
+    const explanation = (meta?.formExplanation || "").trim();
+    selectionLemmaDiff.textContent = explanation;
+    selectionLemmaDiff.classList.toggle("is-hidden", !isWord || !explanation);
+    if (lemmaDiffDivider) {
+      lemmaDiffDivider.classList.toggle("is-hidden", !isWord || !explanation);
+    }
+  }
   translationPanel.classList.remove("is-hidden");
   bottomSheet.classList.remove("is-hidden");
 
@@ -541,11 +558,11 @@ const translateWithChatGPT = async (text, type, context) => {
             {
               role: "system",
               content:
-                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). If the word is a separable verb phrase (e.g. \"stand auf\"), return the combined lemma without a space (e.g. \"aufstehen\"). Use empty strings when lemma/article/gender/case cannot be determined.",
+                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). If the word is a separable verb phrase (e.g. \"stand auf\"), return the combined lemma without a space (e.g. \"aufstehen\"). Use empty strings when lemma/article/gender/case cannot be determined.",
             },
             {
               role: "user",
-              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. If the word is a separable verb phrase, return the combined lemma (prefix+verb).\nWord: ${text}\nSentence: ${context || "N/A"}`,
+              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. Also explain how the word form differs from its lemma (tense, case, number, or other change). If the word is a separable verb phrase, return the combined lemma (prefix+verb).\nWord: ${text}\nSentence: ${context || "N/A"}`,
             },
           ]
         : [
@@ -718,6 +735,7 @@ reader.addEventListener("click", (event) => {
         case: result?.case || "",
         caseWord: result?.case_governing_word || "",
         genderWord: result?.gender_governing_word || "",
+        formExplanation: result?.form_explanation || "",
       };
 
       if (word.dataset.pos === "article") {
@@ -820,6 +838,13 @@ const resetTranslation = () => {
   );
   selectionGrammar.classList.add("is-hidden");
   sheetGrammar.classList.add("is-hidden");
+  if (selectionLemmaDiff) {
+    selectionLemmaDiff.classList.add("is-hidden");
+    selectionLemmaDiff.textContent = "";
+  }
+  if (lemmaDiffDivider) {
+    lemmaDiffDivider.classList.add("is-hidden");
+  }
   grammarMeta.classList.add("is-hidden");
   sheetGrammarMeta.classList.add("is-hidden");
   translationPanel.classList.add("is-hidden");
