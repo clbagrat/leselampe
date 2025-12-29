@@ -1000,6 +1000,7 @@ const translateWithChatGPT = async (text, type, context) => {
               content:
                 "You are a German-to-Russian translation and grammar assistant. " +
                 "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. " +
+                "LANGUAGE REQUIREMENTS: translation, declension_explanation, and form_explanation must be in Russian. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word) must be in GERMAN only - never translate these to Russian. " +
                 "The declension explanation must be in Russian, short, and if no declension applies, explain why. " +
                 "The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. " +
                 "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
