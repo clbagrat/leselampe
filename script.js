@@ -79,6 +79,7 @@ const clearLemmasButton = document.getElementById("clearLemmas");
 const wordCountSlider = document.getElementById("wordCount");
 const wordCountValue = document.getElementById("wordCountValue");
 const levelButtons = document.querySelectorAll("[data-level]");
+const styleButtons = document.querySelectorAll("[data-style]");
 
 let lastGerman = "";
 let lastTranslation = "";
@@ -95,6 +96,7 @@ const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
 const STORY_WORD_COUNT_KEY = "reader_story_word_count";
+const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const storyTitle = document.querySelector(".book-header h1");
 
@@ -1092,12 +1094,17 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
   try {
     const wordCount = Number(options.wordCount) || 120;
     const level = options.level || "A2";
+    const style = options.style || "literary";
     const lemmas = Array.isArray(options.lemmas) ? options.lemmas : [];
     const lemmaRequest = lemmas.length
       ? `\nTry to include up to ${Math.min(10, lemmas.length)} of these lemmas (if possible, do not force): ${lemmas.join(
           ", "
         )}.`
       : "";
+    const styleInstruction =
+      style === "casual"
+        ? "Use a casual, conversational spoken style in German. Prefer Perfekt for past events and avoid heavy Präteritum."
+        : "Use a literary, bookish style in German. Prefer Präteritum for narration.";
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -1111,7 +1118,7 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
           {
             role: "system",
             content:
-              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array). Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar. If target lemmas are provided, try to use them naturally.`,
+              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array). Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar. ${styleInstruction} If target lemmas are provided, try to use them naturally.`,
           },
           {
             role: "user",
@@ -1451,7 +1458,7 @@ const applyReaderSize = (size) => {
 };
 
 const applyStoryWordCount = (value) => {
-  const clamped = Math.min(300, Math.max(50, Number(value) || 120));
+  const clamped = Math.min(600, Math.max(50, Number(value) || 120));
   if (wordCountSlider) {
     wordCountSlider.value = String(clamped);
   }
@@ -1472,6 +1479,17 @@ const applyStoryLevel = (level) => {
   localStorage.setItem(STORY_LEVEL_KEY, next);
 };
 
+const applyStoryStyle = (style) => {
+  const allowed = ["literary", "casual"];
+  const normalized = String(style || "").toLowerCase();
+  const next = allowed.includes(normalized) ? normalized : "casual";
+  document.body.dataset.storyStyle = next;
+  styleButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.style === next);
+  });
+  localStorage.setItem(STORY_STYLE_KEY, next);
+};
+
 fontOptions.forEach((option) => {
   option.addEventListener("click", () => {
     applyReaderFont(option.dataset.font);
@@ -1490,8 +1508,10 @@ applyReaderFont(storedFont);
 applyReaderSize(storedSize);
 const storedWordCount = localStorage.getItem(STORY_WORD_COUNT_KEY) || "120";
 const storedLevel = localStorage.getItem(STORY_LEVEL_KEY) || "A2";
+const storedStyle = localStorage.getItem(STORY_STYLE_KEY) || "casual";
 applyStoryWordCount(storedWordCount);
 applyStoryLevel(storedLevel);
+applyStoryStyle(storedStyle);
 
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
@@ -1615,6 +1635,12 @@ levelButtons.forEach((button) => {
   });
 });
 
+styleButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyStoryStyle(button.dataset.style);
+  });
+});
+
 const setMode = (mode) => {
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
@@ -1632,6 +1658,9 @@ const setMode = (mode) => {
     wordCountSlider.disabled = mode !== "generate";
   }
   levelButtons.forEach((button) => {
+    button.disabled = mode !== "generate";
+  });
+  styleButtons.forEach((button) => {
     button.disabled = mode !== "generate";
   });
 };
@@ -1927,6 +1956,7 @@ generateStory.addEventListener("click", async () => {
   const story = await generateStoryFromPrompt(prompt, "", {
     wordCount: wordCountSlider?.value,
     level: document.body.dataset.storyLevel || "A2",
+    style: document.body.dataset.storyStyle || "literary",
     lemmas,
   });
   generateStory.disabled = false;
