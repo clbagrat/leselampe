@@ -55,7 +55,6 @@ const addStoryCta = document.getElementById("addStoryCta");
 const addTextButton = document.getElementById("addText");
 const openSavedButton = document.getElementById("openSaved");
 const openLemmasButton = document.getElementById("openLemmas");
-const lemmaBadge = document.getElementById("lemmaBadge");
 const addTextModal = document.getElementById("addTextModal");
 const closeAddText = document.getElementById("closeAddText");
 const savedTextsModal = document.getElementById("savedTextsModal");
@@ -100,7 +99,7 @@ const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const storyTitle = document.querySelector(".book-header h1");
 
 const clearGoverningHighlight = () => {
-  reader
+  document
     .querySelectorAll(".word.governing, .word.governing-case, .word.governing-gender")
     .forEach((word) => {
       word.classList.remove("governing", "governing-case", "governing-gender");
@@ -303,20 +302,20 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
 };
 
 const clearActiveWord = () => {
-  const active = reader.querySelector(".word.active");
+  const active = document.querySelector(".word.active");
   if (active) {
     active.classList.remove("active", "loading");
   }
-  reader.querySelectorAll(".word.loading").forEach((word) => {
+  document.querySelectorAll(".word.loading").forEach((word) => {
     word.classList.remove("loading");
   });
-  reader.querySelectorAll(".word.separable").forEach((word) => {
+  document.querySelectorAll(".word.separable").forEach((word) => {
     word.classList.remove("separable");
   });
 };
 
 const clearActiveSentence = () => {
-  reader.querySelectorAll(".sentence.active").forEach((sentence) => {
+  document.querySelectorAll(".sentence.active").forEach((sentence) => {
     sentence.classList.remove("active");
   });
   reader.classList.remove("has-active-sentence");
@@ -340,6 +339,19 @@ const clearLongPress = () => {
   if (longPressTimer) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
+  }
+};
+
+const isWithinReader = (element) => reader && element && reader.contains(element);
+
+const setActiveSentence = (sentenceEl) => {
+  if (!sentenceEl) {
+    return;
+  }
+  clearActiveSentence();
+  sentenceEl.classList.add("active");
+  if (isWithinReader(sentenceEl)) {
+    reader.classList.add("has-active-sentence");
   }
 };
 
@@ -413,14 +425,13 @@ const recordLemmaTranslation = (lemma) => {
 };
 
 const updateLemmaBadge = () => {
-  if (!lemmaBadge) {
+  if (!openLemmasButton) {
     return;
   }
   const total = Object.values(loadLemmaStats()).filter(
     (entry) => entry && !entry.isLearned
   ).length;
-  lemmaBadge.textContent = String(total);
-  lemmaBadge.classList.toggle("is-hidden", total === 0);
+  openLemmasButton.dataset.badge = String(total);
 };
 
 const textIncludesLemma = (text, lemma) => {
@@ -891,9 +902,55 @@ const findSeparableVerbPhrase = (clickedWord, sentenceEl) => {
   return null;
 };
 
+const buildSentenceSpan = (sentence) => {
+  const sentenceSpan = document.createElement("span");
+  sentenceSpan.className = "sentence";
+  sentenceSpan.dataset.translation = "";
+
+  const tokens =
+    sentence.match(/[\p{L}]+(?:-[\p{L}]+)?|\d+|[^\s\p{L}\d]+/gu) || [];
+  let previousToken = null;
+
+  tokens.forEach((token) => {
+    const needsSpace =
+      previousToken &&
+      !noSpaceBefore.has(token) &&
+      !noSpaceAfter.has(previousToken);
+
+    if (needsSpace) {
+      sentenceSpan.appendChild(document.createTextNode(" "));
+    }
+
+    if (isWordToken(token)) {
+      const span = document.createElement("span");
+      span.className = "word";
+      span.dataset.translation = "";
+      span.textContent = token;
+      const lower = token.toLowerCase();
+      if (articleMap[lower]) {
+        span.dataset.pos = "article";
+        span.dataset.articleBase = articleMap[lower];
+      } else if (/^\p{Lu}/u.test(token)) {
+        span.dataset.pos = "noun";
+        span.dataset.lemma = token;
+      }
+      sentenceSpan.appendChild(span);
+    } else {
+      sentenceSpan.appendChild(document.createTextNode(token));
+    }
+
+    previousToken = token;
+  });
+
+  return sentenceSpan;
+};
+
 const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
-  storyTitle.textContent = story.title;
+  storyTitle.innerHTML = "";
+  if (story.title) {
+    storyTitle.appendChild(buildSentenceSpan(story.title));
+  }
   reader.innerHTML = "";
   resetTranslation();
 
@@ -901,44 +958,7 @@ const renderStory = (story) => {
   const paragraph = document.createElement("p");
   paragraph.className = "story";
   sentences.forEach((sentence, index) => {
-    const sentenceSpan = document.createElement("span");
-    sentenceSpan.className = "sentence";
-    sentenceSpan.dataset.translation = "";
-
-    const tokens = sentence.match(/[\p{L}]+(?:-[\p{L}]+)?|\d+|[^\s\p{L}\d]+/gu) || [];
-    let previousToken = null;
-
-    tokens.forEach((token) => {
-      const needsSpace =
-        previousToken &&
-        !noSpaceBefore.has(token) &&
-        !noSpaceAfter.has(previousToken);
-
-      if (needsSpace) {
-        sentenceSpan.appendChild(document.createTextNode(" "));
-      }
-
-      if (isWordToken(token)) {
-        const span = document.createElement("span");
-        span.className = "word";
-        span.dataset.translation = "";
-        span.textContent = token;
-        const lower = token.toLowerCase();
-        if (articleMap[lower]) {
-          span.dataset.pos = "article";
-          span.dataset.articleBase = articleMap[lower];
-        } else if (/^\p{Lu}/u.test(token)) {
-          span.dataset.pos = "noun";
-          span.dataset.lemma = token;
-        }
-        sentenceSpan.appendChild(span);
-      } else {
-        sentenceSpan.appendChild(document.createTextNode(token));
-      }
-
-      previousToken = token;
-    });
-
+    const sentenceSpan = buildSentenceSpan(sentence);
     paragraph.appendChild(sentenceSpan);
     if (index < sentences.length - 1) {
       paragraph.appendChild(document.createTextNode(" "));
@@ -1122,12 +1142,12 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
   }
 };
 
-reader.addEventListener("click", (event) => {
+const handleSentenceContainerClick = (event) => {
   if (longPressTriggered) {
     longPressTriggered = false;
     return;
   }
-  const activeSentence = reader.querySelector(".sentence.active");
+  const activeSentence = document.querySelector(".sentence.active");
   const word = event.target.closest(".word");
   if (activeSentence && !word) {
     resetTranslation();
@@ -1141,10 +1161,7 @@ reader.addEventListener("click", (event) => {
     }
     clearGoverningHighlight();
     clearSentenceTranslationHighlight();
-    if (sentenceEl) {
-      sentenceEl.classList.add("active");
-      reader.classList.add("has-active-sentence");
-    }
+    setActiveSentence(sentenceEl);
     word.classList.add("active");
     setWordLoading(word, true);
     const separable = findSeparableVerbPhrase(word, sentenceEl);
@@ -1234,14 +1251,15 @@ reader.addEventListener("click", (event) => {
   const sentence = event.target.closest(".sentence");
   if (sentence) {
     const german = sentence.textContent.trim();
-    clearActiveSentence();
-    sentence.classList.add("active");
-    reader.classList.add("has-active-sentence");
+    setActiveSentence(sentence);
     translateSentenceText(german, sentence.dataset.translation, sentence);
   }
-});
+};
 
-reader.addEventListener("pointerdown", (event) => {
+reader.addEventListener("click", handleSentenceContainerClick);
+storyTitle.addEventListener("click", handleSentenceContainerClick);
+
+const handleSentencePointerDown = (event) => {
   const word = event.target.closest(".word");
   if (!word) {
     return;
@@ -1255,32 +1273,34 @@ reader.addEventListener("pointerdown", (event) => {
     longPressTriggered = true;
     clearActiveWord();
     clearGoverningHighlight();
-    clearActiveSentence();
-    sentenceEl.classList.add("active");
-    reader.classList.add("has-active-sentence");
+    setActiveSentence(sentenceEl);
     translateSentenceText(
       sentenceEl.textContent.trim(),
       sentenceEl.dataset.translation,
       sentenceEl
     );
   }, 450);
-});
+};
 
-reader.addEventListener("pointerup", () => {
+const handleSentencePointerCancel = () => {
   clearLongPress();
-});
+};
 
-reader.addEventListener("pointerleave", () => {
-  clearLongPress();
-});
-
-reader.addEventListener("pointercancel", () => {
-  clearLongPress();
-});
-
-reader.addEventListener("contextmenu", (event) => {
+const handleSentenceContextMenu = (event) => {
   event.preventDefault();
-});
+};
+
+reader.addEventListener("pointerdown", handleSentencePointerDown);
+reader.addEventListener("pointerup", handleSentencePointerCancel);
+reader.addEventListener("pointerleave", handleSentencePointerCancel);
+reader.addEventListener("pointercancel", handleSentencePointerCancel);
+reader.addEventListener("contextmenu", handleSentenceContextMenu);
+
+storyTitle.addEventListener("pointerdown", handleSentencePointerDown);
+storyTitle.addEventListener("pointerup", handleSentencePointerCancel);
+storyTitle.addEventListener("pointerleave", handleSentencePointerCancel);
+storyTitle.addEventListener("pointercancel", handleSentencePointerCancel);
+storyTitle.addEventListener("contextmenu", handleSentenceContextMenu);
 
 const translateSentenceText = (
   german,
@@ -1317,11 +1337,6 @@ const translateSentenceText = (
     updateTranslation("sentence", german, translation, grammar, null);
   });
 };
-
-storyTitle.addEventListener("click", () => {
-  const german = storyTitle.textContent.trim();
-  translateSentenceText(german);
-});
 
 const resetTranslation = () => {
   if (pendingController) {

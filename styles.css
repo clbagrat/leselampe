@@ -111,6 +111,7 @@ body {
   gap: 12px;
   position: relative;
   z-index: 1;
+  font-family: var(--serif);
 }
 
 .eyebrow {
@@ -126,6 +127,10 @@ h1 {
   font-family: var(--serif);
   font-weight: 700;
   font-size: clamp(26px, 3vw, 34px);
+}
+
+.book-header h1 {
+  font-family: inherit;
 }
 
 .book-header h1 {
@@ -304,6 +309,10 @@ h1 {
 }
 
 body[data-reader-font="sans"] .reader {
+  font-family: var(--mono);
+}
+
+body[data-reader-font="sans"] .book-header {
   font-family: var(--mono);
 }
 
@@ -583,6 +592,9 @@ body[data-reader-size] .reader {
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
   display: grid;
   gap: 18px;
+  max-height: 90vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-header {
@@ -769,7 +781,15 @@ h2 {
   gap: 8px;
 }
 
-.badge {
+#openLemmas {
+  position: relative;
+}
+
+#openLemmas::after {
+  content: attr(data-badge);
+  position: absolute;
+  top: -6px;
+  right: -10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -782,6 +802,13 @@ h2 {
   font-size: 11px;
   line-height: 1;
   font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+#openLemmas[data-badge]:not([data-badge="0"])::after {
+  opacity: 1;
 }
 
 .saved-item button {
@@ -968,6 +995,16 @@ button {
 @media (max-width: 600px) {
   .page {
     padding: 16px 16px 120px;
+  }
+
+  .top-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .modal-content {
