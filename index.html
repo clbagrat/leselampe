@@ -25,7 +25,7 @@
         <div class="top-actions">
           <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
           <button class="ghost" type="button" id="openSaved">Saved</button>
-          <button class="ghost circle" type="button" id="toggleApi" aria-label="API settings">⚙</button>
+          <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
         </div>
       </header>
 
@@ -47,8 +47,9 @@
         <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite">
           <div class="panel-body">
             <p class="panel-german" id="selectionGerman">Tap a word</p>
+            <div class="panel-divider sentence-divider is-hidden" id="sentenceDivider" aria-hidden="true"></div>
             <p class="panel-english" id="selectionEnglish">Перевод на русский появится здесь.</p>
-            <div class="panel-divider" aria-hidden="true"></div>
+            <div class="panel-divider" id="translationDivider" aria-hidden="true"></div>
             <div class="governing-legend" id="panelGoverningLegend" aria-hidden="true">
               <span class="legend-item"><span class="legend-swatch governing-gender" id="panelGenderWord">—</span> слово, определяющее род</span>
               <span class="legend-item"><span class="legend-swatch governing-case" id="panelCaseWord">—</span> слово, задающее падеж</span>
@@ -84,7 +85,9 @@
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
         <p class="sheet-german" id="sheetGerman">Tap a word or sentence</p>
+        <div class="panel-divider sheet-divider sentence-divider is-hidden" id="sheetSentenceDivider" aria-hidden="true"></div>
         <p class="sheet-english" id="sheetEnglish">Перевод на русский появится здесь.</p>
+        <div class="panel-divider sheet-divider" id="sheetDivider" aria-hidden="true"></div>
         <div class="governing-legend" id="sheetGoverningLegend" aria-hidden="true">
           <span class="legend-item"><span class="legend-swatch governing-gender" id="sheetGenderWord">—</span> слово, определяющее род</span>
           <span class="legend-item"><span class="legend-swatch governing-case" id="sheetCaseWord">—</span> слово, задающее падеж</span>
@@ -113,7 +116,7 @@
         </div>
         <p class="sheet-grammar" id="sheetGrammar">Объяснение склонения появится здесь.</p>
         <div class="sheet-actions">
-          <button class="ghost" id="clearSelection">Clear</button>
+          <button class="ghost mini" id="copySelection">Copy word</button>
         </div>
       </section>
 

@@ -15,6 +15,10 @@ const metaHeadPill = document.getElementById("metaHeadPill");
 const metaArticlePill = document.getElementById("metaArticlePill");
 const metaGenderPill = document.getElementById("metaGenderPill");
 const metaCasePill = document.getElementById("metaCasePill");
+const sentenceDivider = document.getElementById("sentenceDivider");
+const translationDivider = document.getElementById("translationDivider");
+const sheetSentenceDivider = document.getElementById("sheetSentenceDivider");
+const sheetDivider = document.getElementById("sheetDivider");
 const sheetGerman = document.getElementById("sheetGerman");
 const sheetEnglish = document.getElementById("sheetEnglish");
 const sheetGrammar = document.getElementById("sheetGrammar");
@@ -35,7 +39,7 @@ const sheetGenderWord = document.getElementById("sheetGenderWord");
 const sheetCaseWord = document.getElementById("sheetCaseWord");
 const panelGoverningLegend = document.getElementById("panelGoverningLegend");
 const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
-const clearSelection = document.getElementById("clearSelection");
+const copySelection = document.getElementById("copySelection");
 const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
@@ -197,6 +201,14 @@ const setMetaPill = (pillEl, valueEl, value) => {
   pillEl.classList.toggle("is-hidden", !safeValue);
 };
 
+const updateCopyButtonLabel = (type) => {
+  if (!copySelection) {
+    return;
+  }
+  const label = type === "sentence" ? "Copy sentence" : "Copy word";
+  copySelection.textContent = label;
+};
+
 const updateTranslation = (type, german, translation, grammar, meta) => {
   lastGerman = german;
   lastTranslation = translation;
@@ -241,6 +253,11 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   bottomSheet.classList.remove("is-hidden");
   translationPanel.classList.toggle("is-sentence", isSentence);
   bottomSheet.classList.toggle("is-sentence", isSentence);
+  sentenceDivider?.classList.toggle("is-hidden", !isSentence);
+  sheetSentenceDivider?.classList.toggle("is-hidden", !isSentence);
+  translationDivider?.classList.toggle("is-hidden", !isWord);
+  sheetDivider?.classList.toggle("is-hidden", !isWord);
+  updateCopyButtonLabel(type);
 
   const hasMeta =
     meta &&
@@ -1000,6 +1017,10 @@ reader.addEventListener("pointercancel", () => {
   clearLongPress();
 });
 
+reader.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+
 const translateSentenceText = (
   german,
   fallbackTranslation = "",
@@ -1070,10 +1091,39 @@ const resetTranslation = () => {
   sheetGrammarMeta.classList.add("is-hidden");
   translationPanel.classList.add("is-hidden");
   bottomSheet.classList.add("is-hidden");
+  updateCopyButtonLabel("word");
 };
 
-clearSelection.addEventListener("click", () => {
-  resetTranslation();
+const copyTextToClipboard = async (text) => {
+  const value = String(text || "").trim();
+  if (!value) {
+    return;
+  }
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch (error) {
+      // Fall back to the legacy path below.
+    }
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "absolute";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+};
+
+copySelection?.addEventListener("click", () => {
+  const type = translationPanel.classList.contains("is-sentence")
+    ? "sentence"
+    : "word";
+  const text = type === "sentence" ? lastGerman : lastGerman;
+  copyTextToClipboard(text);
 });
 
 resetTranslation();

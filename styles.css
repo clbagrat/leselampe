@@ -193,6 +193,7 @@ h1 {
 
 .api-modal-body #apiKey {
   width: 100%;
+  box-sizing: border-box;
 }
 
 .api-modal-actions {
@@ -297,6 +298,9 @@ h1 {
   line-height: 1.7;
   position: relative;
   z-index: 1;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 body[data-reader-font="sans"] .reader {
@@ -490,6 +494,14 @@ body[data-reader-size] .reader {
   height: 1px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 999px;
+}
+
+.sentence-divider {
+  margin: 6px 0 4px;
+}
+
+.sheet-divider {
+  margin: 6px 0;
 }
 
 .translation-panel.is-sentence .panel-divider:not(#lemmaDiffDivider) {
@@ -728,6 +740,14 @@ button {
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+  color: var(--ink);
+  background: transparent;
+}
+
+.mini {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 10px;
 }
 
 .circle {
@@ -751,6 +771,7 @@ button {
 .ghost {
   background: transparent;
   border: 1px solid rgba(0, 0, 0, 0.2);
+  color: var(--ink);
 }
 
 .bottom-sheet {
