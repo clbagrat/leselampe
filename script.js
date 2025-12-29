@@ -364,7 +364,8 @@ const splitIntoSentences = (text) => {
   if (!cleaned) {
     return [];
   }
-  const matches = cleaned.match(/[^.!?]+[.!?]*/g) || [];
+  const matches =
+    cleaned.match(/[^.!?]+[.!?]+(?:["'»”’„“]+)?|[^.!?]+$/g) || [];
   return matches.map((sentence) => sentence.trim()).filter(Boolean);
 };
 
