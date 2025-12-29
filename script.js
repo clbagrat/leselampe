@@ -1004,8 +1004,8 @@ const translateWithChatGPT = async (text, type, context) => {
                 "The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. " +
                 "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
                 "The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). " +
-                "If the clicked word is part of a separable verb (either the verb or the detached prefix), set has_detached_prefix to true, provide the OTHER part in detached_prefix_word (the exact word from the sentence), and provide the combined infinitive in combined_word (e.g., if clicking 'stand' with prefix 'auf', return 'auf' in detached_prefix_word and 'aufstehen' in combined_word; if clicking 'auf' with verb 'stand', return 'stand' in detached_prefix_word and 'aufstehen' in combined_word). " +
-                "The translation should be for the combined word. Use empty strings when lemma/article/gender/case cannot be determined.",
+                "For separable verbs: If the clicked word is part of a separable verb (either the verb or the detached prefix), set has_detached_prefix=true, provide the OTHER part in detached_prefix_word (exact text from sentence), and provide the combined infinitive in combined_word. Example: clicking 'stand' (with 'auf' elsewhere) → detached_prefix_word='auf', combined_word='aufstehen'. Example: clicking 'auf' (with 'stand' elsewhere) → detached_prefix_word='stand', combined_word='aufstehen'. The translation should be for the combined word. " +
+                "Use empty strings when lemma/article/gender/case cannot be determined.",
             },
             {
               role: "user",
@@ -1219,7 +1219,7 @@ const handleSentenceContainerClick = (event) => {
         ? result.combined_word
         : german;
       const meta = {
-        lemma: result?.combined_word || result?.lemma || "",
+        lemma: (result?.has_detached_prefix && result?.combined_word) ? result.combined_word : (result?.lemma || ""),
         head: "",
         article: result?.article || "",
         gender: result?.gender || "",
