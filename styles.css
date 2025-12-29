@@ -658,6 +658,10 @@ h2 {
   min-height: 110px;
 }
 
+#promptBody {
+  box-sizing: border-box;
+}
+
 .form-row {
   display: flex;
   gap: 12px;
