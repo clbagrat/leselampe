@@ -201,6 +201,22 @@ h1 {
   box-sizing: border-box;
 }
 
+.api-key-help {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.api-key-help a {
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 1;
+}
+
+.api-key-help a:hover {
+  text-decoration: underline;
+}
+
 .api-modal-actions {
   display: flex;
   flex-wrap: wrap;
