@@ -22,7 +22,11 @@
             <p class="brand-subtitle">German micro-reader</p>
           </div>
         </div>
-        <button class="ghost" type="button" id="toggleTheme">A/B</button>
+        <div class="top-actions">
+          <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
+          <button class="ghost circle" type="button" id="toggleApi" aria-label="API settings">⚙</button>
+          <button class="ghost" type="button" id="toggleTheme">A/B</button>
+        </div>
       </header>
 
       <main class="layout">
@@ -30,89 +34,18 @@
           <div class="book-header">
             <div>
               <p class="eyebrow">Heute lesen wir</p>
-              <h1>Die kleine Bruecke</h1>
-            </div>
-            <div class="chips">
-              <span class="chip">A2</span>
-              <span class="chip">Tap words</span>
+              <h1></h1>
             </div>
           </div>
 
-          <div class="api-panel">
-            <div>
-              <label class="api-label" for="apiKey">ChatGPT API key</label>
-              <input
-                id="apiKey"
-                type="password"
-                placeholder="sk-..."
-                autocomplete="off"
-              />
-            </div>
-            <button class="ghost" type="button" id="saveKey">Save</button>
+          <article class="reader" id="reader" aria-live="polite"></article>
+          <div class="empty-state is-hidden" id="emptyState">
+            <p>No texts yet.</p>
+            <button class="primary" type="button" id="addTextEmpty">Add new text</button>
           </div>
-
-          <div class="instructions">
-            <p>
-              Tippe auf ein Wort, um die Uebersetzung zu sehen. Tippe auf einen Satz,
-              um die ganze Zeile zu uebersetzen.
-            </p>
-          </div>
-
-          <article class="reader" id="reader" aria-live="polite">
-            <p class="sentence" data-translation="The small bridge stood above the river and waited for footsteps.">
-              <span class="word" data-translation="the" data-pos="article" data-article-base="die">Die</span>
-              <span class="word" data-translation="small">kleine</span>
-              <span class="word" data-translation="bridge" data-pos="noun" data-lemma="Bruecke">Bruecke</span>
-              <span class="word" data-translation="stood">stand</span>
-              <span class="word" data-translation="above">ueber</span>
-              <span class="word" data-translation="the" data-pos="article" data-article-base="der">dem</span>
-              <span class="word" data-translation="river" data-pos="noun" data-lemma="Fluss">Fluss</span>
-              <span class="word" data-translation="and">und</span>
-              <span class="word" data-translation="waited">wartete</span>
-              <span class="word" data-translation="for">auf</span>
-              <span class="word" data-translation="footsteps" data-pos="noun" data-lemma="Schritt">Schritte</span>.
-            </p>
-            <p class="sentence" data-translation="Mara walked slowly, because the morning was still sleepy.">
-              <span class="word" data-translation="Mara">Mara</span>
-              <span class="word" data-translation="walked">ging</span>
-              <span class="word" data-translation="slowly">langsam</span>,
-              <span class="word" data-translation="because">weil</span>
-              <span class="word" data-translation="the" data-pos="article" data-article-base="der">der</span>
-              <span class="word" data-translation="morning" data-pos="noun" data-lemma="Morgen">Morgen</span>
-              <span class="word" data-translation="was">noch</span>
-              <span class="word" data-translation="sleepy">muede</span>
-              <span class="word" data-translation="was">war</span>.
-            </p>
-            <p class="sentence" data-translation="She heard the water and felt that the city woke up behind her.">
-              <span class="word" data-translation="She">Sie</span>
-              <span class="word" data-translation="heard">hoerte</span>
-              <span class="word" data-translation="the" data-pos="article" data-article-base="das">das</span>
-              <span class="word" data-translation="water" data-pos="noun" data-lemma="Wasser">Wasser</span>
-              <span class="word" data-translation="and">und</span>
-              <span class="word" data-translation="felt">spuerte</span>,
-              <span class="word" data-translation="that">dass</span>
-              <span class="word" data-translation="the" data-pos="article" data-article-base="die">die</span>
-              <span class="word" data-translation="city" data-pos="noun" data-lemma="Stadt">Stadt</span>
-              <span class="word" data-translation="woke">erwachte</span>
-              <span class="word" data-translation="up">auf</span>
-              <span class="word" data-translation="behind">hinter</span>
-              <span class="word" data-translation="her">ihr</span>.
-            </p>
-            <p class="sentence" data-translation="Then she whispered: Today I will cross with courage.">
-              <span class="word" data-translation="Then">Dann</span>
-              <span class="word" data-translation="she">sie</span>
-              <span class="word" data-translation="whispered">fluesterte</span>:
-              <span class="word" data-translation="today">Heute</span>
-              <span class="word" data-translation="I">ich</span>
-              <span class="word" data-translation="will">werde</span>
-              <span class="word" data-translation="cross">ueberqueren</span>
-              <span class="word" data-translation="with">mit</span>
-              <span class="word" data-translation="courage" data-pos="noun" data-lemma="Mut">Mut</span>.
-            </p>
-          </article>
         </section>
 
-        <aside class="translation-panel" aria-live="polite">
+        <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite">
           <div class="panel-header">
             <p class="panel-title">Russian + Grammar</p>
             <div class="pill" id="selectionType">word</div>
@@ -145,7 +78,6 @@
             <p class="panel-grammar" id="selectionGrammar">Объяснение склонения появится здесь.</p>
           </div>
           <div class="panel-footer">
-            <button class="primary" id="listen">Listen</button>
             <button class="ghost" id="clearSelection">Clear</button>
           </div>
         </aside>
@@ -180,6 +112,78 @@
         </div>
         <p class="sheet-grammar" id="sheetGrammar">Объяснение склонения появится здесь.</p>
       </section>
+
+      <div class="modal is-hidden" id="apiKeyModal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <p class="eyebrow">API settings</p>
+              <h2>ChatGPT key</h2>
+            </div>
+            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
+          </div>
+          <div class="api-modal-body">
+            <label class="api-label" for="apiKey">ChatGPT API key</label>
+            <input
+              id="apiKey"
+              type="password"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+            <div class="api-modal-actions">
+              <button class="ghost" type="button" id="toggleKeyVisibility">Show</button>
+              <button class="ghost" type="button" id="clearKey">Clear key</button>
+              <button class="primary" type="button" id="saveKey">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal is-hidden" id="addTextModal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <p class="eyebrow">Add new text</p>
+              <h2>Bring new stories</h2>
+            </div>
+            <button class="ghost circle" type="button" id="closeAddText" data-close-modal aria-label="Close">×</button>
+          </div>
+          <div class="mode-switch">
+            <button class="mode-button active" type="button" data-mode="generate">Generate story</button>
+            <button class="mode-button" type="button" data-mode="paste">Paste text</button>
+          </div>
+
+          <div class="mode-panel" id="modeGenerate">
+            <div class="form-row prompt-row">
+              <label class="form-label" for="promptBody">Story prompt</label>
+              <button class="ghost" type="button" id="suggestPrompt">Suggest</button>
+            </div>
+            <textarea
+              id="promptBody"
+              rows="4"
+              placeholder="A short story about a student on a rainy day, level A2."
+            ></textarea>
+            <div class="form-row">
+              <input id="promptTitle" type="text" placeholder="Title (optional)" />
+              <button class="primary" type="button" id="generateStory">Generate</button>
+            </div>
+            <p class="helper-text">Uses your ChatGPT API key from above.</p>
+          </div>
+
+          <div class="mode-panel is-hidden" id="modePaste">
+            <label class="form-label" for="pasteTitle">Title</label>
+            <input id="pasteTitle" type="text" placeholder="Your title" />
+            <label class="form-label" for="pasteBody">German text</label>
+            <textarea id="pasteBody" rows="6" placeholder="Paste German text here."></textarea>
+            <button class="primary" type="button" id="savePaste">Add to reader</button>
+          </div>
+
+          <div class="saved-section">
+            <p class="saved-title">Saved texts</p>
+            <div class="saved-list" id="savedTexts"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>

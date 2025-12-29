@@ -41,6 +41,12 @@ body {
   margin-bottom: 20px;
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -122,6 +128,10 @@ h1 {
   font-size: clamp(26px, 3vw, 34px);
 }
 
+.book-header h1 {
+  cursor: pointer;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -176,6 +186,31 @@ h1 {
   background: #fff;
 }
 
+.api-modal-body {
+  display: grid;
+  gap: 12px;
+}
+
+.api-modal-body #apiKey {
+  width: 100%;
+}
+
+.api-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.requires-key .page > :not(.modal) {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.requires-key .modal {
+  z-index: 8;
+}
+
 .reader {
   margin-top: 28px;
   font-family: var(--serif);
@@ -183,6 +218,24 @@ h1 {
   line-height: 1.7;
   position: relative;
   z-index: 1;
+}
+
+.empty-state {
+  margin-top: 28px;
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  text-align: center;
+  display: grid;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.7;
 }
 
 .sentence {
@@ -312,6 +365,160 @@ h1 {
   display: none;
 }
 
+.modal.is-hidden {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 15, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 6;
+  padding: 24px;
+}
+
+.modal-content {
+  width: min(720px, 100%);
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+  display: grid;
+  gap: 18px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+h2 {
+  margin: 6px 0 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 28px;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 6px;
+  border-radius: 999px;
+}
+
+.mode-button {
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+
+.mode-button.active {
+  background: var(--panel-strong);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.mode-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.mode-panel.is-hidden {
+  display: none;
+}
+
+.form-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  opacity: 0.6;
+}
+
+#pasteTitle,
+#pasteBody,
+#promptBody,
+#promptTitle {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 14px;
+  background: #fff;
+}
+
+#pasteBody,
+#promptBody {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.prompt-row {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prompt-row .form-label {
+  margin: 0;
+}
+
+.form-row input {
+  flex: 1;
+}
+
+.helper-text {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.saved-section {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.saved-list {
+  display: grid;
+  gap: 8px;
+}
+
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.saved-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.saved-item button {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 .panel-grammar {
   margin: 0;
   font-size: 13px;
@@ -331,6 +538,15 @@ button {
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.circle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .primary {
@@ -452,6 +668,15 @@ button {
 @media (max-width: 600px) {
   .page {
     padding: 16px 16px 120px;
+  }
+
+  .modal-content {
+    padding: 18px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .book-panel {
