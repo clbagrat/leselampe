@@ -1707,6 +1707,33 @@ const promptIdeas = [
   "A musician practices in the courtyard and hears applause.",
 ];
 
+const promptGenres = [
+  "slice-of-life",
+  "adventure",
+  "comedy",
+  "romance",
+  "mystery",
+  "fantasy",
+  "sci-fi",
+  "historical",
+  "thriller",
+  "folklore",
+  "coming-of-age",
+  "travel",
+  "workplace",
+  "sports",
+  "food",
+  "music",
+  "nature",
+  "family",
+  "friendship",
+  "surreal",
+];
+
+const getRandomItem = (items) => {
+  return items[Math.floor(Math.random() * items.length)];
+};
+
 const getRandomPrompt = () => {
   return promptIdeas[Math.floor(Math.random() * promptIdeas.length)];
 };
@@ -1738,11 +1765,13 @@ const suggestPromptFromChatGPT = async (options = {}) => {
           {
             role: "system",
             content:
-              "Generate one short story prompt in English for German learners. Respond with only the prompt text, single line, include level like A2/B1/B2 (e.g., \"A detective story in the style of Harry Potter, B2.\").",
+              "Write one short story prompt in English for German learners. Return only the prompt text on one line, include a level tag like A2/B1/B2. Keep it concise (max 16 words). Use the given genre; aim for variety; do not refuse any theme.",
           },
           {
             role: "user",
-            content: `Give me one new prompt. Target ${wordCount} words and CEFR ${level}.`,
+            content: `New prompt. Target ${wordCount} words. CEFR ${level}. Genre: ${getRandomItem(
+              promptGenres
+            )}.`,
           },
         ],
       }),
@@ -1779,7 +1808,8 @@ const fillPromptSuggestion = async () => {
   const suggestion =
     (await suggestPromptFromChatGPT({ level, wordCount })) || getRandomPrompt();
   const trimmedSuggestion = suggestion ? suggestion.replace(/\.$/, "") : "";
-  const levelTag = trimmedSuggestion.includes(`, ${level}`)
+  const levelRegex = /\b(?:A1|A2|B1|B2|C1|C2)\b/i;
+  const levelTag = levelRegex.test(trimmedSuggestion)
     ? trimmedSuggestion
     : `${trimmedSuggestion}, ${level}`;
   const normalized = levelTag
