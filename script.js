@@ -998,7 +998,14 @@ const translateWithChatGPT = async (text, type, context) => {
             {
               role: "system",
               content:
-                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). If the clicked word is part of a separable verb (either the verb or the detached prefix), set has_detached_prefix to true, provide the OTHER part in detached_prefix_word (the exact word from the sentence), and provide the combined infinitive in combined_word (e.g., if clicking 'stand' with prefix 'auf', return 'auf' in detached_prefix_word and 'aufstehen' in combined_word; if clicking 'auf' with verb 'stand', return 'stand' in detached_prefix_word and 'aufstehen' in combined_word). The translation should be for the combined word. Use empty strings when lemma/article/gender/case cannot be determined.",
+                "You are a German-to-Russian translation and grammar assistant. " +
+                "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. " +
+                "The declension explanation must be in Russian, short, and if no declension applies, explain why. " +
+                "The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. " +
+                "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
+                "The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). " +
+                "If the clicked word is part of a separable verb (either the verb or the detached prefix), set has_detached_prefix to true, provide the OTHER part in detached_prefix_word (the exact word from the sentence), and provide the combined infinitive in combined_word (e.g., if clicking 'stand' with prefix 'auf', return 'auf' in detached_prefix_word and 'aufstehen' in combined_word; if clicking 'auf' with verb 'stand', return 'stand' in detached_prefix_word and 'aufstehen' in combined_word). " +
+                "The translation should be for the combined word. Use empty strings when lemma/article/gender/case cannot be determined.",
             },
             {
               role: "user",
@@ -1186,18 +1193,19 @@ const handleSentenceContainerClick = (event) => {
         const detachedWord = result.detached_prefix_word.trim();
         if (detachedWord) {
           const normalized = detachedWord.toLowerCase();
-          const candidates = Array.from(sentenceEl.querySelectorAll(".word"));
-          detachedPrefixEl = candidates.find((candidate) => {
-            if (candidate === word) {
-              return false;
+          // Find the detached prefix/verb element in the same sentence
+          let candidateEl = null;
+          for (const candidate of sentenceEl.querySelectorAll(".word")) {
+            if (candidate !== word && candidate.textContent.trim().toLowerCase() === normalized) {
+              candidateEl = candidate;
+              break;
             }
-            const text = candidate.textContent.trim().toLowerCase();
-            return text === normalized;
-          });
+          }
           
-          if (detachedPrefixEl) {
+          if (candidateEl) {
             word.classList.add("separable");
-            detachedPrefixEl.classList.add("separable");
+            candidateEl.classList.add("separable");
+            detachedPrefixEl = candidateEl;
           }
         }
       }
@@ -1211,7 +1219,7 @@ const handleSentenceContainerClick = (event) => {
         ? result.combined_word
         : german;
       const meta = {
-        lemma: result?.lemma || result?.combined_word || "",
+        lemma: result?.combined_word || result?.lemma || "",
         head: "",
         article: result?.article || "",
         gender: result?.gender || "",
