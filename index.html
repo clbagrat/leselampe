@@ -39,9 +39,8 @@
           </div>
 
           <article class="reader" id="reader" aria-live="polite"></article>
-          <div class="empty-state is-hidden" id="emptyState">
-            <p>No texts yet.</p>
-            <button class="primary" type="button" id="addTextEmpty">Add new text</button>
+          <div class="reader-cta">
+            <button class="primary" type="button" id="addStoryCta">Add new story</button>
           </div>
         </section>
 
@@ -77,15 +76,10 @@
             </div>
             <p class="panel-grammar" id="selectionGrammar">Объяснение склонения появится здесь.</p>
           </div>
-          <div class="panel-footer">
-            <button class="ghost" id="clearSelection">Clear</button>
-          </div>
         </aside>
       </main>
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
-        <div class="sheet-handle"></div>
-        <p class="sheet-label">Quick translation</p>
         <p class="sheet-german" id="sheetGerman">Tap a word or sentence</p>
         <p class="sheet-english" id="sheetEnglish">Перевод на русский появится здесь.</p>
         <div class="grammar-meta" id="sheetGrammarMeta">
@@ -111,6 +105,9 @@
           </div>
         </div>
         <p class="sheet-grammar" id="sheetGrammar">Объяснение склонения появится здесь.</p>
+        <div class="sheet-actions">
+          <button class="ghost" id="clearSelection">Clear</button>
+        </div>
       </section>
 
       <div class="modal is-hidden" id="apiKeyModal" role="dialog" aria-modal="true">
@@ -134,6 +131,42 @@
               <button class="ghost" type="button" id="toggleKeyVisibility">Show</button>
               <button class="ghost" type="button" id="clearKey">Clear key</button>
               <button class="primary" type="button" id="saveKey">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal is-hidden" id="themeModal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <p class="eyebrow">Reading settings</p>
+              <h2>Font & size</h2>
+            </div>
+            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
+          </div>
+          <div class="theme-modal-body">
+            <div class="option-group">
+              <p class="form-label">Font</p>
+              <div class="option-row">
+                <button class="option-button" type="button" data-font="serif">Serif</button>
+                <button class="option-button" type="button" data-font="sans">Sans</button>
+              </div>
+            </div>
+            <div class="option-group">
+              <p class="form-label">Size</p>
+              <div class="slider-row">
+                <span class="slider-label">A</span>
+                <input
+                  class="size-slider"
+                  id="readerSize"
+                  type="range"
+                  min="10"
+                  max="30"
+                  step="1"
+                />
+                <span class="slider-label">A+</span>
+              </div>
             </div>
           </div>
         </div>

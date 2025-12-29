@@ -25,11 +25,14 @@ const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
 const apiKeyModal = document.getElementById("apiKeyModal");
 const apiKeyModalClose = apiKeyModal.querySelector("[data-close-modal]");
+const themeModal = document.getElementById("themeModal");
+const fontOptions = document.querySelectorAll("[data-font]");
+const readerSize = document.getElementById("readerSize");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
 const clearKey = document.getElementById("clearKey");
-const emptyState = document.getElementById("emptyState");
-const addTextEmpty = document.getElementById("addTextEmpty");
 const translationPanel = document.getElementById("translationPanel");
+const bottomSheet = document.getElementById("bottomSheet");
+const addStoryCta = document.getElementById("addStoryCta");
 const addTextButton = document.getElementById("addText");
 const addTextModal = document.getElementById("addTextModal");
 const closeAddText = document.getElementById("closeAddText");
@@ -52,6 +55,7 @@ const translationCache = new Map();
 let pendingController = null;
 let generationController = null;
 let suggestionController = null;
+let translationRequestId = 0;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const storyTitle = document.querySelector(".book-header h1");
@@ -90,6 +94,71 @@ const highlightGoverningWord = (
   }
 };
 
+const escapeHtml = (value) => {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
+const escapeRegExp = (value) => {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const formatGrammarHtml = (text, highlights, { wholeWord = false } = {}) => {
+  const safeText = escapeHtml(text || "");
+  const items = (highlights || [])
+    .map((item) => ({
+      word: item.word?.trim(),
+      className: item.className,
+    }))
+    .filter((item) => item.word && item.className);
+
+  if (!items.length || !safeText) {
+    return safeText;
+  }
+
+  const unique = new Map();
+  items.forEach((item) => {
+    const key = item.word.toLowerCase();
+    if (!unique.has(key)) {
+      unique.set(key, item.className);
+    }
+  });
+
+  const parts = Array.from(unique.keys())
+    .sort((a, b) => b.length - a.length)
+    .map((word) => escapeRegExp(word));
+  if (!parts.length) {
+    return safeText;
+  }
+
+  if (!wholeWord) {
+    const regex = new RegExp(`(${parts.join("|")})`, "gi");
+    return safeText.replace(regex, (match) => {
+      const className = unique.get(match.toLowerCase());
+      if (!className) {
+        return match;
+      }
+      return `<span class="${className}">${match}</span>`;
+    });
+  }
+
+  const regex = new RegExp(
+    `(^|[^\\p{L}\\d])(${parts.join("|")})(?=$|[^\\p{L}\\d])`,
+    "giu"
+  );
+  return safeText.replace(regex, (match, lead, word) => {
+    const className = unique.get(word.toLowerCase());
+    if (!className) {
+      return match;
+    }
+    return `${lead}<span class="${className}">${word}</span>`;
+  });
+};
+
 const updateTranslation = (type, german, translation, grammar, meta) => {
   lastGerman = german;
   lastTranslation = translation;
@@ -97,10 +166,25 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   selectionType.textContent = type;
   selectionGerman.textContent = german;
   selectionEnglish.textContent = translation;
-  selectionGrammar.textContent = grammar;
+  const isWord = type === "word";
+  const highlights = [
+    { word: meta?.caseWord, className: "governing-case" },
+    { word: meta?.genderWord, className: "governing-gender" },
+  ];
+  const panelGrammarHtml = isWord
+    ? formatGrammarHtml(grammar, highlights, { wholeWord: true })
+    : escapeHtml(grammar);
+  const sheetGrammarHtml = isWord
+    ? formatGrammarHtml(grammar, highlights)
+    : escapeHtml(grammar);
+  selectionGrammar.innerHTML = panelGrammarHtml;
   sheetGerman.textContent = german;
   sheetEnglish.textContent = translation;
-  sheetGrammar.textContent = grammar;
+  sheetGrammar.innerHTML = sheetGrammarHtml;
+  selectionGrammar.classList.toggle("is-hidden", !isWord);
+  sheetGrammar.classList.toggle("is-hidden", !isWord);
+  translationPanel.classList.remove("is-hidden");
+  bottomSheet.classList.remove("is-hidden");
 
   const hasMeta =
     meta &&
@@ -186,7 +270,6 @@ const renderSavedStories = (stories) => {
         localStorage.removeItem(LAST_STORY_KEY);
         storyTitle.textContent = "";
         reader.innerHTML = "";
-        emptyState.classList.remove("is-hidden");
         translationPanel.classList.add("is-hidden");
         return;
       }
@@ -238,18 +321,8 @@ const noSpaceAfter = new Set(["(", "[", "{", "«", "„", "“", "‘"]);
 const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
   storyTitle.textContent = story.title;
-  emptyState.classList.add("is-hidden");
-  translationPanel.classList.remove("is-hidden");
   reader.innerHTML = "";
-  clearActiveWord();
-  clearGoverningHighlight();
-  updateTranslation(
-    "word",
-    "Tap a word",
-    "Перевод на русский появится здесь.",
-    "Объяснение склонения появится здесь.",
-    null
-  );
+  resetTranslation();
 
   const sentences = splitIntoSentences(story.text);
   sentences.forEach((sentence) => {
@@ -465,6 +538,7 @@ reader.addEventListener("click", (event) => {
     clearGoverningHighlight();
     word.classList.add("active");
     const german = word.textContent.trim();
+    const requestId = ++translationRequestId;
     updateTranslation(
       "word",
       german,
@@ -475,6 +549,9 @@ reader.addEventListener("click", (event) => {
     const sentenceText = word.closest(".sentence")?.textContent.trim() || "";
     const sentenceEl = word.closest(".sentence");
     translateWithChatGPT(german, "word", sentenceText).then((result) => {
+      if (requestId !== translationRequestId) {
+        return;
+      }
       const fallback = word.dataset.translation;
       const translation = result?.translation || fallback;
       const grammar =
@@ -486,6 +563,8 @@ reader.addEventListener("click", (event) => {
         article: result?.article || "",
         gender: result?.gender || "",
         case: result?.case || "",
+        caseWord: result?.case_governing_word || "",
+        genderWord: result?.gender_governing_word || "",
       };
 
       if (word.dataset.pos === "article") {
@@ -503,6 +582,9 @@ reader.addEventListener("click", (event) => {
           .find((item) => item.dataset.pos === "noun");
         if (headWord) {
           meta.head = headWord.dataset.lemma || headWord.textContent.trim();
+          if (!meta.genderWord) {
+            meta.genderWord = meta.head;
+          }
           highlightGoverningWord(
             meta.head,
             sentenceEl,
@@ -542,6 +624,7 @@ const translateSentenceText = (german, fallbackTranslation = "") => {
   }
   clearActiveWord();
   clearGoverningHighlight();
+  const requestId = ++translationRequestId;
   updateTranslation(
     "sentence",
     german,
@@ -550,6 +633,9 @@ const translateSentenceText = (german, fallbackTranslation = "") => {
     null
   );
   translateWithChatGPT(german, "sentence").then((result) => {
+    if (requestId !== translationRequestId) {
+      return;
+    }
     const translation =
       result?.translation || fallbackTranslation || "Перевод на русский появится здесь.";
     const grammar =
@@ -564,8 +650,13 @@ storyTitle.addEventListener("click", () => {
   translateSentenceText(german);
 });
 
-clearSelection.addEventListener("click", () => {
+const resetTranslation = () => {
+  if (pendingController) {
+    pendingController.abort();
+  }
+  translationRequestId += 1;
   clearActiveWord();
+  clearGoverningHighlight();
   updateTranslation(
     "word",
     "Tap a word",
@@ -573,19 +664,70 @@ clearSelection.addEventListener("click", () => {
     "Объяснение склонения появится здесь.",
     null
   );
+  selectionGrammar.classList.add("is-hidden");
+  sheetGrammar.classList.add("is-hidden");
+  grammarMeta.classList.add("is-hidden");
+  sheetGrammarMeta.classList.add("is-hidden");
+  translationPanel.classList.add("is-hidden");
+  bottomSheet.classList.add("is-hidden");
+};
+
+clearSelection.addEventListener("click", () => {
+  resetTranslation();
 });
 
-toggleTheme.addEventListener("click", () => {
-  document.body.classList.toggle("theme-b");
+resetTranslation();
+
+const applyReaderFont = (font) => {
+  document.body.dataset.readerFont = font;
+  localStorage.setItem("reader_font", font);
+  fontOptions.forEach((option) => {
+    option.classList.toggle("active", option.dataset.font === font);
+  });
+};
+
+const applyReaderSize = (size) => {
+  const clamped = Math.min(30, Math.max(10, Number(size) || 20));
+  document.body.dataset.readerSize = String(clamped);
+  document.body.style.setProperty("--reader-size", clamped);
+  localStorage.setItem("reader_size", String(clamped));
+  if (readerSize) {
+    readerSize.value = String(clamped);
+  }
+};
+
+const openThemeModal = () => {
+  themeModal.classList.remove("is-hidden");
+};
+
+const closeThemeModal = () => {
+  themeModal.classList.add("is-hidden");
+};
+
+fontOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyReaderFont(option.dataset.font);
+  });
 });
 
-updateTranslation(
-  "word",
-  "Tap a word",
-  "Перевод на русский появится здесь.",
-  "Объяснение склонения появится здесь.",
-  null
-);
+if (readerSize) {
+  readerSize.addEventListener("input", () => {
+    applyReaderSize(readerSize.value);
+  });
+}
+
+toggleTheme.addEventListener("click", openThemeModal);
+
+themeModal.addEventListener("click", (event) => {
+  if (event.target === themeModal || event.target.closest("[data-close-modal]")) {
+    closeThemeModal();
+  }
+});
+
+const storedFont = localStorage.getItem("reader_font") || "serif";
+const storedSize = localStorage.getItem("reader_size") || "20";
+applyReaderFont(storedFont);
+applyReaderSize(storedSize);
 
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
@@ -703,14 +845,13 @@ const initializeStories = () => {
   }
   storyTitle.textContent = "";
   reader.innerHTML = "";
-  emptyState.classList.remove("is-hidden");
   translationPanel.classList.add("is-hidden");
 };
 
 initializeStories();
 
 addTextButton.addEventListener("click", showAddTextModal);
-addTextEmpty.addEventListener("click", showAddTextModal);
+addStoryCta.addEventListener("click", showAddTextModal);
 
 const closeAddTextModal = () => {
   addTextModal.classList.add("is-hidden");
@@ -731,6 +872,22 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !apiKeyModal.classList.contains("is-hidden")) {
     closeApiKeyModal();
   }
+  if (event.key === "Escape" && !themeModal.classList.contains("is-hidden")) {
+    closeThemeModal();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (
+    event.target.closest(".word") ||
+    event.target.closest(".sentence") ||
+    event.target.closest("#translationPanel") ||
+    event.target.closest("#bottomSheet") ||
+    event.target.closest(".modal")
+  ) {
+    return;
+  }
+  resetTranslation();
 });
 
 modeButtons.forEach((button) => {
