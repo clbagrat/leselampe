@@ -442,6 +442,88 @@ const separablePrefixes = new Set([
   "zu",
   "auseinander",
 ]);
+const nonVerbTokens = new Set([
+  "mich",
+  "dich",
+  "sich",
+  "uns",
+  "euch",
+  "mir",
+  "dir",
+  "ihm",
+  "ihr",
+  "ihnen",
+  "mich",
+  "dich",
+  "sich",
+  "uns",
+  "euch",
+  "mein",
+  "meine",
+  "meinen",
+  "meinem",
+  "meines",
+  "dein",
+  "deine",
+  "deinen",
+  "deinem",
+  "deines",
+  "sein",
+  "seine",
+  "seinen",
+  "seinem",
+  "seines",
+  "ihr",
+  "ihre",
+  "ihren",
+  "ihrem",
+  "ihres",
+  "unser",
+  "unsere",
+  "unseren",
+  "unserem",
+  "unseres",
+  "euer",
+  "eure",
+  "euren",
+  "eurem",
+  "eures",
+]);
+const clauseBreakers = new Set([
+  "aber",
+  "als",
+  "bevor",
+  "bis",
+  "damit",
+  "dann",
+  "dass",
+  "denn",
+  "doch",
+  "falls",
+  "indem",
+  "nachdem",
+  "ob",
+  "obwohl",
+  "oder",
+  "sobald",
+  "sodass",
+  "sofern",
+  "sowie",
+  "sondern",
+  "trotzdem",
+  "und",
+  "waehrend",
+  "waehrenddessen",
+  "weil",
+  "wenn",
+  "wobei",
+  "wodurch",
+  "worauf",
+  "woran",
+  "worum",
+  "wo",
+  "da",
+]);
 
 const normalizeUmlauts = (text) =>
   text
@@ -452,6 +534,47 @@ const normalizeUmlauts = (text) =>
 
 const normalizeWordText = (wordEl) =>
   normalizeUmlauts(wordEl.textContent.trim().toLowerCase());
+
+const isVerbLikeWord = (wordEl) => {
+  if (!wordEl) {
+    return false;
+  }
+  const text = normalizeWordText(wordEl);
+  if (!text) {
+    return false;
+  }
+  if (wordEl.dataset.pos === "article" || wordEl.dataset.pos === "noun") {
+    return false;
+  }
+  if (clauseBreakers.has(text)) {
+    return false;
+  }
+  if (nonVerbTokens.has(text)) {
+    return false;
+  }
+  if (separablePrefixes.has(text)) {
+    return false;
+  }
+  return true;
+};
+
+const findNextClauseBoundary = (words, startIndex) => {
+  for (let i = startIndex; i < words.length; i += 1) {
+    if (clauseBreakers.has(normalizeWordText(words[i]))) {
+      return i;
+    }
+  }
+  return words.length;
+};
+
+const findPrevClauseBoundary = (words, startIndex) => {
+  for (let i = startIndex; i >= 0; i -= 1) {
+    if (clauseBreakers.has(normalizeWordText(words[i]))) {
+      return i;
+    }
+  }
+  return -1;
+};
 
 const findSeparableVerbPhrase = (clickedWord, sentenceEl) => {
   if (!clickedWord || !sentenceEl) {
@@ -466,39 +589,32 @@ const findSeparableVerbPhrase = (clickedWord, sentenceEl) => {
   const lastIndex = words.length - 1;
   const clickedText = normalizeWordText(clickedWord);
   const isPrefix = separablePrefixes.has(clickedText);
-  const isVerbCandidate =
-    clickedWord.dataset.pos !== "article" && clickedWord.dataset.pos !== "noun";
+  const isVerbCandidate = isVerbLikeWord(clickedWord);
 
-  const isTerminalPrefix = (prefixIndex) => prefixIndex === lastIndex;
+  const isTerminalPrefix = (prefixIndex) => {
+    const boundaryIndex = findNextClauseBoundary(words, prefixIndex + 1);
+    return prefixIndex === boundaryIndex - 1;
+  };
 
   if (isPrefix && isTerminalPrefix(index)) {
-    for (let i = index - 1; i >= 0; i -= 1) {
+    const prevBoundary = findPrevClauseBoundary(words, index - 1);
+    for (let i = index - 1; i > prevBoundary; i -= 1) {
       const candidate = words[i];
-      const candidateText = normalizeWordText(candidate);
-      if (!candidateText) {
-        continue;
+      if (isVerbLikeWord(candidate)) {
+        return { verbSpan: candidate, prefixSpan: clickedWord };
       }
-      if (candidate.dataset.pos === "article" || candidate.dataset.pos === "noun") {
-        continue;
-      }
-      if (separablePrefixes.has(candidateText)) {
-        continue;
-      }
-      return { verbSpan: candidate, prefixSpan: clickedWord };
     }
   }
 
   if (isVerbCandidate) {
-    for (let i = index + 1; i < words.length; i += 1) {
-      const candidate = words[i];
+    const nextBoundary = findNextClauseBoundary(words, index + 1);
+    const prefixIndex = nextBoundary - 1;
+    if (prefixIndex > index && prefixIndex <= lastIndex) {
+      const candidate = words[prefixIndex];
       const candidateText = normalizeWordText(candidate);
-      if (!separablePrefixes.has(candidateText)) {
-        continue;
+      if (separablePrefixes.has(candidateText)) {
+        return { verbSpan: clickedWord, prefixSpan: candidate };
       }
-      if (!isTerminalPrefix(i)) {
-        continue;
-      }
-      return { verbSpan: clickedWord, prefixSpan: candidate };
     }
   }
 
@@ -647,8 +763,11 @@ const translateWithChatGPT = async (text, type, context) => {
             gender_governing_word: "",
           };
 
-    if (!parsed.translation || !parsed.declension_explanation) {
+    if (!parsed.translation) {
       throw new Error("Malformed translation");
+    }
+    if (typeof parsed.declension_explanation !== "string") {
+      parsed.declension_explanation = "";
     }
 
     translationCache.set(cacheKey, parsed);
