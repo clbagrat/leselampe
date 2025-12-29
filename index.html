@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leselampe — German Reader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">✦</span>
+          <div>
+            <p class="brand-title">Leselampe</p>
+            <p class="brand-subtitle">German micro-reader</p>
+          </div>
+        </div>
+        <button class="ghost" type="button" id="toggleTheme">A/B</button>
+      </header>
+
+      <main class="layout">
+        <section class="book-panel" aria-label="German reader">
+          <div class="book-header">
+            <div>
+              <p class="eyebrow">Heute lesen wir</p>
+              <h1>Die kleine Bruecke</h1>
+            </div>
+            <div class="chips">
+              <span class="chip">A2</span>
+              <span class="chip">Tap words</span>
+            </div>
+          </div>
+
+          <div class="api-panel">
+            <div>
+              <label class="api-label" for="apiKey">ChatGPT API key</label>
+              <input
+                id="apiKey"
+                type="password"
+                placeholder="sk-..."
+                autocomplete="off"
+              />
+            </div>
+            <button class="ghost" type="button" id="saveKey">Save</button>
+          </div>
+
+          <div class="instructions">
+            <p>
+              Tippe auf ein Wort, um die Uebersetzung zu sehen. Tippe auf einen Satz,
+              um die ganze Zeile zu uebersetzen.
+            </p>
+          </div>
+
+          <article class="reader" id="reader" aria-live="polite">
+            <p class="sentence" data-translation="The small bridge stood above the river and waited for footsteps.">
+              <span class="word" data-translation="the" data-pos="article" data-article-base="die">Die</span>
+              <span class="word" data-translation="small">kleine</span>
+              <span class="word" data-translation="bridge" data-pos="noun" data-lemma="Bruecke">Bruecke</span>
+              <span class="word" data-translation="stood">stand</span>
+              <span class="word" data-translation="above">ueber</span>
+              <span class="word" data-translation="the" data-pos="article" data-article-base="der">dem</span>
+              <span class="word" data-translation="river" data-pos="noun" data-lemma="Fluss">Fluss</span>
+              <span class="word" data-translation="and">und</span>
+              <span class="word" data-translation="waited">wartete</span>
+              <span class="word" data-translation="for">auf</span>
+              <span class="word" data-translation="footsteps" data-pos="noun" data-lemma="Schritt">Schritte</span>.
+            </p>
+            <p class="sentence" data-translation="Mara walked slowly, because the morning was still sleepy.">
+              <span class="word" data-translation="Mara">Mara</span>
+              <span class="word" data-translation="walked">ging</span>
+              <span class="word" data-translation="slowly">langsam</span>,
+              <span class="word" data-translation="because">weil</span>
+              <span class="word" data-translation="the" data-pos="article" data-article-base="der">der</span>
+              <span class="word" data-translation="morning" data-pos="noun" data-lemma="Morgen">Morgen</span>
+              <span class="word" data-translation="was">noch</span>
+              <span class="word" data-translation="sleepy">muede</span>
+              <span class="word" data-translation="was">war</span>.
+            </p>
+            <p class="sentence" data-translation="She heard the water and felt that the city woke up behind her.">
+              <span class="word" data-translation="She">Sie</span>
+              <span class="word" data-translation="heard">hoerte</span>
+              <span class="word" data-translation="the" data-pos="article" data-article-base="das">das</span>
+              <span class="word" data-translation="water" data-pos="noun" data-lemma="Wasser">Wasser</span>
+              <span class="word" data-translation="and">und</span>
+              <span class="word" data-translation="felt">spuerte</span>,
+              <span class="word" data-translation="that">dass</span>
+              <span class="word" data-translation="the" data-pos="article" data-article-base="die">die</span>
+              <span class="word" data-translation="city" data-pos="noun" data-lemma="Stadt">Stadt</span>
+              <span class="word" data-translation="woke">erwachte</span>
+              <span class="word" data-translation="up">auf</span>
+              <span class="word" data-translation="behind">hinter</span>
+              <span class="word" data-translation="her">ihr</span>.
+            </p>
+            <p class="sentence" data-translation="Then she whispered: Today I will cross with courage.">
+              <span class="word" data-translation="Then">Dann</span>
+              <span class="word" data-translation="she">sie</span>
+              <span class="word" data-translation="whispered">fluesterte</span>:
+              <span class="word" data-translation="today">Heute</span>
+              <span class="word" data-translation="I">ich</span>
+              <span class="word" data-translation="will">werde</span>
+              <span class="word" data-translation="cross">ueberqueren</span>
+              <span class="word" data-translation="with">mit</span>
+              <span class="word" data-translation="courage" data-pos="noun" data-lemma="Mut">Mut</span>.
+            </p>
+          </article>
+        </section>
+
+        <aside class="translation-panel" aria-live="polite">
+          <div class="panel-header">
+            <p class="panel-title">Russian + Grammar</p>
+            <div class="pill" id="selectionType">word</div>
+          </div>
+          <div class="panel-body">
+            <p class="panel-german" id="selectionGerman">Tap a word</p>
+            <p class="panel-english" id="selectionEnglish">Перевод на русский появится здесь.</p>
+            <div class="grammar-meta" id="grammarMeta">
+              <div class="meta-pill">
+                <span class="meta-label">Словарная форма</span>
+                <span class="meta-value" id="metaLemma">—</span>
+              </div>
+              <div class="meta-pill">
+                <span class="meta-label">Главное слово</span>
+                <span class="meta-value" id="metaHead">—</span>
+              </div>
+              <div class="meta-pill">
+                <span class="meta-label">Артикль</span>
+                <span class="meta-value" id="metaArticle">—</span>
+              </div>
+              <div class="meta-pill">
+                <span class="meta-label">Род</span>
+                <span class="meta-value" id="metaGender">—</span>
+              </div>
+              <div class="meta-pill">
+                <span class="meta-label">Падеж</span>
+                <span class="meta-value" id="metaCase">—</span>
+              </div>
+            </div>
+            <p class="panel-grammar" id="selectionGrammar">Объяснение склонения появится здесь.</p>
+          </div>
+          <div class="panel-footer">
+            <button class="primary" id="listen">Listen</button>
+            <button class="ghost" id="clearSelection">Clear</button>
+          </div>
+        </aside>
+      </main>
+
+      <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
+        <div class="sheet-handle"></div>
+        <p class="sheet-label">Quick translation</p>
+        <p class="sheet-german" id="sheetGerman">Tap a word or sentence</p>
+        <p class="sheet-english" id="sheetEnglish">Перевод на русский появится здесь.</p>
+        <div class="grammar-meta" id="sheetGrammarMeta">
+          <div class="meta-pill">
+            <span class="meta-label">Словарная форма</span>
+            <span class="meta-value" id="sheetMetaLemma">—</span>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Главное слово</span>
+            <span class="meta-value" id="sheetMetaHead">—</span>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Артикль</span>
+            <span class="meta-value" id="sheetMetaArticle">—</span>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Род</span>
+            <span class="meta-value" id="sheetMetaGender">—</span>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Падеж</span>
+            <span class="meta-value" id="sheetMetaCase">—</span>
+          </div>
+        </div>
+        <p class="sheet-grammar" id="sheetGrammar">Объяснение склонения появится здесь.</p>
+      </section>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
