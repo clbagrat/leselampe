@@ -255,6 +255,9 @@ const clearActiveWord = () => {
   reader.querySelectorAll(".word.loading").forEach((word) => {
     word.classList.remove("loading");
   });
+  reader.querySelectorAll(".word.separable").forEach((word) => {
+    word.classList.remove("separable");
+  });
 };
 
 const setWordLoading = (word, isLoading) => {
@@ -365,6 +368,91 @@ const isWordToken = (token) => /[\p{L}\d]/u.test(token);
 
 const noSpaceBefore = new Set([",", ".", "!", "?", ":", ";", ")", "]", "}", "»", "”", "’"]);
 const noSpaceAfter = new Set(["(", "[", "{", "«", "„", "“", "‘"]);
+const separablePrefixes = new Set([
+  "ab",
+  "an",
+  "auf",
+  "aus",
+  "bei",
+  "ein",
+  "fest",
+  "fort",
+  "her",
+  "hin",
+  "los",
+  "mit",
+  "nach",
+  "vor",
+  "weg",
+  "weiter",
+  "zuruck",
+  "zurueck",
+  "zusammen",
+  "zu",
+  "auseinander",
+]);
+
+const normalizeUmlauts = (text) =>
+  text
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss");
+
+const normalizeWordText = (wordEl) =>
+  normalizeUmlauts(wordEl.textContent.trim().toLowerCase());
+
+const findSeparableVerbPhrase = (clickedWord, sentenceEl) => {
+  if (!clickedWord || !sentenceEl) {
+    return null;
+  }
+  const words = Array.from(sentenceEl.querySelectorAll(".word"));
+  const index = words.indexOf(clickedWord);
+  if (index === -1) {
+    return null;
+  }
+
+  const lastIndex = words.length - 1;
+  const clickedText = normalizeWordText(clickedWord);
+  const isPrefix = separablePrefixes.has(clickedText);
+  const isVerbCandidate =
+    clickedWord.dataset.pos !== "article" && clickedWord.dataset.pos !== "noun";
+
+  const isTerminalPrefix = (prefixIndex) => prefixIndex === lastIndex;
+
+  if (isPrefix && isTerminalPrefix(index)) {
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const candidate = words[i];
+      const candidateText = normalizeWordText(candidate);
+      if (!candidateText) {
+        continue;
+      }
+      if (candidate.dataset.pos === "article" || candidate.dataset.pos === "noun") {
+        continue;
+      }
+      if (separablePrefixes.has(candidateText)) {
+        continue;
+      }
+      return { verbSpan: candidate, prefixSpan: clickedWord };
+    }
+  }
+
+  if (isVerbCandidate) {
+    for (let i = index + 1; i < words.length; i += 1) {
+      const candidate = words[i];
+      const candidateText = normalizeWordText(candidate);
+      if (!separablePrefixes.has(candidateText)) {
+        continue;
+      }
+      if (!isTerminalPrefix(i)) {
+        continue;
+      }
+      return { verbSpan: clickedWord, prefixSpan: candidate };
+    }
+  }
+
+  return null;
+};
 
 const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
@@ -447,11 +535,11 @@ const translateWithChatGPT = async (text, type, context) => {
             {
               role: "system",
               content:
-                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). Use empty strings when lemma/article/gender/case cannot be determined.",
+                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). If the word is a separable verb phrase (e.g. \"stand auf\"), return the combined lemma without a space (e.g. \"aufstehen\"). Use empty strings when lemma/article/gender/case cannot be determined.",
             },
             {
               role: "user",
-              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context.\nWord: ${text}\nSentence: ${context || "N/A"}`,
+              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. If the word is a separable verb phrase, return the combined lemma (prefix+verb).\nWord: ${text}\nSentence: ${context || "N/A"}`,
             },
           ]
         : [
@@ -586,7 +674,15 @@ reader.addEventListener("click", (event) => {
     clearGoverningHighlight();
     word.classList.add("active");
     setWordLoading(word, true);
-    const german = word.textContent.trim();
+    const sentenceEl = word.closest(".sentence");
+    const separable = findSeparableVerbPhrase(word, sentenceEl);
+    if (separable) {
+      separable.verbSpan.classList.add("separable");
+      separable.prefixSpan.classList.add("separable");
+    }
+    const german = separable
+      ? `${separable.verbSpan.textContent.trim()} ${separable.prefixSpan.textContent.trim()}`
+      : word.textContent.trim();
     const requestId = ++translationRequestId;
     updateTranslation(
       "word",
@@ -595,8 +691,7 @@ reader.addEventListener("click", (event) => {
       "Объясняем склонение...",
       null
     );
-    const sentenceText = word.closest(".sentence")?.textContent.trim() || "";
-    const sentenceEl = word.closest(".sentence");
+    const sentenceText = sentenceEl?.textContent.trim() || "";
     translateWithChatGPT(german, "word", sentenceText).then((result) => {
       if (requestId !== translationRequestId) {
         setWordLoading(word, false);
