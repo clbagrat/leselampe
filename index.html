@@ -24,8 +24,8 @@
         </div>
         <div class="top-actions">
           <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
+          <button class="ghost" type="button" id="openSaved">Saved</button>
           <button class="ghost circle" type="button" id="toggleApi" aria-label="API settings">⚙</button>
-          <button class="ghost" type="button" id="toggleTheme">A/B</button>
         </div>
       </header>
 
@@ -119,8 +119,8 @@
         <div class="modal-content">
           <div class="modal-header">
             <div>
-              <p class="eyebrow">API settings</p>
-              <h2>ChatGPT key</h2>
+              <p class="eyebrow">Settings</p>
+              <h2>Reader controls</h2>
             </div>
             <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
           </div>
@@ -137,40 +137,29 @@
               <button class="ghost" type="button" id="clearKey">Clear key</button>
               <button class="primary" type="button" id="saveKey">Save</button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal is-hidden" id="themeModal" role="dialog" aria-modal="true">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <p class="eyebrow">Reading settings</p>
-              <h2>Font & size</h2>
-            </div>
-            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
-          </div>
-          <div class="theme-modal-body">
-            <div class="option-group">
-              <p class="form-label">Font</p>
-              <div class="option-row">
-                <button class="option-button" type="button" data-font="serif">Serif</button>
-                <button class="option-button" type="button" data-font="sans">Sans</button>
+            <div class="settings-divider" aria-hidden="true"></div>
+            <div class="theme-modal-body">
+              <div class="option-group">
+                <p class="form-label">Font</p>
+                <div class="option-row">
+                  <button class="option-button" type="button" data-font="serif">Serif</button>
+                  <button class="option-button" type="button" data-font="sans">Sans</button>
+                </div>
               </div>
-            </div>
-            <div class="option-group">
-              <p class="form-label">Size</p>
-              <div class="slider-row">
-                <span class="slider-label">A</span>
-                <input
-                  class="size-slider"
-                  id="readerSize"
-                  type="range"
-                  min="10"
-                  max="30"
-                  step="1"
-                />
-                <span class="slider-label">A+</span>
+              <div class="option-group">
+                <p class="form-label">Size</p>
+                <div class="slider-row">
+                  <span class="slider-label">A</span>
+                  <input
+                    class="size-slider"
+                    id="readerSize"
+                    type="range"
+                    min="10"
+                    max="30"
+                    step="1"
+                  />
+                  <span class="slider-label">A+</span>
+                </div>
               </div>
             </div>
           </div>
@@ -192,9 +181,37 @@
           </div>
 
           <div class="mode-panel" id="modeGenerate">
+            <div class="form-grid">
+              <div class="form-field">
+                <label class="form-label" for="wordCount">Word amount</label>
+                <div class="slider-row">
+                  <span class="slider-label">50</span>
+                  <input
+                    class="size-slider"
+                    id="wordCount"
+                    type="range"
+                    min="50"
+                    max="300"
+                    step="10"
+                    value="120"
+                  />
+                  <span class="slider-value" id="wordCountValue">120</span>
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="form-label" id="levelLabel">Level</label>
+                <div class="option-row level-row" role="group" aria-labelledby="levelLabel">
+                  <button class="option-button" type="button" data-level="A1">A1</button>
+                  <button class="option-button" type="button" data-level="A2">A2</button>
+                  <button class="option-button" type="button" data-level="B1">B1</button>
+                  <button class="option-button" type="button" data-level="B2">B2</button>
+                  <button class="option-button" type="button" data-level="C1">C1</button>
+                  <button class="option-button" type="button" data-level="C2">C2</button>
+                </div>
+              </div>
+            </div>
             <div class="form-row prompt-row">
               <label class="form-label" for="promptBody">Story prompt</label>
-              <button class="ghost" type="button" id="suggestPrompt">Suggest</button>
             </div>
             <textarea
               id="promptBody"
@@ -202,7 +219,7 @@
               placeholder="A short story about a student on a rainy day, level A2."
             ></textarea>
             <div class="form-row">
-              <input id="promptTitle" type="text" placeholder="Title (optional)" />
+              <button class="ghost" type="button" id="suggestPrompt">Suggest</button>
               <button class="primary" type="button" id="generateStory">Generate</button>
             </div>
             <p class="helper-text">Uses your ChatGPT API key from above.</p>
@@ -216,8 +233,20 @@
             <button class="primary" type="button" id="savePaste">Add to reader</button>
           </div>
 
+        </div>
+      </div>
+
+      <div class="modal is-hidden" id="savedTextsModal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <p class="eyebrow">Library</p>
+              <h2>Saved texts</h2>
+            </div>
+            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
+          </div>
           <div class="saved-section">
-            <p class="saved-title">Saved texts</p>
+            <p class="saved-title">Your saved stories</p>
             <div class="saved-list" id="savedTexts"></div>
           </div>
         </div>

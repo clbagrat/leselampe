@@ -34,13 +34,11 @@ const sheetCaseWord = document.getElementById("sheetCaseWord");
 const panelGoverningLegend = document.getElementById("panelGoverningLegend");
 const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const clearSelection = document.getElementById("clearSelection");
-const toggleTheme = document.getElementById("toggleTheme");
 const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
 const apiKeyModal = document.getElementById("apiKeyModal");
 const apiKeyModalClose = apiKeyModal.querySelector("[data-close-modal]");
-const themeModal = document.getElementById("themeModal");
 const fontOptions = document.querySelectorAll("[data-font]");
 const readerSize = document.getElementById("readerSize");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
@@ -49,8 +47,11 @@ const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
 const addStoryCta = document.getElementById("addStoryCta");
 const addTextButton = document.getElementById("addText");
+const openSavedButton = document.getElementById("openSaved");
 const addTextModal = document.getElementById("addTextModal");
 const closeAddText = document.getElementById("closeAddText");
+const savedTextsModal = document.getElementById("savedTextsModal");
+const savedTextsModalClose = savedTextsModal?.querySelector("[data-close-modal]");
 const modeButtons = document.querySelectorAll("[data-mode]");
 const modePaste = document.getElementById("modePaste");
 const modeGenerate = document.getElementById("modeGenerate");
@@ -58,10 +59,12 @@ const pasteTitle = document.getElementById("pasteTitle");
 const pasteBody = document.getElementById("pasteBody");
 const savePaste = document.getElementById("savePaste");
 const promptBody = document.getElementById("promptBody");
-const promptTitle = document.getElementById("promptTitle");
 const generateStory = document.getElementById("generateStory");
 const suggestPrompt = document.getElementById("suggestPrompt");
 const savedTexts = document.getElementById("savedTexts");
+const wordCountSlider = document.getElementById("wordCount");
+const wordCountValue = document.getElementById("wordCountValue");
+const levelButtons = document.querySelectorAll("[data-level]");
 
 let lastGerman = "";
 let lastTranslation = "";
@@ -73,6 +76,8 @@ let suggestionController = null;
 let translationRequestId = 0;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
+const STORY_LEVEL_KEY = "reader_story_level";
+const STORY_WORD_COUNT_KEY = "reader_story_word_count";
 const storyTitle = document.querySelector(".book-header h1");
 
 const clearGoverningHighlight = () => {
@@ -307,6 +312,7 @@ const renderSavedStories = (stories) => {
     loadButton.addEventListener("click", () => {
       renderStory(story);
       addTextModal.classList.add("is-hidden");
+      savedTextsModal?.classList.add("is-hidden");
     });
     const deleteButton = document.createElement("button");
     deleteButton.className = "ghost";
@@ -604,7 +610,7 @@ const translateWithChatGPT = async (text, type, context) => {
   }
 };
 
-const generateStoryFromPrompt = async (prompt, fallbackTitle) => {
+const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
   const apiKey = getApiKey();
   if (!apiKey) {
     return null;
@@ -616,6 +622,8 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle) => {
   generationController = new AbortController();
 
   try {
+    const wordCount = Number(options.wordCount) || 120;
+    const level = options.level || "A2";
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -629,11 +637,11 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle) => {
           {
             role: "system",
             content:
-              "Generate a short German story for language learners. Respond with strict JSON: {\"title\":\"...\",\"text\":\"...\"}. Keep it concise (120-180 words) and A2-friendly.",
+              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"..."}. Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar.`,
           },
           {
             role: "user",
-            content: prompt,
+            content: `${prompt}\nLength: ${wordCount} words.\nLevel: ${level}.`,
           },
         ],
       }),
@@ -842,12 +850,26 @@ const applyReaderSize = (size) => {
   }
 };
 
-const openThemeModal = () => {
-  themeModal.classList.remove("is-hidden");
+const applyStoryWordCount = (value) => {
+  const clamped = Math.min(300, Math.max(50, Number(value) || 120));
+  if (wordCountSlider) {
+    wordCountSlider.value = String(clamped);
+  }
+  if (wordCountValue) {
+    wordCountValue.textContent = String(clamped);
+  }
+  localStorage.setItem(STORY_WORD_COUNT_KEY, String(clamped));
 };
 
-const closeThemeModal = () => {
-  themeModal.classList.add("is-hidden");
+const applyStoryLevel = (level) => {
+  const allowed = ["A1", "A2", "B1", "B2", "C1", "C2"];
+  const normalized = String(level || "").toUpperCase();
+  const next = allowed.includes(normalized) ? normalized : "A2";
+  document.body.dataset.storyLevel = next;
+  levelButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.level === next);
+  });
+  localStorage.setItem(STORY_LEVEL_KEY, next);
 };
 
 fontOptions.forEach((option) => {
@@ -862,18 +884,14 @@ if (readerSize) {
   });
 }
 
-toggleTheme.addEventListener("click", openThemeModal);
-
-themeModal.addEventListener("click", (event) => {
-  if (event.target === themeModal || event.target.closest("[data-close-modal]")) {
-    closeThemeModal();
-  }
-});
-
 const storedFont = localStorage.getItem("reader_font") || "serif";
 const storedSize = localStorage.getItem("reader_size") || "20";
 applyReaderFont(storedFont);
 applyReaderSize(storedSize);
+const storedWordCount = localStorage.getItem(STORY_WORD_COUNT_KEY) || "120";
+const storedLevel = localStorage.getItem(STORY_LEVEL_KEY) || "A2";
+applyStoryWordCount(storedWordCount);
+applyStoryLevel(storedLevel);
 
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
@@ -944,6 +962,18 @@ if (storedKey) {
   openApiKeyModal(true);
 }
 
+if (wordCountSlider) {
+  wordCountSlider.addEventListener("input", () => {
+    applyStoryWordCount(wordCountSlider.value);
+  });
+}
+
+levelButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyStoryLevel(button.dataset.level);
+  });
+});
+
 const setMode = (mode) => {
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
@@ -955,9 +985,14 @@ const setMode = (mode) => {
   pasteTitle.disabled = mode !== "paste";
   pasteBody.disabled = mode !== "paste";
   promptBody.disabled = mode !== "generate";
-  promptTitle.disabled = mode !== "generate";
   generateStory.disabled = mode !== "generate";
   savePaste.disabled = mode !== "paste";
+  if (wordCountSlider) {
+    wordCountSlider.disabled = mode !== "generate";
+  }
+  levelButtons.forEach((button) => {
+    button.disabled = mode !== "generate";
+  });
 };
 
 const showAddTextModal = () => {
@@ -967,7 +1002,6 @@ const showAddTextModal = () => {
     return;
   }
   addTextModal.classList.remove("is-hidden");
-  renderSavedStories(loadStories());
   setMode("generate");
 };
 
@@ -998,12 +1032,25 @@ initializeStories();
 
 addTextButton.addEventListener("click", showAddTextModal);
 addStoryCta.addEventListener("click", showAddTextModal);
+if (openSavedButton) {
+  openSavedButton.addEventListener("click", () => {
+    renderSavedStories(loadStories());
+    savedTextsModal?.classList.remove("is-hidden");
+  });
+}
+
+const closeSavedTextsModal = () => {
+  savedTextsModal?.classList.add("is-hidden");
+};
 
 const closeAddTextModal = () => {
   addTextModal.classList.add("is-hidden");
 };
 
 closeAddText.addEventListener("click", closeAddTextModal);
+if (savedTextsModalClose) {
+  savedTextsModalClose.addEventListener("click", closeSavedTextsModal);
+}
 
 addTextModal.addEventListener("click", (event) => {
   if (event.target === addTextModal || event.target.closest("[data-close-modal]")) {
@@ -1011,15 +1058,21 @@ addTextModal.addEventListener("click", (event) => {
   }
 });
 
+savedTextsModal?.addEventListener("click", (event) => {
+  if (event.target === savedTextsModal || event.target.closest("[data-close-modal]")) {
+    closeSavedTextsModal();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
   }
+  if (event.key === "Escape" && savedTextsModal && !savedTextsModal.classList.contains("is-hidden")) {
+    closeSavedTextsModal();
+  }
   if (event.key === "Escape" && !apiKeyModal.classList.contains("is-hidden")) {
     closeApiKeyModal();
-  }
-  if (event.key === "Escape" && !themeModal.classList.contains("is-hidden")) {
-    closeThemeModal();
   }
 });
 
@@ -1057,7 +1110,7 @@ const getRandomPrompt = () => {
   return promptIdeas[Math.floor(Math.random() * promptIdeas.length)];
 };
 
-const suggestPromptFromChatGPT = async () => {
+const suggestPromptFromChatGPT = async (options = {}) => {
   const apiKey = getApiKey();
   if (!apiKey) {
     return null;
@@ -1069,6 +1122,8 @@ const suggestPromptFromChatGPT = async () => {
   suggestionController = new AbortController();
 
   try {
+    const level = options.level || "A2";
+    const wordCount = Number(options.wordCount) || 120;
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -1086,7 +1141,7 @@ const suggestPromptFromChatGPT = async () => {
           },
           {
             role: "user",
-            content: "Give me one new prompt.",
+            content: `Give me one new prompt. Target ${wordCount} words and CEFR ${level}.`,
           },
         ],
       }),
@@ -1118,8 +1173,18 @@ const fillPromptSuggestion = async () => {
   suggestPrompt.disabled = true;
   const originalLabel = suggestPrompt.textContent;
   suggestPrompt.textContent = "Suggesting...";
-  const suggestion = (await suggestPromptFromChatGPT()) || getRandomPrompt();
-  promptBody.value = suggestion;
+  const level = document.body.dataset.storyLevel || "A2";
+  const wordCount = wordCountSlider?.value || "120";
+  const suggestion =
+    (await suggestPromptFromChatGPT({ level, wordCount })) || getRandomPrompt();
+  const trimmedSuggestion = suggestion ? suggestion.replace(/\.$/, "") : "";
+  const levelTag = trimmedSuggestion.includes(`, ${level}`)
+    ? trimmedSuggestion
+    : `${trimmedSuggestion}, ${level}`;
+  const normalized = levelTag
+    ? `${levelTag}. (~${wordCount} words)`
+    : "";
+  promptBody.value = normalized;
   suggestPrompt.textContent = originalLabel;
   suggestPrompt.disabled = false;
   promptBody.focus();
@@ -1157,8 +1222,10 @@ generateStory.addEventListener("click", async () => {
   }
   generateStory.disabled = true;
   generateStory.textContent = "Generating...";
-  const title = promptTitle.value.trim();
-  const story = await generateStoryFromPrompt(prompt, title);
+  const story = await generateStoryFromPrompt(prompt, "", {
+    wordCount: wordCountSlider?.value,
+    level: document.body.dataset.storyLevel || "A2",
+  });
   generateStory.disabled = false;
   generateStory.textContent = "Generate";
   if (!story) {
@@ -1175,6 +1242,5 @@ generateStory.addEventListener("click", async () => {
   renderSavedStories(next);
   renderStory(newStory);
   promptBody.value = "";
-  promptTitle.value = "";
   addTextModal.classList.add("is-hidden");
 });
