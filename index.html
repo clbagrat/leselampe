@@ -27,7 +27,11 @@
         </div>
         <div class="top-actions">
           <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
-          <button class="ghost" type="button" id="openSaved">Saved</button>
+          <button class="ghost" type="button" id="openSaved">Texts</button>
+          <button class="ghost" type="button" id="openLemmas">
+            Lemmas
+            <span class="badge is-hidden" id="lemmaBadge">0</span>
+          </button>
           <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
         </div>
       </header>
@@ -256,6 +260,29 @@
           <div class="saved-section">
             <p class="saved-title">Your saved stories</p>
             <div class="saved-list" id="savedTexts"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal is-hidden" id="lemmasModal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2>Translated lemmas</h2>
+            </div>
+            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
+          </div>
+          <div class="saved-section">
+            <p class="helper-text">We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.</p>
+            <p class="saved-title">Lemmas to learn</p>
+            <p class="empty-state is-hidden" id="lemmaEmpty">No lemmas yet. Translate a word to start tracking.</p>
+            <div class="lemma-list" id="lemmaList"></div>
+            <p class="saved-title learned-title">Learned lemmas</p>
+            <p class="empty-state is-hidden" id="lemmaLearnedEmpty">No learned lemmas yet.</p>
+            <div class="lemma-list" id="lemmaLearnedList"></div>
+            <div class="saved-actions">
+              <button class="ghost" type="button" id="clearLemmas">Clear history</button>
+            </div>
           </div>
         </div>
       </div>

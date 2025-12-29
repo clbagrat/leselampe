@@ -54,10 +54,14 @@ const bottomSheet = document.getElementById("bottomSheet");
 const addStoryCta = document.getElementById("addStoryCta");
 const addTextButton = document.getElementById("addText");
 const openSavedButton = document.getElementById("openSaved");
+const openLemmasButton = document.getElementById("openLemmas");
+const lemmaBadge = document.getElementById("lemmaBadge");
 const addTextModal = document.getElementById("addTextModal");
 const closeAddText = document.getElementById("closeAddText");
 const savedTextsModal = document.getElementById("savedTextsModal");
 const savedTextsModalClose = savedTextsModal?.querySelector("[data-close-modal]");
+const lemmasModal = document.getElementById("lemmasModal");
+const lemmasModalClose = lemmasModal?.querySelector("[data-close-modal]");
 const modeButtons = document.querySelectorAll("[data-mode]");
 const modePaste = document.getElementById("modePaste");
 const modeGenerate = document.getElementById("modeGenerate");
@@ -68,6 +72,11 @@ const promptBody = document.getElementById("promptBody");
 const generateStory = document.getElementById("generateStory");
 const suggestPrompt = document.getElementById("suggestPrompt");
 const savedTexts = document.getElementById("savedTexts");
+const lemmaList = document.getElementById("lemmaList");
+const lemmaEmpty = document.getElementById("lemmaEmpty");
+const lemmaLearnedList = document.getElementById("lemmaLearnedList");
+const lemmaLearnedEmpty = document.getElementById("lemmaLearnedEmpty");
+const clearLemmasButton = document.getElementById("clearLemmas");
 const wordCountSlider = document.getElementById("wordCount");
 const wordCountValue = document.getElementById("wordCountValue");
 const levelButtons = document.querySelectorAll("[data-level]");
@@ -87,6 +96,7 @@ const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
 const STORY_WORD_COUNT_KEY = "reader_story_word_count";
+const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const storyTitle = document.querySelector(".book-header h1");
 
 const clearGoverningHighlight = () => {
@@ -353,6 +363,133 @@ const saveStories = (stories) => {
   localStorage.setItem(STORY_STORAGE_KEY, JSON.stringify(stories));
 };
 
+const loadLemmaStats = () => {
+  try {
+    const raw = localStorage.getItem(LEMMA_STATS_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    Object.values(parsed).forEach((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return;
+      }
+      if (typeof entry.isLearned !== "boolean") {
+        entry.isLearned = false;
+      }
+    });
+    return parsed;
+  } catch (error) {
+    return {};
+  }
+};
+
+const saveLemmaStats = (stats) => {
+  localStorage.setItem(LEMMA_STATS_KEY, JSON.stringify(stats));
+};
+
+const normalizeLemmaKey = (value) =>
+  String(value || "").trim().toLowerCase();
+
+const recordLemmaTranslation = (lemma) => {
+  const normalized = normalizeLemmaKey(lemma);
+  if (!normalized) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  const existing = stats[normalized];
+  const nextCount = existing?.count ? Number(existing.count) + 1 : 1;
+  stats[normalized] = {
+    lemma: existing?.lemma || String(lemma).trim(),
+    count: Number.isFinite(nextCount) ? nextCount : 1,
+    lastTranslatedAt: new Date().toISOString(),
+    isLearned: existing?.isLearned ?? false,
+  };
+  saveLemmaStats(stats);
+  updateLemmaBadge();
+};
+
+const updateLemmaBadge = () => {
+  if (!lemmaBadge) {
+    return;
+  }
+  const total = Object.values(loadLemmaStats()).filter(
+    (entry) => entry && !entry.isLearned
+  ).length;
+  lemmaBadge.textContent = String(total);
+  lemmaBadge.classList.toggle("is-hidden", total === 0);
+};
+
+const textIncludesLemma = (text, lemma) => {
+  if (!text || !lemma) {
+    return false;
+  }
+  const escaped = escapeRegExp(String(lemma).trim());
+  if (!escaped) {
+    return false;
+  }
+  const regex = new RegExp(
+    `(^|[^\\p{L}\\d])(${escaped})(?=$|[^\\p{L}\\d])`,
+    "giu"
+  );
+  return regex.test(text);
+};
+
+const markLearnedLemmas = (lemmas) => {
+  if (!Array.isArray(lemmas) || !lemmas.length) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  let changed = false;
+  lemmas.forEach((lemma) => {
+    const normalized = normalizeLemmaKey(lemma);
+    if (!normalized || !stats[normalized] || stats[normalized].isLearned) {
+      return;
+    }
+    stats[normalized].isLearned = true;
+    changed = true;
+  });
+  if (!changed) {
+    return;
+  }
+  saveLemmaStats(stats);
+  if (lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
+    renderLemmaList();
+    return;
+  }
+  updateLemmaBadge();
+};
+
+const markLearnedLemmasInText = (text, lemmas) => {
+  if (!text || !Array.isArray(lemmas) || !lemmas.length) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  let changed = false;
+  lemmas.forEach((lemma) => {
+    const normalized = normalizeLemmaKey(lemma);
+    if (!normalized || !stats[normalized] || stats[normalized].isLearned) {
+      return;
+    }
+    if (textIncludesLemma(text, lemma)) {
+      stats[normalized].isLearned = true;
+      changed = true;
+    }
+  });
+  if (!changed) {
+    return;
+  }
+  saveLemmaStats(stats);
+  if (lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
+    renderLemmaList();
+    return;
+  }
+  updateLemmaBadge();
+};
+
 const renderSavedStories = (stories) => {
   savedTexts.innerHTML = "";
   if (!stories.length) {
@@ -401,6 +538,122 @@ const renderSavedStories = (stories) => {
     item.appendChild(actions);
     savedTexts.appendChild(item);
   });
+};
+
+const getLemmaEntries = (options = {}) => {
+  const stats = loadLemmaStats();
+  const includeLearned = options.includeLearned === true;
+  return Object.values(stats)
+    .filter((entry) => {
+      if (!entry || !entry.lemma) {
+        return false;
+      }
+      if (includeLearned) {
+        return entry.isLearned;
+      }
+      return !entry.isLearned;
+    })
+    .sort((a, b) => {
+      const timeA = Date.parse(a.lastTranslatedAt || "") || 0;
+      const timeB = Date.parse(b.lastTranslatedAt || "") || 0;
+      return timeB - timeA;
+    });
+};
+
+const getTopLemmaList = (limit = 10) => {
+  const entries = getLemmaEntries();
+  const total = entries.length;
+  const scored = entries.map((entry, index) => {
+    const position = index + 1;
+    const countValue = Number(entry.count) || 1;
+    const score = (total / position) * countValue;
+    return { lemma: entry.lemma, score };
+  });
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => item.lemma);
+};
+
+const renderLemmaList = () => {
+  if (!lemmaList) {
+    return;
+  }
+  const entries = getLemmaEntries();
+  const total = entries.length;
+  lemmaList.innerHTML = "";
+  if (!entries.length) {
+    lemmaEmpty?.classList.remove("is-hidden");
+  } else {
+    lemmaEmpty?.classList.add("is-hidden");
+    const fragment = document.createDocumentFragment();
+    entries.forEach((entry, index) => {
+      const position = index + 1;
+      const countValue = Number(entry.count) || 1;
+      const score = (total / position) * countValue;
+      const item = document.createElement("div");
+      item.className = "lemma-item";
+
+      const name = document.createElement("span");
+      name.className = "lemma-name";
+      name.textContent = entry.lemma;
+
+      const metrics = document.createElement("div");
+      metrics.className = "lemma-metrics";
+
+      const count = document.createElement("span");
+      count.className = "lemma-count";
+      count.textContent = `×${countValue}`;
+
+      const scoreEl = document.createElement("span");
+      scoreEl.className = "lemma-score";
+      scoreEl.textContent = `Score ${score.toFixed(2)}`;
+
+      item.appendChild(name);
+      metrics.appendChild(count);
+      metrics.appendChild(scoreEl);
+      item.appendChild(metrics);
+      fragment.appendChild(item);
+    });
+    lemmaList.appendChild(fragment);
+  }
+  updateLemmaBadge();
+  renderLearnedLemmaList();
+};
+
+const renderLearnedLemmaList = () => {
+  if (!lemmaLearnedList) {
+    return;
+  }
+  const entries = getLemmaEntries({ includeLearned: true });
+  lemmaLearnedList.innerHTML = "";
+  if (!entries.length) {
+    lemmaLearnedEmpty?.classList.remove("is-hidden");
+    return;
+  }
+  lemmaLearnedEmpty?.classList.add("is-hidden");
+  const fragment = document.createDocumentFragment();
+  entries.forEach((entry) => {
+    const item = document.createElement("div");
+    item.className = "lemma-item";
+
+    const name = document.createElement("span");
+    name.className = "lemma-name";
+    name.textContent = entry.lemma;
+
+    const metrics = document.createElement("div");
+    metrics.className = "lemma-metrics";
+
+    const count = document.createElement("span");
+    count.className = "lemma-count";
+    count.textContent = `×${Number(entry.count) || 1}`;
+
+    item.appendChild(name);
+    metrics.appendChild(count);
+    item.appendChild(metrics);
+    fragment.appendChild(item);
+  });
+  lemmaLearnedList.appendChild(fragment);
 };
 
 const splitIntoSentences = (text) => {
@@ -811,6 +1064,12 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
   try {
     const wordCount = Number(options.wordCount) || 120;
     const level = options.level || "A2";
+    const lemmas = Array.isArray(options.lemmas) ? options.lemmas : [];
+    const lemmaRequest = lemmas.length
+      ? `\nTry to include up to ${Math.min(10, lemmas.length)} of these lemmas (if possible, do not force): ${lemmas.join(
+          ", "
+        )}.`
+      : "";
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -824,11 +1083,11 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
           {
             role: "system",
             content:
-              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"..."}. Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar.`,
+              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array). Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar. If target lemmas are provided, try to use them naturally.`,
           },
           {
             role: "user",
-            content: `${prompt}\nLength: ${wordCount} words.\nLevel: ${level}.`,
+            content: `${prompt}\nLength: ${wordCount} words.\nLevel: ${level}.${lemmaRequest}`,
           },
         ],
       }),
@@ -853,6 +1112,7 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
     return {
       title: parsed.title || fallbackTitle || "Neue Geschichte",
       text: parsed.text,
+      usedLemmas: Array.isArray(parsed.used_lemmas) ? parsed.used_lemmas : [],
     };
   } catch (error) {
     if (error.name === "AbortError") {
@@ -964,6 +1224,7 @@ reader.addEventListener("click", (event) => {
           "governing-gender"
         );
       }
+      recordLemmaTranslation(meta.lemma || german);
       setWordLoading(word, false);
       updateTranslation("word", german, translation, grammar, meta);
     });
@@ -1208,7 +1469,6 @@ const openApiKeyModal = (forceRequired = false) => {
   setKeyVisibility(false);
   setApiKeyRequirement(forceRequired || !storedKey);
   apiKeyModal.classList.remove("is-hidden");
-  apiKeyInput.focus();
 };
 
 const closeApiKeyModal = () => {
@@ -1242,7 +1502,6 @@ clearKey.addEventListener("click", () => {
   setKeyVisibility(false);
   setApiKeyRequirement(true);
   apiKeyModal.classList.remove("is-hidden");
-  apiKeyInput.focus();
 });
 
 apiKeyModal.addEventListener("click", (event) => {
@@ -1257,6 +1516,7 @@ if (storedKey) {
 } else {
   openApiKeyModal(true);
 }
+updateLemmaBadge();
 
 if (wordCountSlider) {
   wordCountSlider.addEventListener("input", () => {
@@ -1335,8 +1595,26 @@ if (openSavedButton) {
   });
 }
 
+if (openLemmasButton) {
+  openLemmasButton.addEventListener("click", () => {
+    renderLemmaList();
+    lemmasModal?.classList.remove("is-hidden");
+  });
+}
+
+if (clearLemmasButton) {
+  clearLemmasButton.addEventListener("click", () => {
+    localStorage.removeItem(LEMMA_STATS_KEY);
+    renderLemmaList();
+  });
+}
+
 const closeSavedTextsModal = () => {
   savedTextsModal?.classList.add("is-hidden");
+};
+
+const closeLemmasModal = () => {
+  lemmasModal?.classList.add("is-hidden");
 };
 
 const closeAddTextModal = () => {
@@ -1346,6 +1624,9 @@ const closeAddTextModal = () => {
 closeAddText.addEventListener("click", closeAddTextModal);
 if (savedTextsModalClose) {
   savedTextsModalClose.addEventListener("click", closeSavedTextsModal);
+}
+if (lemmasModalClose) {
+  lemmasModalClose.addEventListener("click", closeLemmasModal);
 }
 
 addTextModal.addEventListener("click", (event) => {
@@ -1360,12 +1641,21 @@ savedTextsModal?.addEventListener("click", (event) => {
   }
 });
 
+lemmasModal?.addEventListener("click", (event) => {
+  if (event.target === lemmasModal || event.target.closest("[data-close-modal]")) {
+    closeLemmasModal();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
   }
   if (event.key === "Escape" && savedTextsModal && !savedTextsModal.classList.contains("is-hidden")) {
     closeSavedTextsModal();
+  }
+  if (event.key === "Escape" && lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
+    closeLemmasModal();
   }
   if (event.key === "Escape" && !apiKeyModal.classList.contains("is-hidden")) {
     closeApiKeyModal();
@@ -1518,14 +1808,21 @@ generateStory.addEventListener("click", async () => {
   }
   generateStory.disabled = true;
   generateStory.textContent = "Generating...";
+  const lemmas = getTopLemmaList(10);
   const story = await generateStoryFromPrompt(prompt, "", {
     wordCount: wordCountSlider?.value,
     level: document.body.dataset.storyLevel || "A2",
+    lemmas,
   });
   generateStory.disabled = false;
   generateStory.textContent = "Generate";
   if (!story) {
     return;
+  }
+  if (Array.isArray(story.usedLemmas) && story.usedLemmas.length) {
+    markLearnedLemmas(story.usedLemmas);
+  } else {
+    markLearnedLemmasInText(story.text, lemmas);
   }
   const newStory = {
     id: Date.now(),

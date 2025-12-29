@@ -689,9 +689,18 @@ h2 {
   font-weight: 600;
 }
 
+.learned-title {
+  margin-top: 8px;
+}
+
 .saved-list {
   display: grid;
   gap: 8px;
+}
+
+.lemma-list {
+  display: grid;
+  gap: 10px;
 }
 
 .saved-item {
@@ -704,9 +713,75 @@ h2 {
   background: rgba(0, 0, 0, 0.04);
 }
 
+.lemma-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.lemma-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lemma-name {
+  font-weight: 600;
+  font-family: var(--serif);
+}
+
+.lemma-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.lemma-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.empty-state {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
 .saved-actions {
   display: flex;
   gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
 }
 
 .saved-item button {
