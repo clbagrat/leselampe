@@ -998,11 +998,19 @@ const translateWithChatGPT = async (text, type, context) => {
             {
               role: "system",
               content:
-                "You are a German-to-Russian translation and grammar assistant. Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\"}. The declension explanation must be in Russian, short, and if no declension applies, explain why. The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). If the word is a separable verb phrase (e.g. \"stand auf\"), return the combined lemma without a space (e.g. \"aufstehen\"). Use empty strings when lemma/article/gender/case cannot be determined.",
+                "You are a German-to-Russian translation and grammar assistant. " +
+                "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. " +
+                "LANGUAGE REQUIREMENTS: translation, declension_explanation, and form_explanation must be in Russian. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word) must be in GERMAN only - never translate these to Russian. " +
+                "The declension explanation must be in Russian, short, and if no declension applies, explain why. " +
+                "The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. " +
+                "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
+                "The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). " +
+                "For separable verbs: CRITICAL - Check if the clicked word is part of a separable verb construction where the prefix is separated from the verb in the sentence. The prefix typically appears at the END of the clause. This applies to verbs in ANY tense/form (steigen, stieg, gestiegen, schauen, schaute, geschaut) AND separated prefixes. If found, set has_detached_prefix=true, provide the OTHER part in detached_prefix_word (exact text from sentence), and provide the combined infinitive in combined_word. Examples: (1) clicking 'steigen' in 'Sie steigen aus' → detached_prefix_word='aus', combined_word='aussteigen'. (2) clicking 'schauten' in 'Sie schauten sich an' → detached_prefix_word='an', combined_word='anschauen'. (3) clicking 'kommt' in 'Sie kommt an' → detached_prefix_word='an', combined_word='ankommen'. (4) clicking 'an' in 'Sie schauten sich an' → detached_prefix_word='schauten', combined_word='anschauen'. The translation should be for the combined word. " +
+                "Use empty strings when lemma/article/gender/case cannot be determined.",
             },
             {
               role: "user",
-              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. Also explain how the word form differs from its lemma (tense, case, number, or other change). If the word is a separable verb phrase, return the combined lemma (prefix+verb).\nWord: ${text}\nSentence: ${context || "N/A"}`,
+              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. Also explain how the word form differs from its lemma (tense, case, number, or other change). CRITICAL: If the word is a VERB (in any tense), check very carefully if it's part of a separable verb where the prefix has been separated and appears elsewhere in the clause (typically at the END). Common separable prefixes include: ab, an, auf, aus, bei, ein, fest, fort, her, hin, los, mit, nach, vor, weg, zu, zurück, zusammen. If the word is one of these prefixes, check if there's a verb earlier in the clause. If found, identify the other part and provide the combined infinitive.\nWord: ${text}\nSentence: ${context || "N/A"}`,
             },
           ]
         : [
@@ -1164,14 +1172,7 @@ const handleSentenceContainerClick = (event) => {
     setActiveSentence(sentenceEl);
     word.classList.add("active");
     setWordLoading(word, true);
-    const separable = findSeparableVerbPhrase(word, sentenceEl);
-    if (separable) {
-      separable.verbSpan.classList.add("separable");
-      separable.prefixSpan.classList.add("separable");
-    }
-    const german = separable
-      ? `${separable.verbSpan.textContent.trim()} ${separable.prefixSpan.textContent.trim()}`
-      : word.textContent.trim();
+    const german = word.textContent.trim();
     const requestId = ++translationRequestId;
     updateTranslation(
       "word",
@@ -1186,13 +1187,40 @@ const handleSentenceContainerClick = (event) => {
         setWordLoading(word, false);
         return;
       }
+      
+      // Handle detached prefix based on ChatGPT response
+      let detachedPrefixEl = null;
+      if (result?.has_detached_prefix && result?.detached_prefix_word) {
+        const detachedWord = result.detached_prefix_word.trim();
+        if (detachedWord) {
+          const normalized = detachedWord.toLowerCase();
+          // Find the detached prefix/verb element in the same sentence
+          let candidateEl = null;
+          for (const candidate of sentenceEl.querySelectorAll(".word")) {
+            if (candidate !== word && candidate.textContent.trim().toLowerCase() === normalized) {
+              candidateEl = candidate;
+              break;
+            }
+          }
+          
+          if (candidateEl) {
+            word.classList.add("separable");
+            candidateEl.classList.add("separable");
+            detachedPrefixEl = candidateEl;
+          }
+        }
+      }
+      
       const fallback = word.dataset.translation;
       const translation = result?.translation || fallback;
       const grammar =
         result?.declension_explanation ||
         "Нет объяснения склонения для этого слова.";
+      const displayGerman = (result?.has_detached_prefix && result?.combined_word)
+        ? result.combined_word
+        : german;
       const meta = {
-        lemma: result?.lemma || "",
+        lemma: (result?.has_detached_prefix && result?.combined_word) ? result.combined_word : (result?.lemma || ""),
         head: "",
         article: result?.article || "",
         gender: result?.gender || "",
@@ -1241,9 +1269,9 @@ const handleSentenceContainerClick = (event) => {
           "governing-gender"
         );
       }
-      recordLemmaTranslation(meta.lemma || german);
+      recordLemmaTranslation(meta.lemma || displayGerman);
       setWordLoading(word, false);
-      updateTranslation("word", german, translation, grammar, meta);
+      updateTranslation("word", displayGerman, translation, grammar, meta);
     });
     return;
   }
