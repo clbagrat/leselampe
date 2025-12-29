@@ -8,7 +8,11 @@ const metaHead = document.getElementById("metaHead");
 const metaArticle = document.getElementById("metaArticle");
 const metaGender = document.getElementById("metaGender");
 const metaCase = document.getElementById("metaCase");
-const selectionType = document.getElementById("selectionType");
+const metaLemmaPill = document.getElementById("metaLemmaPill");
+const metaHeadPill = document.getElementById("metaHeadPill");
+const metaArticlePill = document.getElementById("metaArticlePill");
+const metaGenderPill = document.getElementById("metaGenderPill");
+const metaCasePill = document.getElementById("metaCasePill");
 const sheetGerman = document.getElementById("sheetGerman");
 const sheetEnglish = document.getElementById("sheetEnglish");
 const sheetGrammar = document.getElementById("sheetGrammar");
@@ -18,6 +22,17 @@ const sheetMetaHead = document.getElementById("sheetMetaHead");
 const sheetMetaArticle = document.getElementById("sheetMetaArticle");
 const sheetMetaGender = document.getElementById("sheetMetaGender");
 const sheetMetaCase = document.getElementById("sheetMetaCase");
+const sheetMetaLemmaPill = document.getElementById("sheetMetaLemmaPill");
+const sheetMetaHeadPill = document.getElementById("sheetMetaHeadPill");
+const sheetMetaArticlePill = document.getElementById("sheetMetaArticlePill");
+const sheetMetaGenderPill = document.getElementById("sheetMetaGenderPill");
+const sheetMetaCasePill = document.getElementById("sheetMetaCasePill");
+const panelGenderWord = document.getElementById("panelGenderWord");
+const panelCaseWord = document.getElementById("panelCaseWord");
+const sheetGenderWord = document.getElementById("sheetGenderWord");
+const sheetCaseWord = document.getElementById("sheetCaseWord");
+const panelGoverningLegend = document.getElementById("panelGoverningLegend");
+const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const clearSelection = document.getElementById("clearSelection");
 const toggleTheme = document.getElementById("toggleTheme");
 const apiKeyInput = document.getElementById("apiKey");
@@ -159,11 +174,16 @@ const formatGrammarHtml = (text, highlights, { wholeWord = false } = {}) => {
   });
 };
 
+const setMetaPill = (pillEl, valueEl, value) => {
+  const safeValue = (value || "").trim();
+  valueEl.textContent = safeValue;
+  pillEl.classList.toggle("is-hidden", !safeValue);
+};
+
 const updateTranslation = (type, german, translation, grammar, meta) => {
   lastGerman = german;
   lastTranslation = translation;
   lastGrammar = grammar;
-  selectionType.textContent = type;
   selectionGerman.textContent = german;
   selectionEnglish.textContent = translation;
   const isWord = type === "word";
@@ -181,6 +201,14 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   sheetGerman.textContent = german;
   sheetEnglish.textContent = translation;
   sheetGrammar.innerHTML = sheetGrammarHtml;
+  panelGenderWord.textContent = meta?.genderWord || "—";
+  panelCaseWord.textContent = meta?.caseWord || "—";
+  sheetGenderWord.textContent = meta?.genderWord || "—";
+  sheetCaseWord.textContent = meta?.caseWord || "—";
+  const hasLegend =
+    isWord && !!(meta?.genderWord || meta?.caseWord);
+  panelGoverningLegend.classList.toggle("is-hidden", !hasLegend);
+  sheetGoverningLegend.classList.toggle("is-hidden", !hasLegend);
   selectionGrammar.classList.toggle("is-hidden", !isWord);
   sheetGrammar.classList.toggle("is-hidden", !isWord);
   translationPanel.classList.remove("is-hidden");
@@ -191,19 +219,29 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
     (meta.lemma || meta.head || meta.article || meta.gender || meta.case) &&
     type === "word";
   if (hasMeta) {
-    metaLemma.textContent = meta.lemma || "—";
-    metaHead.textContent = meta.head || "—";
-    metaArticle.textContent = meta.article || "—";
-    metaGender.textContent = meta.gender || "—";
-    metaCase.textContent = meta.case || "—";
-    sheetMetaLemma.textContent = meta.lemma || "—";
-    sheetMetaHead.textContent = meta.head || "—";
-    sheetMetaArticle.textContent = meta.article || "—";
-    sheetMetaGender.textContent = meta.gender || "—";
-    sheetMetaCase.textContent = meta.case || "—";
+    setMetaPill(metaLemmaPill, metaLemma, meta.lemma);
+    setMetaPill(metaHeadPill, metaHead, meta.head);
+    setMetaPill(metaArticlePill, metaArticle, meta.article);
+    setMetaPill(metaGenderPill, metaGender, meta.gender);
+    setMetaPill(metaCasePill, metaCase, meta.case);
+    setMetaPill(sheetMetaLemmaPill, sheetMetaLemma, meta.lemma);
+    setMetaPill(sheetMetaHeadPill, sheetMetaHead, meta.head);
+    setMetaPill(sheetMetaArticlePill, sheetMetaArticle, meta.article);
+    setMetaPill(sheetMetaGenderPill, sheetMetaGender, meta.gender);
+    setMetaPill(sheetMetaCasePill, sheetMetaCase, meta.case);
     grammarMeta.classList.remove("is-hidden");
     sheetGrammarMeta.classList.remove("is-hidden");
   } else {
+    setMetaPill(metaLemmaPill, metaLemma, "");
+    setMetaPill(metaHeadPill, metaHead, "");
+    setMetaPill(metaArticlePill, metaArticle, "");
+    setMetaPill(metaGenderPill, metaGender, "");
+    setMetaPill(metaCasePill, metaCase, "");
+    setMetaPill(sheetMetaLemmaPill, sheetMetaLemma, "");
+    setMetaPill(sheetMetaHeadPill, sheetMetaHead, "");
+    setMetaPill(sheetMetaArticlePill, sheetMetaArticle, "");
+    setMetaPill(sheetMetaGenderPill, sheetMetaGender, "");
+    setMetaPill(sheetMetaCasePill, sheetMetaCase, "");
     grammarMeta.classList.add("is-hidden");
     sheetGrammarMeta.classList.add("is-hidden");
   }
@@ -212,8 +250,18 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
 const clearActiveWord = () => {
   const active = reader.querySelector(".word.active");
   if (active) {
-    active.classList.remove("active");
+    active.classList.remove("active", "loading");
   }
+  reader.querySelectorAll(".word.loading").forEach((word) => {
+    word.classList.remove("loading");
+  });
+};
+
+const setWordLoading = (word, isLoading) => {
+  if (!word) {
+    return;
+  }
+  word.classList.toggle("loading", isLoading);
 };
 
 const loadStories = () => {
@@ -537,6 +585,7 @@ reader.addEventListener("click", (event) => {
     clearActiveWord();
     clearGoverningHighlight();
     word.classList.add("active");
+    setWordLoading(word, true);
     const german = word.textContent.trim();
     const requestId = ++translationRequestId;
     updateTranslation(
@@ -550,6 +599,7 @@ reader.addEventListener("click", (event) => {
     const sentenceEl = word.closest(".sentence");
     translateWithChatGPT(german, "word", sentenceText).then((result) => {
       if (requestId !== translationRequestId) {
+        setWordLoading(word, false);
         return;
       }
       const fallback = word.dataset.translation;
@@ -606,6 +656,7 @@ reader.addEventListener("click", (event) => {
           "governing-gender"
         );
       }
+      setWordLoading(word, false);
       updateTranslation("word", german, translation, grammar, meta);
     });
     return;

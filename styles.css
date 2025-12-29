@@ -306,7 +306,32 @@ body[data-reader-size] .reader {
 .word.active,
 .word:hover {
   background: rgba(240, 112, 79, 0.2);
+}
+
+.word.active {
+  box-shadow: inset 0 0 0 1px rgba(240, 112, 79, 0.4);
+}
+
+.word:hover {
   transform: translateY(-2px);
+}
+
+.word.loading {
+  animation: wordPulse 1.1s ease-in-out infinite;
+  background: rgba(240, 112, 79, 0.2);
+  box-shadow: 0 0 0 0 rgba(240, 112, 79, 0.35);
+}
+
+@keyframes wordPulse {
+  0%,
+  100% {
+    background: rgba(240, 112, 79, 0.18);
+    box-shadow: 0 0 0 0 rgba(240, 112, 79, 0.2);
+  }
+  50% {
+    background: rgba(240, 112, 79, 0.35);
+    box-shadow: 0 0 0 6px rgba(240, 112, 79, 0.12);
+  }
 }
 
 .word.governing {
@@ -325,7 +350,8 @@ body[data-reader-size] .reader {
 }
 
 .panel-grammar .governing-gender,
-.sheet-grammar .governing-gender {
+.sheet-grammar .governing-gender,
+.governing-legend .governing-gender {
   background: rgba(184, 226, 208, 0.55);
   box-shadow: inset 0 0 0 1px rgba(90, 130, 116, 0.4);
   border-radius: 6px;
@@ -333,7 +359,8 @@ body[data-reader-size] .reader {
 }
 
 .panel-grammar .governing-case,
-.sheet-grammar .governing-case {
+.sheet-grammar .governing-case,
+.governing-legend .governing-case {
   background: rgba(255, 210, 170, 0.6);
   box-shadow: inset 0 0 0 1px rgba(184, 120, 80, 0.4);
   border-radius: 6px;
@@ -353,25 +380,24 @@ body[data-reader-size] .reader {
   min-height: 320px;
 }
 
-.panel-header {
+.governing-legend {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.panel-title {
-  margin: 0;
-  font-weight: 600;
-}
-
-.pill {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--panel-strong);
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: 12px;
+  opacity: 0.7;
+}
+
+.governing-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.governing-legend .legend-swatch {
+  font-size: 10px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
-  font-weight: 600;
 }
 
 .panel-body {
@@ -392,29 +418,35 @@ body[data-reader-size] .reader {
   opacity: 0.8;
 }
 
+.panel-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+}
+
 .grammar-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin-top: 4px;
 }
 
 .meta-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  font-size: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .meta-label {
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-size: 10px;
+  font-size: 9px;
   opacity: 0.6;
 }
 
