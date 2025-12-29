@@ -1521,15 +1521,57 @@ const closeApiKeyModal = () => {
   apiKeyModal.classList.add("is-hidden");
 };
 
-saveKey.addEventListener("click", () => {
+const validateApiKey = async (apiKey) => {
+  if (!apiKey || !apiKey.trim()) {
+    return { valid: false, error: "API key is required" };
+  }
+  
+  try {
+    const response = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey.trim()}`,
+      },
+    });
+    
+    if (response.ok) {
+      return { valid: true };
+    } else {
+      const data = await response.json().catch(() => ({}));
+      return { valid: false, error: data.error?.message || "Invalid API key" };
+    }
+  } catch (error) {
+    return { valid: false, error: "Failed to validate API key. Please check your connection." };
+  }
+};
+
+saveKey.addEventListener("click", async () => {
   const apiKey = apiKeyInput.value.trim();
   if (!apiKey) {
     return;
   }
-  localStorage.setItem("chatgpt_api_key", apiKey);
-  apiKeyInput.value = apiKey;
-  setApiKeyRequirement(false);
-  closeApiKeyModal();
+  
+  // Disable button and show loading state
+  saveKey.disabled = true;
+  const originalText = saveKey.textContent;
+  saveKey.textContent = "Validating...";
+  
+  // Validate the API key
+  const validation = await validateApiKey(apiKey);
+  
+  if (validation.valid) {
+    localStorage.setItem("chatgpt_api_key", apiKey);
+    apiKeyInput.value = apiKey;
+    setApiKeyRequirement(false);
+    saveKey.textContent = originalText;
+    saveKey.disabled = false;
+    closeApiKeyModal();
+  } else {
+    // Show error message
+    alert(validation.error);
+    saveKey.textContent = originalText;
+    saveKey.disabled = false;
+  }
 });
 
 toggleApi.addEventListener("click", () => openApiKeyModal(false));
