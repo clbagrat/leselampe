@@ -76,6 +76,9 @@ let pendingController = null;
 let generationController = null;
 let suggestionController = null;
 let translationRequestId = 0;
+let longPressTimer = null;
+let longPressTriggered = false;
+let sentenceTranslationEl = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -201,6 +204,7 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   selectionGerman.textContent = german;
   selectionEnglish.textContent = translation;
   const isWord = type === "word";
+  const isSentence = type === "sentence";
   const highlights = [
     { word: meta?.caseWord, className: "governing-case" },
     { word: meta?.genderWord, className: "governing-gender" },
@@ -235,6 +239,8 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   }
   translationPanel.classList.remove("is-hidden");
   bottomSheet.classList.remove("is-hidden");
+  translationPanel.classList.toggle("is-sentence", isSentence);
+  bottomSheet.classList.toggle("is-sentence", isSentence);
 
   const hasMeta =
     meta &&
@@ -282,11 +288,32 @@ const clearActiveWord = () => {
   });
 };
 
+const clearActiveSentence = () => {
+  reader.querySelectorAll(".sentence.active").forEach((sentence) => {
+    sentence.classList.remove("active");
+  });
+  reader.classList.remove("has-active-sentence");
+};
+
+const clearSentenceTranslationHighlight = () => {
+  if (sentenceTranslationEl) {
+    sentenceTranslationEl.classList.remove("sentence-translation");
+    sentenceTranslationEl = null;
+  }
+};
+
 const setWordLoading = (word, isLoading) => {
   if (!word) {
     return;
   }
   word.classList.toggle("loading", isLoading);
+};
+
+const clearLongPress = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
 };
 
 const loadStories = () => {
@@ -485,10 +512,12 @@ const renderStory = (story) => {
   resetTranslation();
 
   const sentences = splitIntoSentences(story.text);
-  sentences.forEach((sentence) => {
-    const paragraph = document.createElement("p");
-    paragraph.className = "sentence";
-    paragraph.dataset.translation = "";
+  const paragraph = document.createElement("p");
+  paragraph.className = "story";
+  sentences.forEach((sentence, index) => {
+    const sentenceSpan = document.createElement("span");
+    sentenceSpan.className = "sentence";
+    sentenceSpan.dataset.translation = "";
 
     const tokens = sentence.match(/[\p{L}]+(?:-[\p{L}]+)?|\d+|[^\s\p{L}\d]+/gu) || [];
     let previousToken = null;
@@ -500,7 +529,7 @@ const renderStory = (story) => {
         !noSpaceAfter.has(previousToken);
 
       if (needsSpace) {
-        paragraph.appendChild(document.createTextNode(" "));
+        sentenceSpan.appendChild(document.createTextNode(" "));
       }
 
       if (isWordToken(token)) {
@@ -516,16 +545,20 @@ const renderStory = (story) => {
           span.dataset.pos = "noun";
           span.dataset.lemma = token;
         }
-        paragraph.appendChild(span);
+        sentenceSpan.appendChild(span);
       } else {
-        paragraph.appendChild(document.createTextNode(token));
+        sentenceSpan.appendChild(document.createTextNode(token));
       }
 
       previousToken = token;
     });
 
-    reader.appendChild(paragraph);
+    paragraph.appendChild(sentenceSpan);
+    if (index < sentences.length - 1) {
+      paragraph.appendChild(document.createTextNode(" "));
+    }
   });
+  reader.appendChild(paragraph);
 };
 
 const getApiKey = () => {
@@ -694,13 +727,30 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
 };
 
 reader.addEventListener("click", (event) => {
+  if (longPressTriggered) {
+    longPressTriggered = false;
+    return;
+  }
+  const activeSentence = reader.querySelector(".sentence.active");
   const word = event.target.closest(".word");
+  if (activeSentence && !word) {
+    resetTranslation();
+    return;
+  }
   if (word) {
     clearActiveWord();
+    const sentenceEl = word.closest(".sentence");
+    if (!activeSentence || activeSentence !== sentenceEl) {
+      clearActiveSentence();
+    }
     clearGoverningHighlight();
+    clearSentenceTranslationHighlight();
+    if (sentenceEl) {
+      sentenceEl.classList.add("active");
+      reader.classList.add("has-active-sentence");
+    }
     word.classList.add("active");
     setWordLoading(word, true);
-    const sentenceEl = word.closest(".sentence");
     const separable = findSeparableVerbPhrase(word, sentenceEl);
     if (separable) {
       separable.verbSpan.classList.add("separable");
@@ -714,7 +764,7 @@ reader.addEventListener("click", (event) => {
       "word",
       german,
       "Переводим...",
-      "Объясняем склонение...",
+      "Объясняем...",
       null
     );
     const sentenceText = sentenceEl?.textContent.trim() || "";
@@ -787,16 +837,65 @@ reader.addEventListener("click", (event) => {
   const sentence = event.target.closest(".sentence");
   if (sentence) {
     const german = sentence.textContent.trim();
-    translateSentenceText(german, sentence.dataset.translation);
+    clearActiveSentence();
+    sentence.classList.add("active");
+    reader.classList.add("has-active-sentence");
+    translateSentenceText(german, sentence.dataset.translation, sentence);
   }
 });
 
-const translateSentenceText = (german, fallbackTranslation = "") => {
+reader.addEventListener("pointerdown", (event) => {
+  const word = event.target.closest(".word");
+  if (!word) {
+    return;
+  }
+  clearLongPress();
+  longPressTimer = setTimeout(() => {
+    const sentenceEl = word.closest(".sentence");
+    if (!sentenceEl) {
+      return;
+    }
+    longPressTriggered = true;
+    clearActiveWord();
+    clearGoverningHighlight();
+    clearActiveSentence();
+    sentenceEl.classList.add("active");
+    reader.classList.add("has-active-sentence");
+    translateSentenceText(
+      sentenceEl.textContent.trim(),
+      sentenceEl.dataset.translation,
+      sentenceEl
+    );
+  }, 450);
+});
+
+reader.addEventListener("pointerup", () => {
+  clearLongPress();
+});
+
+reader.addEventListener("pointerleave", () => {
+  clearLongPress();
+});
+
+reader.addEventListener("pointercancel", () => {
+  clearLongPress();
+});
+
+const translateSentenceText = (
+  german,
+  fallbackTranslation = "",
+  sentenceEl = null
+) => {
   if (!german) {
     return;
   }
   clearActiveWord();
   clearGoverningHighlight();
+  clearSentenceTranslationHighlight();
+  if (sentenceEl) {
+    sentenceEl.classList.add("sentence-translation");
+    sentenceTranslationEl = sentenceEl;
+  }
   const requestId = ++translationRequestId;
   updateTranslation(
     "sentence",
@@ -829,6 +928,8 @@ const resetTranslation = () => {
   }
   translationRequestId += 1;
   clearActiveWord();
+  clearSentenceTranslationHighlight();
+  clearActiveSentence();
   clearGoverningHighlight();
   updateTranslation(
     "word",
