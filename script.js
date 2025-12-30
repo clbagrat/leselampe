@@ -1118,7 +1118,7 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
           {
             role: "system",
             content:
-              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array). Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar. ${styleInstruction} If target lemmas are provided, try to use them naturally.`,
+              `Generate a short German story for language learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array). Target about ${wordCount} words (±10%). Use CEFR ${level} vocabulary and grammar. ${styleInstruction} Make the story more intricate and engaging: give a clear setting, a small tension or mystery, and a turning point with a satisfying resolution. Use concrete sensory details (sound, light, texture), a mix of short and longer sentences, and at least one line of natural dialogue. Avoid clichés and repetitive phrasing. Keep clarity high for learners. If target lemmas are provided, try to use them naturally.`,
           },
           {
             role: "user",
