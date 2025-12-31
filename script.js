@@ -56,8 +56,6 @@ const addTextButton = document.getElementById("addText");
 const openLemmasButton = document.getElementById("openLemmas");
 const addTextModal = document.getElementById("addTextModal");
 const closeAddText = document.getElementById("closeAddText");
-const lemmasModal = document.getElementById("lemmasModal");
-const lemmasModalClose = lemmasModal?.querySelector("[data-close-modal]");
 const modeButtons = document.querySelectorAll("[data-mode]");
 const modePaste = document.getElementById("modePaste");
 const modeGenerate = document.getElementById("modeGenerate");
@@ -84,6 +82,7 @@ const backToLibrary = document.getElementById("backToLibrary");
 const readerEnd = document.getElementById("readerEnd");
 const archiveList = document.getElementById("archiveList");
 const archiveEmpty = document.getElementById("archiveEmpty");
+const pageDots = document.getElementById("pageDots");
 
 let lastGerman = "";
 let lastTranslation = "";
@@ -110,6 +109,7 @@ const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
 const readerScreen = document.querySelector('[data-screen="reader"]');
 const readerPanel = document.querySelector(".reader-panel");
+const lemmasScreen = document.querySelector('[data-screen="lemmas"]');
 
 const updateScreenScrollLock = () => {
   if (!screenLayout) {
@@ -292,6 +292,7 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   translationDivider?.classList.toggle("is-hidden", !isWord);
   sheetDivider?.classList.toggle("is-hidden", !isWord);
   updateCopyButtonLabel(type);
+  syncPageDots();
 
   const hasMeta =
     meta &&
@@ -384,11 +385,100 @@ const scrollToScreen = (screen, behavior = "smooth") => {
   });
 };
 
+let pageDotsScreens = [];
+let pageDotsSignature = "";
+let pageDotsScrollFrame = null;
+
+const getVisibleScreens = () => {
+  if (!screenLayout) {
+    return [];
+  }
+  return Array.from(screenLayout.querySelectorAll("[data-screen]")).filter(
+    (screen) =>
+      screen.offsetParent !== null &&
+      !screen.classList.contains("is-hidden") &&
+      screen.dataset.screen !== "translation"
+  );
+};
+
+const buildPageDots = (screens) => {
+  if (!pageDots) {
+    return;
+  }
+  pageDots.innerHTML = "";
+  const total = screens.length;
+  pageDots.classList.toggle("is-hidden", total <= 1);
+  screens.forEach((screen, index) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "page-dot";
+    dot.setAttribute("role", "tab");
+    dot.setAttribute("aria-selected", "false");
+    const label =
+      screen.getAttribute("aria-label") || screen.dataset.screen || "Page";
+    dot.setAttribute("aria-label", `${label} (${index + 1} of ${total})`);
+    dot.addEventListener("click", () => {
+      scrollToScreen(screen);
+    });
+    pageDots.appendChild(dot);
+  });
+};
+
+const updateActivePageDot = () => {
+  if (!pageDots || !screenLayout || !pageDotsScreens.length) {
+    return;
+  }
+  const currentCenter = screenLayout.scrollLeft + screenLayout.clientWidth / 2;
+  let closestIndex = 0;
+  let closestDistance = Infinity;
+  pageDotsScreens.forEach((screen, index) => {
+    const screenCenter = screen.offsetLeft + screen.clientWidth / 2;
+    const distance = Math.abs(screenCenter - currentCenter);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+  const dots = pageDots.querySelectorAll(".page-dot");
+  dots.forEach((dot, index) => {
+    const isActive = index === closestIndex;
+    dot.classList.toggle("is-active", isActive);
+    dot.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+};
+
+const syncPageDots = () => {
+  if (!pageDots || !screenLayout) {
+    return;
+  }
+  const screens = getVisibleScreens();
+  const signature = screens
+    .map((screen) => screen.dataset.screen || screen.getAttribute("aria-label") || "")
+    .join("|");
+  if (signature !== pageDotsSignature) {
+    pageDotsSignature = signature;
+    pageDotsScreens = screens;
+    buildPageDots(screens);
+  }
+  updateActivePageDot();
+};
+
+const requestPageDotsUpdate = () => {
+  if (pageDotsScrollFrame) {
+    return;
+  }
+  pageDotsScrollFrame = requestAnimationFrame(() => {
+    pageDotsScrollFrame = null;
+    updateActivePageDot();
+  });
+};
+
 const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   if (!story) {
     return;
   }
   readerPanel?.classList.remove("is-hidden");
+  syncPageDots();
   renderStory(story);
   setView("reader");
   requestAnimationFrame(() => {
@@ -515,6 +605,7 @@ const deleteStoryById = (storyId) => {
     storyTitle.textContent = "";
     reader.innerHTML = "";
     translationPanel.classList.add("is-hidden");
+    syncPageDots();
   }
   if (currentStoryId && String(storyId) === currentStoryId) {
     currentStoryId = null;
@@ -614,10 +705,7 @@ const markLearnedLemmas = (lemmas) => {
     return;
   }
   saveLemmaStats(stats);
-  if (lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
-    renderLemmaList();
-    return;
-  }
+  renderLemmaList();
   updateLemmaBadge();
 };
 
@@ -641,10 +729,7 @@ const markLearnedLemmasInText = (text, lemmas) => {
     return;
   }
   saveLemmaStats(stats);
-  if (lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
-    renderLemmaList();
-    return;
-  }
+  renderLemmaList();
   updateLemmaBadge();
 };
 
@@ -1828,6 +1913,7 @@ const resetTranslation = () => {
   translationPanel.classList.add("is-hidden");
   bottomSheet.classList.add("is-hidden");
   updateCopyButtonLabel("word");
+  syncPageDots();
 };
 
 const copyTextToClipboard = async (text) => {
@@ -2105,6 +2191,7 @@ const initializeStories = () => {
   const stories = loadStories();
   renderHomeStories(stories);
   renderArchiveStories(stories);
+  renderLemmaList();
   if (!stories.length) {
     storyTitle.textContent = "";
     reader.innerHTML = "";
@@ -2116,6 +2203,7 @@ const initializeStories = () => {
   }
   setupReadObserver();
   setInitialScreen();
+  syncPageDots();
 };
 
 let hasSetInitialScreen = false;
@@ -2134,12 +2222,15 @@ const setInitialScreen = () => {
     screenLayout.style.scrollBehavior = "auto";
     screenLayout.scrollLeft = libraryScreen.offsetLeft;
     screenLayout.style.scrollBehavior = previousBehavior;
+    requestPageDotsUpdate();
   });
 };
 
 initializeStories();
 
-addTextButton.addEventListener("click", showAddTextModal);
+if (addTextButton) {
+  addTextButton.addEventListener("click", showAddTextModal);
+}
 addStoryCta.addEventListener("click", showAddTextModal);
 if (homeAddText) {
   homeAddText.addEventListener("click", showAddTextModal);
@@ -2171,9 +2262,17 @@ if (archiveList) {
 if (openLemmasButton) {
   openLemmasButton.addEventListener("click", () => {
     renderLemmaList();
-    lemmasModal?.classList.remove("is-hidden");
+    scrollToScreen(lemmasScreen);
   });
 }
+
+if (screenLayout) {
+  screenLayout.addEventListener("scroll", requestPageDotsUpdate, { passive: true });
+}
+
+window.addEventListener("resize", () => {
+  syncPageDots();
+});
 
 if (clearLemmasButton) {
   clearLemmasButton.addEventListener("click", () => {
@@ -2182,18 +2281,11 @@ if (clearLemmasButton) {
   });
 }
 
-const closeLemmasModal = () => {
-  lemmasModal?.classList.add("is-hidden");
-};
-
 const closeAddTextModal = () => {
   addTextModal.classList.add("is-hidden");
 };
 
 closeAddText.addEventListener("click", closeAddTextModal);
-if (lemmasModalClose) {
-  lemmasModalClose.addEventListener("click", closeLemmasModal);
-}
 
 addTextModal.addEventListener("click", (event) => {
   if (event.target === addTextModal || event.target.closest("[data-close-modal]")) {
@@ -2201,18 +2293,9 @@ addTextModal.addEventListener("click", (event) => {
   }
 });
 
-lemmasModal?.addEventListener("click", (event) => {
-  if (event.target === lemmasModal || event.target.closest("[data-close-modal]")) {
-    closeLemmasModal();
-  }
-});
-
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
-  }
-  if (event.key === "Escape" && lemmasModal && !lemmasModal.classList.contains("is-hidden")) {
-    closeLemmasModal();
   }
   if (event.key === "Escape" && !apiKeyModal.classList.contains("is-hidden")) {
     closeApiKeyModal();

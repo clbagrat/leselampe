@@ -25,12 +25,9 @@
             <p class="brand-subtitle">German micro-reader</p>
           </div>
         </div>
-        <div class="top-actions">
-          <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
-          <button class="ghost" type="button" id="openLemmas">Lemmas</button>
-          <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
-        </div>
+        <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
       </header>
+      <div class="page-dots" id="pageDots" role="tablist" aria-label="Pages"></div>
 
       <main class="layout">
         <section class="book-panel archive-panel" aria-label="Archive" data-screen="archive">
@@ -79,6 +76,29 @@
               <button class="primary" type="button" id="addStoryCta">Add new story</button>
             </div>
           </div>
+        </section>
+
+        <section class="book-panel" aria-label="Lemmas" data-screen="lemmas">
+          <section class="home-library" aria-label="Translated lemmas">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">Lemmas</p>
+                <h2 class="home-title">Translated lemmas</h2>
+              </div>
+            </div>
+            <div class="saved-section">
+              <p class="helper-text">We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.</p>
+              <p class="saved-title">Lemmas to learn</p>
+              <p class="empty-state is-hidden" id="lemmaEmpty">No lemmas yet. Translate a word to start tracking.</p>
+              <div class="lemma-list" id="lemmaList"></div>
+              <p class="saved-title learned-title">Learned lemmas</p>
+              <p class="empty-state is-hidden" id="lemmaLearnedEmpty">No learned lemmas yet.</p>
+              <div class="lemma-list" id="lemmaLearnedList"></div>
+              <div class="saved-actions">
+                <button class="ghost" type="button" id="clearLemmas">Clear history</button>
+              </div>
+            </div>
+          </section>
         </section>
 
         <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite" data-screen="translation">
@@ -286,28 +306,6 @@
         </div>
       </div>
 
-      <div class="modal is-hidden" id="lemmasModal" role="dialog" aria-modal="true">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <h2>Translated lemmas</h2>
-            </div>
-            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
-          </div>
-          <div class="saved-section">
-            <p class="helper-text">We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.</p>
-            <p class="saved-title">Lemmas to learn</p>
-            <p class="empty-state is-hidden" id="lemmaEmpty">No lemmas yet. Translate a word to start tracking.</p>
-            <div class="lemma-list" id="lemmaList"></div>
-            <p class="saved-title learned-title">Learned lemmas</p>
-            <p class="empty-state is-hidden" id="lemmaLearnedEmpty">No learned lemmas yet.</p>
-            <div class="lemma-list" id="lemmaLearnedList"></div>
-            <div class="saved-actions">
-              <button class="ghost" type="button" id="clearLemmas">Clear history</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script src="script.js"></script>

@@ -44,6 +44,37 @@ body {
   margin-bottom: 20px;
 }
 
+.page-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  min-height: 12px;
+}
+
+.page-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  background: rgba(29, 27, 25, 0.25);
+  cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.page-dot.is-active {
+  width: 18px;
+  background: var(--ink);
+  transform: scale(1.05);
+}
+
+.page-dot:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(240, 112, 79, 0.4);
+}
+
 .top-actions {
   display: flex;
   align-items: center;
