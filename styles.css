@@ -94,6 +94,11 @@ body {
   -ms-overflow-style: none;
 }
 
+.layout.is-locked {
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
 .layout::-webkit-scrollbar {
   display: none;
 }
@@ -290,21 +295,13 @@ body {
 }
 
 .reader-view {
-  display: none;
+  display: block;
   position: relative;
   z-index: 1;
 }
 
 .reader-end {
   height: 1px;
-}
-
-.view-reader .reader-view {
-  display: block;
-}
-
-.view-reader .home-library {
-  display: none;
 }
 
 .book-header {

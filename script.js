@@ -108,6 +108,20 @@ const READ_STATUS_KEY = "reader_story_read_v1";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
+const readerScreen = document.querySelector('[data-screen="reader"]');
+const readerPanel = document.querySelector(".reader-panel");
+
+const updateScreenScrollLock = () => {
+  if (!screenLayout) {
+    return;
+  }
+  const hasActiveWord = Boolean(document.querySelector(".word.active"));
+  const hasActiveSentence = Boolean(document.querySelector(".sentence.active"));
+  screenLayout.classList.toggle(
+    "is-locked",
+    hasActiveWord || hasActiveSentence
+  );
+};
 
 const clearGoverningHighlight = () => {
   document
@@ -323,6 +337,7 @@ const clearActiveWord = () => {
   document.querySelectorAll(".word.separable").forEach((word) => {
     word.classList.remove("separable");
   });
+  updateScreenScrollLock();
 };
 
 const clearActiveSentence = () => {
@@ -330,6 +345,7 @@ const clearActiveSentence = () => {
     sentence.classList.remove("active");
   });
   reader.classList.remove("has-active-sentence");
+  updateScreenScrollLock();
 };
 
 const clearSentenceTranslationHighlight = () => {
@@ -358,12 +374,31 @@ const setView = (view) => {
   document.body.classList.toggle("view-home", view === "home");
 };
 
-const setRoute = (route) => {
-  if (window.location.hash === route) {
-    handleRoute();
+const scrollToScreen = (screen, behavior = "smooth") => {
+  if (!screenLayout || !screen) {
     return;
   }
-  window.location.hash = route;
+  screenLayout.scrollTo({
+    left: screen.offsetLeft,
+    behavior,
+  });
+};
+
+const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
+  if (!story) {
+    return;
+  }
+  readerPanel?.classList.remove("is-hidden");
+  renderStory(story);
+  setView("reader");
+  requestAnimationFrame(() => {
+    scrollToScreen(readerScreen, behavior);
+  });
+};
+
+const showLibraryScreen = (behavior = "smooth") => {
+  setView("home");
+  scrollToScreen(libraryScreen, behavior);
 };
 
 const handleRoute = () => {
@@ -374,12 +409,11 @@ const handleRoute = () => {
     const storyId = match[1];
     const story = loadStories().find((item) => String(item.id) === storyId);
     if (story) {
-      renderStory(story);
-      setView("reader");
+      openReaderScreen(story, { behavior: "auto" });
       return;
     }
   }
-  setView("home");
+  showLibraryScreen("auto");
 };
 
 const setupReadObserver = () => {
@@ -417,6 +451,7 @@ const setActiveSentence = (sentenceEl) => {
   if (isWithinReader(sentenceEl)) {
     reader.classList.add("has-active-sentence");
   }
+  updateScreenScrollLock();
 };
 
 const loadStories = () => {
@@ -483,7 +518,7 @@ const deleteStoryById = (storyId) => {
   }
   if (currentStoryId && String(storyId) === currentStoryId) {
     currentStoryId = null;
-    setRoute("#home");
+    showLibraryScreen("auto");
   }
 };
 
@@ -793,7 +828,7 @@ const renderHomeStories = (stories) => {
     content.appendChild(excerpt);
     content.addEventListener("click", () => {
       closeAllHomeMenus(undefined, homeList);
-      setRoute(`#reader/${story.id}`);
+      openReaderScreen(story);
     });
 
     const actions = document.createElement("div");
@@ -870,7 +905,7 @@ const renderArchiveStories = (stories) => {
     content.appendChild(excerpt);
     content.addEventListener("click", () => {
       closeAllHomeMenus(undefined, archiveList);
-      setRoute(`#reader/${story.id}`);
+      openReaderScreen(story);
     });
 
     const actions = document.createElement("div");
@@ -2085,7 +2120,12 @@ const initializeStories = () => {
 
 let hasSetInitialScreen = false;
 const setInitialScreen = () => {
-  if (hasSetInitialScreen || !screenLayout || !libraryScreen) {
+  if (
+    hasSetInitialScreen ||
+    !screenLayout ||
+    !libraryScreen ||
+    document.body.classList.contains("view-reader")
+  ) {
     return;
   }
   hasSetInitialScreen = true;
@@ -2109,7 +2149,7 @@ if (homeEmptyAdd) {
 }
 if (backToLibrary) {
   backToLibrary.addEventListener("click", () => {
-    setRoute("#home");
+    showLibraryScreen();
   });
 }
 if (homeList) {
@@ -2343,7 +2383,7 @@ savePaste.addEventListener("click", () => {
   saveStories(next);
   renderHomeStories(next);
   renderArchiveStories(next);
-  setRoute(`#reader/${newStory.id}`);
+  openReaderScreen(newStory);
   pasteBody.value = "";
   pasteTitle.value = "";
   addTextModal.classList.add("is-hidden");
@@ -2383,7 +2423,7 @@ generateStory.addEventListener("click", async () => {
   saveStories(next);
   renderHomeStories(next);
   renderArchiveStories(next);
-  setRoute(`#reader/${newStory.id}`);
+  openReaderScreen(newStory);
   promptBody.value = "";
   addTextModal.classList.add("is-hidden");
 });
