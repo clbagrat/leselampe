@@ -80,19 +80,37 @@ body {
 }
 
 .layout {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  display: flex;
   gap: 22px;
-  align-items: start;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 12px;
+  scroll-padding-inline: 12px;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.layout::-webkit-scrollbar {
+  display: none;
+}
+
+.layout > * {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .book-panel {
   background: var(--paper);
   border-radius: var(--radius-lg);
   padding: 26px;
-  box-shadow: 0 25px 40px var(--shadow);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .book-panel::after {
@@ -644,8 +662,8 @@ body[data-reader-size] .reader {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  position: sticky;
-  top: 18px;
+  position: relative;
+  top: auto;
   min-height: 320px;
 }
 
@@ -1192,14 +1210,6 @@ button {
 }
 
 @media (max-width: 960px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .translation-panel {
-    display: none;
-  }
-
   .bottom-sheet {
     display: flex;
   }

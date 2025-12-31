@@ -27,24 +27,38 @@
         </div>
         <div class="top-actions">
           <button class="ghost circle" type="button" id="addText" aria-label="Add text">+</button>
-          <button class="ghost" type="button" id="openSaved">Texts</button>
           <button class="ghost" type="button" id="openLemmas">Lemmas</button>
           <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
         </div>
       </header>
 
       <main class="layout">
-        <section class="book-panel" aria-label="German reader">
+        <section class="book-panel archive-panel" aria-label="Archive" data-screen="archive">
+          <section class="home-library" aria-label="Read stories">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">Archive</p>
+                <h2 class="home-title">Already read</h2>
+              </div>
+            </div>
+            <p class="home-subtitle">Stories you have finished live here.</p>
+            <p class="home-empty is-hidden" id="archiveEmpty">No read stories yet.</p>
+            <div class="home-list" id="archiveList"></div>
+          </section>
+        </section>
+
+        <section class="book-panel" aria-label="German reader" data-screen="library">
           <section class="home-library" aria-label="Available texts">
             <div class="home-library-header">
               <div>
                 <p class="eyebrow">Library</p>
-                <h2 class="home-title">Available texts</h2>
+                <h2 class="home-title">Ready to read</h2>
               </div>
               <button class="ghost mini" type="button" id="homeAddText">Add</button>
             </div>
             <p class="home-subtitle">Tap a text to open it in the reader.</p>
             <p class="home-empty is-hidden" id="homeEmpty">No texts yet. Add your first story to start reading.</p>
+            <button class="primary is-hidden home-empty-action" type="button" id="homeEmptyAdd">Add new story</button>
             <div class="home-list" id="homeList"></div>
           </section>
 
@@ -65,7 +79,7 @@
           </div>
         </section>
 
-        <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite">
+        <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite" data-screen="translation">
           <div class="panel-body">
             <p class="panel-german" id="selectionGerman">Tap a word</p>
             <div class="panel-divider sentence-divider is-hidden" id="sentenceDivider" aria-hidden="true"></div>
@@ -267,22 +281,6 @@
             <button class="primary" type="button" id="savePaste">Add to reader</button>
           </div>
 
-        </div>
-      </div>
-
-      <div class="modal is-hidden" id="savedTextsModal" role="dialog" aria-modal="true">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <p class="eyebrow">Library</p>
-              <h2>Saved texts</h2>
-            </div>
-            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
-          </div>
-          <div class="saved-section">
-            <p class="saved-title">Your saved stories</p>
-            <div class="saved-list" id="savedTexts"></div>
-          </div>
         </div>
       </div>
 
