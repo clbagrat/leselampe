@@ -80,6 +80,11 @@ const wordCountSlider = document.getElementById("wordCount");
 const wordCountValue = document.getElementById("wordCountValue");
 const levelButtons = document.querySelectorAll("[data-level]");
 const styleButtons = document.querySelectorAll("[data-style]");
+const homeList = document.getElementById("homeList");
+const homeEmpty = document.getElementById("homeEmpty");
+const homeAddText = document.getElementById("homeAddText");
+const backToLibrary = document.getElementById("backToLibrary");
+const readerEnd = document.getElementById("readerEnd");
 
 let lastGerman = "";
 let lastTranslation = "";
@@ -92,12 +97,15 @@ let translationRequestId = 0;
 let longPressTimer = null;
 let longPressTriggered = false;
 let sentenceTranslationEl = null;
+let currentStoryId = null;
+let readObserver = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
 const STORY_WORD_COUNT_KEY = "reader_story_word_count";
 const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
+const READ_STATUS_KEY = "reader_story_read_v1";
 const storyTitle = document.querySelector(".book-header h1");
 
 const clearGoverningHighlight = () => {
@@ -344,6 +352,59 @@ const clearLongPress = () => {
   }
 };
 
+const setView = (view) => {
+  document.body.classList.toggle("view-reader", view === "reader");
+  document.body.classList.toggle("view-home", view === "home");
+};
+
+const setRoute = (route) => {
+  if (window.location.hash === route) {
+    handleRoute();
+    return;
+  }
+  window.location.hash = route;
+};
+
+const handleRoute = () => {
+  closeAllHomeMenus();
+  const hash = window.location.hash || "";
+  const match = hash.match(/^#reader\/(.+)/);
+  if (match) {
+    const storyId = match[1];
+    const story = loadStories().find((item) => String(item.id) === storyId);
+    if (story) {
+      renderStory(story);
+      setView("reader");
+      return;
+    }
+  }
+  setView("home");
+};
+
+const setupReadObserver = () => {
+  if (!readerEnd || typeof IntersectionObserver === "undefined") {
+    return;
+  }
+  if (readObserver) {
+    readObserver.disconnect();
+  }
+  readObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (
+          entry.isIntersecting &&
+          document.body.classList.contains("view-reader") &&
+          currentStoryId
+        ) {
+          markStoryRead(currentStoryId);
+        }
+      });
+    },
+    { threshold: 0.6 }
+  );
+  readObserver.observe(readerEnd);
+};
+
 const isWithinReader = (element) => reader && element && reader.contains(element);
 
 const setActiveSentence = (sentenceEl) => {
@@ -375,6 +436,54 @@ const loadStories = () => {
 
 const saveStories = (stories) => {
   localStorage.setItem(STORY_STORAGE_KEY, JSON.stringify(stories));
+};
+
+const loadReadStatus = () => {
+  try {
+    const raw = localStorage.getItem(READ_STATUS_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    return parsed;
+  } catch (error) {
+    return {};
+  }
+};
+
+const saveReadStatus = (status) => {
+  localStorage.setItem(READ_STATUS_KEY, JSON.stringify(status));
+};
+
+const deleteStoryById = (storyId) => {
+  if (!storyId) {
+    return;
+  }
+  const next = loadStories().filter((saved) => String(saved.id) !== String(storyId));
+  saveStories(next);
+  renderSavedStories(next);
+  renderHomeStories(next);
+  const status = loadReadStatus();
+  if (status[String(storyId)]) {
+    delete status[String(storyId)];
+    saveReadStatus(status);
+  }
+  const lastStoryId = localStorage.getItem(LAST_STORY_KEY);
+  if (String(storyId) === lastStoryId) {
+    localStorage.removeItem(LAST_STORY_KEY);
+  }
+  if (!next.length) {
+    storyTitle.textContent = "";
+    reader.innerHTML = "";
+    translationPanel.classList.add("is-hidden");
+  }
+  if (currentStoryId && String(storyId) === currentStoryId) {
+    currentStoryId = null;
+    setRoute("#home");
+  }
 };
 
 const loadLemmaStats = () => {
@@ -521,7 +630,7 @@ const renderSavedStories = (stories) => {
     loadButton.type = "button";
     loadButton.textContent = "Load";
     loadButton.addEventListener("click", () => {
-      renderStory(story);
+      setRoute(`#reader/${story.id}`);
       addTextModal.classList.add("is-hidden");
       savedTextsModal?.classList.add("is-hidden");
     });
@@ -530,20 +639,7 @@ const renderSavedStories = (stories) => {
     deleteButton.type = "button";
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
-      const next = loadStories().filter((saved) => saved.id !== story.id);
-      saveStories(next);
-      renderSavedStories(next);
-      const lastStoryId = localStorage.getItem(LAST_STORY_KEY);
-      if (!next.length) {
-        localStorage.removeItem(LAST_STORY_KEY);
-        storyTitle.textContent = "";
-        reader.innerHTML = "";
-        translationPanel.classList.add("is-hidden");
-        return;
-      }
-      if (String(story.id) === lastStoryId) {
-        renderStory(next[0]);
-      }
+      deleteStoryById(story.id);
     });
     actions.appendChild(loadButton);
     actions.appendChild(deleteButton);
@@ -551,6 +647,252 @@ const renderSavedStories = (stories) => {
     item.appendChild(actions);
     savedTexts.appendChild(item);
   });
+};
+
+const buildStoryExcerpt = (text, maxLength = 180) => {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "No preview available.";
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  const clipped = normalized.slice(0, maxLength).replace(/[\s.,;:!?-]+$/, "");
+  return `${clipped}...`;
+};
+
+const closeAllHomeMenus = (except) => {
+  document.querySelectorAll(".home-item.is-menu-open").forEach((item) => {
+    if (item === except) {
+      return;
+    }
+    item.classList.remove("is-menu-open");
+  });
+  if (homeList && !except) {
+    homeList.classList.remove("has-active");
+    homeList.querySelectorAll(".home-item.is-active").forEach((item) => {
+      item.classList.remove("is-active");
+    });
+  }
+};
+
+const setActiveHomeItem = (item) => {
+  if (!homeList || !item) {
+    return;
+  }
+  homeList.classList.add("has-active");
+  homeList.querySelectorAll(".home-item.is-active").forEach((entry) => {
+    if (entry !== item) {
+      entry.classList.remove("is-active");
+    }
+  });
+  item.classList.add("is-active");
+};
+
+const setupHomeItemLongPress = (item) => {
+  const content = item.querySelector(".home-item-content");
+  if (!content) {
+    return;
+  }
+  let timer = null;
+  let startX = 0;
+  let startY = 0;
+  let moved = false;
+  let triggered = false;
+
+  const clearTimer = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  const cancelPress = () => {
+    clearTimer();
+  };
+
+  const startPress = (clientX, clientY) => {
+    startX = clientX;
+    startY = clientY;
+    moved = false;
+    triggered = false;
+    clearTimer();
+    timer = setTimeout(() => {
+      triggered = true;
+      item.classList.add("is-menu-open");
+      setActiveHomeItem(item);
+    }, 450);
+  };
+
+  content.addEventListener("pointerdown", (event) => {
+    if (event.button !== undefined && event.button !== 0) {
+      return;
+    }
+    closeAllHomeMenus(item);
+    startPress(event.clientX, event.clientY);
+  });
+
+  content.addEventListener("pointermove", (event) => {
+    if (!timer) {
+      return;
+    }
+    const deltaX = Math.abs(event.clientX - startX);
+    const deltaY = Math.abs(event.clientY - startY);
+    if (deltaX > 8 || deltaY > 8) {
+      moved = true;
+      cancelPress();
+    }
+  });
+
+  content.addEventListener("pointerup", (event) => {
+    if (triggered) {
+      event.preventDefault();
+    }
+    clearTimer();
+  });
+
+  content.addEventListener("pointercancel", cancelPress);
+  content.addEventListener("mouseleave", cancelPress);
+  content.addEventListener("contextmenu", (event) => {
+    if (triggered) {
+      event.preventDefault();
+    }
+  });
+};
+
+const toggleReadStatus = (storyId) => {
+  if (!storyId) {
+    return false;
+  }
+  const status = loadReadStatus();
+  const key = String(storyId);
+  const isRead = Boolean(status[key]?.isRead);
+  if (isRead) {
+    delete status[key];
+  } else {
+    status[key] = {
+      isRead: true,
+      readAt: new Date().toISOString(),
+    };
+  }
+  saveReadStatus(status);
+  return !isRead;
+};
+
+const renderHomeStories = (stories) => {
+  if (!homeList) {
+    return;
+  }
+  homeList.innerHTML = "";
+  if (!stories.length) {
+    homeEmpty?.classList.remove("is-hidden");
+    return;
+  }
+  homeEmpty?.classList.add("is-hidden");
+  const statusMap = loadReadStatus();
+  stories.forEach((story) => {
+    const item = document.createElement("div");
+    item.className = "home-item";
+    item.dataset.storyId = String(story.id);
+    const isRead = Boolean(statusMap[String(story.id)]?.isRead);
+    if (isRead) {
+      item.classList.add("is-read");
+    }
+
+    const content = document.createElement("button");
+    content.className = "home-item-content";
+    content.type = "button";
+
+    const head = document.createElement("div");
+    head.className = "home-item-head";
+
+    const title = document.createElement("p");
+    title.className = "home-item-title";
+    title.textContent = story.title || "Untitled";
+
+    const status = document.createElement("span");
+    status.className = "home-item-status";
+    status.textContent = isRead ? "Read" : "Unread";
+    head.appendChild(title);
+    head.appendChild(status);
+
+    const excerpt = document.createElement("p");
+    excerpt.className = "home-item-excerpt";
+    excerpt.textContent = buildStoryExcerpt(story.text);
+
+    content.appendChild(head);
+    content.appendChild(excerpt);
+    content.addEventListener("click", () => {
+      closeAllHomeMenus();
+      setRoute(`#reader/${story.id}`);
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "home-item-actions";
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "home-action toggle";
+    toggleButton.type = "button";
+    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
+    toggleButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const nextValue = toggleReadStatus(story.id);
+      updateHomeReadStatus(String(story.id), nextValue);
+      closeAllHomeMenus();
+    });
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "home-action delete";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteStoryById(story.id);
+      closeAllHomeMenus();
+    });
+    actions.appendChild(toggleButton);
+    actions.appendChild(deleteButton);
+
+    item.appendChild(content);
+    item.appendChild(actions);
+    setupHomeItemLongPress(item);
+    homeList.appendChild(item);
+  });
+};
+
+const updateHomeReadStatus = (storyId, isRead) => {
+  if (!homeList) {
+    return;
+  }
+  const item = homeList.querySelector(
+    `.home-item[data-story-id="${storyId}"]`
+  );
+  if (!item) {
+    return;
+  }
+  item.classList.toggle("is-read", isRead);
+  const badge = item.querySelector(".home-item-status");
+  if (badge) {
+    badge.textContent = isRead ? "Read" : "Unread";
+  }
+  const toggleButton = item.querySelector(".home-action.toggle");
+  if (toggleButton) {
+    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
+  }
+};
+
+const markStoryRead = (storyId) => {
+  if (!storyId) {
+    return;
+  }
+  const status = loadReadStatus();
+  if (status[String(storyId)]?.isRead) {
+    return;
+  }
+  status[String(storyId)] = {
+    isRead: true,
+    readAt: new Date().toISOString(),
+  };
+  saveReadStatus(status);
+  updateHomeReadStatus(String(storyId), true);
 };
 
 const getLemmaEntries = (options = {}) => {
@@ -949,6 +1291,7 @@ const buildSentenceSpan = (sentence) => {
 
 const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
+  currentStoryId = String(story.id);
   storyTitle.innerHTML = "";
   if (story.title) {
     storyTitle.appendChild(buildSentenceSpan(story.title));
@@ -1677,35 +2020,45 @@ const showAddTextModal = () => {
 
 const initializeStories = () => {
   const storedKey = localStorage.getItem("chatgpt_api_key");
-  if (!storedKey) {
-    openApiKeyModal(true);
-    return;
-  }
   const stories = loadStories();
   renderSavedStories(stories);
-  const lastStoryId = localStorage.getItem(LAST_STORY_KEY);
-  const lastStory = stories.find((story) => String(story.id) === lastStoryId);
-  if (lastStory) {
-    renderStory(lastStory);
-    return;
+  renderHomeStories(stories);
+  if (!stories.length) {
+    storyTitle.textContent = "";
+    reader.innerHTML = "";
+    translationPanel.classList.add("is-hidden");
   }
-  if (stories.length) {
-    renderStory(stories[0]);
-    return;
+  handleRoute();
+  if (!storedKey) {
+    openApiKeyModal(true);
   }
-  storyTitle.textContent = "";
-  reader.innerHTML = "";
-  translationPanel.classList.add("is-hidden");
+  setupReadObserver();
 };
 
 initializeStories();
 
 addTextButton.addEventListener("click", showAddTextModal);
 addStoryCta.addEventListener("click", showAddTextModal);
+if (homeAddText) {
+  homeAddText.addEventListener("click", showAddTextModal);
+}
+if (backToLibrary) {
+  backToLibrary.addEventListener("click", () => {
+    setRoute("#home");
+  });
+}
 if (openSavedButton) {
   openSavedButton.addEventListener("click", () => {
     renderSavedStories(loadStories());
     savedTextsModal?.classList.remove("is-hidden");
+  });
+}
+
+if (homeList) {
+  homeList.addEventListener("contextmenu", (event) => {
+    if (event.target.closest(".home-item")) {
+      event.preventDefault();
+    }
   });
 }
 
@@ -1939,7 +2292,8 @@ savePaste.addEventListener("click", () => {
   const next = [newStory, ...current];
   saveStories(next);
   renderSavedStories(next);
-  renderStory(newStory);
+  renderHomeStories(next);
+  setRoute(`#reader/${newStory.id}`);
   pasteBody.value = "";
   pasteTitle.value = "";
   addTextModal.classList.add("is-hidden");
@@ -1978,7 +2332,27 @@ generateStory.addEventListener("click", async () => {
   const next = [newStory, ...current];
   saveStories(next);
   renderSavedStories(next);
-  renderStory(newStory);
+  renderHomeStories(next);
+  setRoute(`#reader/${newStory.id}`);
   promptBody.value = "";
   addTextModal.classList.add("is-hidden");
 });
+
+window.addEventListener("hashchange", handleRoute);
+
+document.addEventListener(
+  "click",
+  (event) => {
+    if (!homeList || !homeList.classList.contains("has-active")) {
+      return;
+    }
+    const activeItem = homeList.querySelector(".home-item.is-active");
+    if (activeItem && activeItem.contains(event.target)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    closeAllHomeMenus();
+  },
+  true
+);

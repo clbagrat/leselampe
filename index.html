@@ -15,7 +15,7 @@
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="view-home">
     <div class="page">
       <header class="top-bar">
         <div class="brand">
@@ -35,16 +35,33 @@
 
       <main class="layout">
         <section class="book-panel" aria-label="German reader">
-          <div class="book-header">
-            <div>
-              <p class="eyebrow">Heute lesen wir</p>
-              <h1></h1>
+          <section class="home-library" aria-label="Available texts">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">Library</p>
+                <h2 class="home-title">Available texts</h2>
+              </div>
+              <button class="ghost mini" type="button" id="homeAddText">Add</button>
             </div>
-          </div>
+            <p class="home-subtitle">Tap a text to open it in the reader.</p>
+            <p class="home-empty is-hidden" id="homeEmpty">No texts yet. Add your first story to start reading.</p>
+            <div class="home-list" id="homeList"></div>
+          </section>
 
-          <article class="reader" id="reader" aria-live="polite"></article>
-          <div class="reader-cta">
-            <button class="primary" type="button" id="addStoryCta">Add new story</button>
+          <div class="reader-view" id="readerView">
+            <div class="book-header">
+              <div>
+                <p class="eyebrow">Heute lesen wir</p>
+                <h1></h1>
+              </div>
+              <button class="ghost mini" type="button" id="backToLibrary">Library</button>
+            </div>
+
+            <article class="reader" id="reader" aria-live="polite"></article>
+            <div class="reader-end" id="readerEnd" aria-hidden="true"></div>
+            <div class="reader-cta">
+              <button class="primary" type="button" id="addStoryCta">Add new story</button>
+            </div>
           </div>
         </section>
 
