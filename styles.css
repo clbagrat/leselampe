@@ -18,9 +18,15 @@
   box-sizing: content-box;
 }
 
+
+html {
+  background: var(--paper);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--mono);
   color: var(--ink);
   background: radial-gradient(circle at 20% 20%, #fff6d1 0%, transparent 55%),
@@ -33,6 +39,7 @@ body {
   max-width: none;
   margin: 0;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -159,6 +166,7 @@ body {
   background: var(--paper);
   border-radius: 0;
   padding: 26px;
+  padding-bottom: calc(26px + env(safe-area-inset-bottom));
   position: relative;
   overflow: auto;
   box-sizing: border-box;
@@ -696,6 +704,7 @@ body[data-reader-size] .reader {
   background: var(--panel);
   border-radius: 0;
   padding: 22px;
+  padding-bottom: calc(22px + env(safe-area-inset-bottom));
   box-shadow: 0 24px 40px rgba(17, 16, 15, 0.18);
   display: flex;
   flex-direction: column;
@@ -1149,7 +1158,7 @@ button {
   position: fixed;
   left: 16px;
   right: 16px;
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
   background: var(--panel);
   border-radius: 24px;
   padding: 16px 18px 18px;
