@@ -132,6 +132,7 @@ let readObserver = null;
 let lastSettingsReturnScreen = null;
 let rssCurrentItems = [];
 let rssSearchItems = [];
+let rssAdaptController = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -142,6 +143,7 @@ const READ_STATUS_KEY = "reader_story_read_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
+const RSS_ADAPT_STORAGE_KEY = "reader_rss_adapt_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
@@ -346,6 +348,137 @@ const buildRssExcerpt = (item) => {
   return buildStoryExcerpt(fallback);
 };
 
+const loadRssAdaptations = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RSS_ADAPT_STORAGE_KEY) || "{}");
+    if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+      return stored;
+    }
+  } catch (error) {
+    console.warn("Failed to load RSS adaptations.", error);
+  }
+  return {};
+};
+
+const saveRssAdaptations = (items) => {
+  localStorage.setItem(RSS_ADAPT_STORAGE_KEY, JSON.stringify(items));
+};
+
+const getRssAdaptation = (itemId, level) => {
+  if (!itemId || !level) {
+    return null;
+  }
+  const key = `${itemId}:${level}`;
+  const adaptations = loadRssAdaptations();
+  return adaptations[key] || null;
+};
+
+const setRssAdaptation = (itemId, level, payload) => {
+  if (!itemId || !level || !payload?.text) {
+    return false;
+  }
+  const key = `${itemId}:${level}`;
+  const adaptations = loadRssAdaptations();
+  adaptations[key] = {
+    title: payload.title || "",
+    text: payload.text,
+    level,
+    updatedAt: new Date().toISOString(),
+  };
+  saveRssAdaptations(adaptations);
+  return true;
+};
+
+const blocksToPlainText = (blocks) => {
+  if (!Array.isArray(blocks)) {
+    return "";
+  }
+  return blocks
+    .map((block) => normalizeArticleText(block?.text || ""))
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const buildBlocksFromText = (text) => {
+  const parts = String(text || "")
+    .split(/\n+/)
+    .map((line) => normalizeArticleText(line))
+    .filter(Boolean);
+  return parts.map((line) => ({ type: "paragraph", text: line }));
+};
+
+const adaptRssArticleWithChatGPT = async (title, blocks, level) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const sourceText = blocksToPlainText(blocks);
+  if (!sourceText) {
+    return null;
+  }
+  const lemmas = getTopLemmaList(8);
+  const lemmaInstruction = lemmas.length
+    ? `\nIf possible, weave in a few of these lemmas without distorting the meaning (do not force): ${lemmas.join(
+        ", "
+      )}.`
+    : "";
+  if (rssAdaptController) {
+    rssAdaptController.abort();
+  }
+  rssAdaptController = new AbortController();
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a translator and text adapter for German learners. Respond with strict JSON: {"title":"...","text":"..."}.
+If the source text is not in German, translate it into German first. Then adapt the German to CEFR ${level} vocabulary and grammar.
+If the source text is already in German, adapt/simplify it to CEFR ${level}.
+Keep names, places, and numbers. Preserve meaning and key details. Keep the length reasonably close to the original.
+Use short paragraphs separated by blank lines. Do not use markdown or bullet lists.${lemmaInstruction}`,
+          },
+          {
+            role: "user",
+            content: `Title: ${title || "Untitled"}\n\n${sourceText}`,
+          },
+        ],
+      }),
+      signal: rssAdaptController.signal,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "RSS adaptation failed");
+    }
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("Empty adaptation");
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed.text) {
+      throw new Error("Malformed adaptation");
+    }
+    return {
+      title: parsed.title || title || "Artikel",
+      text: parsed.text,
+    };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    return null;
+  }
+};
+
 const upsertRssArchiveItem = (item, readAt) => {
   if (!item?.id) {
     return;
@@ -359,6 +492,7 @@ const upsertRssArchiveItem = (item, readAt) => {
     source: item.source || "Feed",
     date: item.date instanceof Date ? item.date.toISOString() : item.date || "",
     contentHtml: item.contentHtml || "",
+    feedUrl: item.feedUrl || "",
     readAt: readAt || new Date().toISOString(),
   };
   const existingIndex = archive.findIndex((stored) => stored.id === id);
@@ -696,7 +830,14 @@ const parseFeedItems = (doc, sourceUrl) => {
       item.querySelector("content\\:encoded")?.textContent ||
       item.querySelector("description")?.textContent ||
       "";
-    return { title, link, date, source: channelTitle, contentHtml };
+    return {
+      title,
+      link,
+      date,
+      source: channelTitle,
+      contentHtml,
+      feedUrl: sourceUrl,
+    };
   });
   if (rssItems.length) {
     return rssItems;
@@ -715,7 +856,14 @@ const parseFeedItems = (doc, sourceUrl) => {
       entry.querySelector("content")?.textContent ||
       entry.querySelector("summary")?.textContent ||
       "";
-    return { title, link, date, source: feedTitle, contentHtml };
+    return {
+      title,
+      link,
+      date,
+      source: feedTitle,
+      contentHtml,
+      feedUrl: sourceUrl,
+    };
   });
 };
 
@@ -830,7 +978,7 @@ const openRssReaderScreen = (title, blocks, itemId, { behavior = "smooth" } = {}
   });
 };
 
-const showRssLoading = (title) => {
+const showRssLoading = (title, message = "Loading article...") => {
   currentStoryId = null;
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
@@ -841,7 +989,7 @@ const showRssLoading = (title) => {
   reader.innerHTML = "";
   const paragraph = document.createElement("p");
   paragraph.className = "story";
-  paragraph.textContent = "Loading article...";
+  paragraph.textContent = message;
   reader.appendChild(paragraph);
 };
 
@@ -851,23 +999,85 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
   }
   setRssStatus("");
   currentRssItem = item || null;
+  const feedUrl = item.feedUrl || "";
+  const selectedLevel = getRssLevel(feedUrl);
+  const wantsAdaptation = selectedLevel && selectedLevel !== "raw";
+  const canAdapt = wantsAdaptation && Boolean(getApiKey());
   if (markUnread && item.id) {
     markStoryUnread(item.id);
   }
-  showRssLoading(item.title || "RSS article");
+  if (wantsAdaptation) {
+    showRssLoading(item.title || "RSS article", `Adapting for ${selectedLevel}...`);
+    if (!canAdapt) {
+      setRssStatus("Add an API key to adapt RSS articles.", { isError: true });
+    }
+  } else {
+    showRssLoading(item.title || "RSS article");
+  }
   setView("reader");
   requestAnimationFrame(() => {
     scrollToScreen(readerScreen, "smooth");
   });
   try {
+    if (canAdapt && item.id) {
+      const cached = getRssAdaptation(item.id, selectedLevel);
+      if (cached?.text) {
+        openRssReaderScreen(
+          cached.title || item.title,
+          buildBlocksFromText(cached.text),
+          item.id
+        );
+        return;
+      }
+    }
     const html = await fetchRssText(item.link);
     const blocks = extractArticleBlocks(html);
-    if (blocks.length) {
-      openRssReaderScreen(item.title, blocks, item.id);
+    const usableBlocks =
+      blocks.length
+        ? blocks
+        : item.contentHtml
+          ? extractArticleBlocks(item.contentHtml)
+          : [];
+    if (usableBlocks.length) {
+      if (canAdapt) {
+        const adapted = await adaptRssArticleWithChatGPT(
+          item.title,
+          usableBlocks,
+          selectedLevel
+        );
+        if (adapted?.text) {
+          setRssAdaptation(item.id, selectedLevel, adapted);
+          openRssReaderScreen(
+            adapted.title || item.title,
+            buildBlocksFromText(adapted.text),
+            item.id
+          );
+          return;
+        }
+        setRssStatus("Couldn't adapt this article.", { isError: true });
+      }
+      openRssReaderScreen(item.title, usableBlocks, item.id);
       return;
     }
     if (item.contentHtml) {
       const fallbackBlocks = extractArticleBlocks(item.contentHtml);
+      if (canAdapt) {
+        const adapted = await adaptRssArticleWithChatGPT(
+          item.title,
+          fallbackBlocks,
+          selectedLevel
+        );
+        if (adapted?.text) {
+          setRssAdaptation(item.id, selectedLevel, adapted);
+          openRssReaderScreen(
+            adapted.title || item.title,
+            buildBlocksFromText(adapted.text),
+            item.id
+          );
+          return;
+        }
+        setRssStatus("Couldn't adapt this article.", { isError: true });
+      }
       openRssReaderScreen(item.title, fallbackBlocks, item.id);
       return;
     }
@@ -875,6 +1085,22 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
     openRssReaderScreen(item.title, [], item.id);
   } catch (error) {
     const fallbackBlocks = extractArticleBlocks(item.contentHtml || "");
+    if (canAdapt && fallbackBlocks.length) {
+      const adapted = await adaptRssArticleWithChatGPT(
+        item.title,
+        fallbackBlocks,
+        selectedLevel
+      );
+      if (adapted?.text) {
+        setRssAdaptation(item.id, selectedLevel, adapted);
+        openRssReaderScreen(
+          adapted.title || item.title,
+          buildBlocksFromText(adapted.text),
+          item.id
+        );
+        return;
+      }
+    }
     setRssStatus("Couldn't load the article content.", { isError: true });
     openRssReaderScreen(item.title, fallbackBlocks, item.id);
   }
