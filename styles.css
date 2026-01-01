@@ -1347,6 +1347,21 @@ h2 {
   gap: 10px;
 }
 
+.lemma-search {
+  margin-top: 2px;
+}
+
+#lemmaSearch {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 16px;
+  background: #fff;
+}
+
 .saved-title {
   margin: 0;
   font-weight: 600;

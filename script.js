@@ -71,6 +71,9 @@ const lemmaEmpty = document.getElementById("lemmaEmpty");
 const lemmaLearnedList = document.getElementById("lemmaLearnedList");
 const lemmaLearnedEmpty = document.getElementById("lemmaLearnedEmpty");
 const clearLemmasButton = document.getElementById("clearLemmas");
+const lemmaSearch = document.getElementById("lemmaSearch");
+const lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
+const lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
 const wordCountSlider = document.getElementById("wordCount");
 const wordCountValue = document.getElementById("wordCountValue");
 const levelButtons = document.querySelectorAll("[data-level]");
@@ -2548,6 +2551,34 @@ const getTopLemmaList = (limit = 10) => {
     .map((item) => item.lemma);
 };
 
+const getLemmaSearchQuery = () =>
+  String(lemmaSearch?.value || "").trim().toLowerCase();
+
+const getLemmaMatchInfo = (entry, query) => {
+  if (!query) {
+    return { matches: true, matchesOriginal: false };
+  }
+  const lemmaText = String(entry?.lemma || "").toLowerCase();
+  if (lemmaText.includes(query)) {
+    return { matches: true, matchesOriginal: false };
+  }
+  const originals = Array.isArray(entry?.originals) ? entry.originals : [];
+  const legacyOriginal = entry?.original ? [{ word: entry.original, translation: "" }] : [];
+  const list = originals.length ? originals : legacyOriginal;
+  const matchesOriginal = list.some((item) => {
+    if (!item) {
+      return false;
+    }
+    if (typeof item === "string") {
+      return item.toLowerCase().includes(query);
+    }
+    const word = String(item.word || "").toLowerCase();
+    const translation = String(item.translation || "").toLowerCase();
+    return word.includes(query) || translation.includes(query);
+  });
+  return { matches: matchesOriginal, matchesOriginal };
+};
+
 const buildLemmaOriginals = (entry) => {
   const originals = Array.isArray(entry?.originals) ? entry.originals : [];
   if (!originals.length) {
@@ -2606,15 +2637,21 @@ const renderLemmaList = () => {
   if (!lemmaList) {
     return;
   }
-  const entries = getLemmaEntries();
+  const query = getLemmaSearchQuery();
+  const entries = getLemmaEntries()
+    .map((entry) => ({ entry, match: getLemmaMatchInfo(entry, query) }))
+    .filter((item) => item.match.matches);
   const total = entries.length;
   lemmaList.innerHTML = "";
   if (!entries.length) {
+    if (lemmaEmpty) {
+      lemmaEmpty.textContent = query ? "No matches." : lemmaEmptyDefaultText;
+    }
     lemmaEmpty?.classList.remove("is-hidden");
   } else {
     lemmaEmpty?.classList.add("is-hidden");
     const fragment = document.createDocumentFragment();
-    entries.forEach((entry, index) => {
+    entries.forEach(({ entry, match }, index) => {
       const position = index + 1;
       const countValue = Number(entry.count) || 1;
       const item = document.createElement("div");
@@ -2655,6 +2692,9 @@ const renderLemmaList = () => {
       if (details) {
         item.appendChild(details);
         attachLemmaDetailsToggle(item, details, toggle);
+        if (query && match.matchesOriginal) {
+          item.classList.add("is-expanded");
+        }
       } else {
         toggle.remove();
       }
@@ -2670,15 +2710,23 @@ const renderLearnedLemmaList = () => {
   if (!lemmaLearnedList) {
     return;
   }
-  const entries = getLemmaEntries({ includeLearned: true });
+  const query = getLemmaSearchQuery();
+  const entries = getLemmaEntries({ includeLearned: true })
+    .map((entry) => ({ entry, match: getLemmaMatchInfo(entry, query) }))
+    .filter((item) => item.match.matches);
   lemmaLearnedList.innerHTML = "";
   if (!entries.length) {
+    if (lemmaLearnedEmpty) {
+      lemmaLearnedEmpty.textContent = query
+        ? "No matches."
+        : lemmaLearnedEmptyDefaultText;
+    }
     lemmaLearnedEmpty?.classList.remove("is-hidden");
     return;
   }
   lemmaLearnedEmpty?.classList.add("is-hidden");
   const fragment = document.createDocumentFragment();
-  entries.forEach((entry) => {
+  entries.forEach(({ entry, match }) => {
     const item = document.createElement("div");
     item.className = "lemma-item";
 
@@ -2717,6 +2765,9 @@ const renderLearnedLemmaList = () => {
     if (details) {
       item.appendChild(details);
       attachLemmaDetailsToggle(item, details, toggle);
+      if (query && match.matchesOriginal) {
+        item.classList.add("is-expanded");
+      }
     } else {
       toggle.remove();
     }
@@ -3966,6 +4017,11 @@ window.addEventListener("resize", () => {
 if (clearLemmasButton) {
   clearLemmasButton.addEventListener("click", () => {
     localStorage.removeItem(LEMMA_STATS_KEY);
+    renderLemmaList();
+  });
+}
+if (lemmaSearch) {
+  lemmaSearch.addEventListener("input", () => {
     renderLemmaList();
   });
 }
