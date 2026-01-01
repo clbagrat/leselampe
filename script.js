@@ -53,6 +53,7 @@ const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
 const readerStatus = document.getElementById("readerStatus");
 const readerStatusLemmas = document.getElementById("readerStatusLemmas");
+const reloadApp = document.getElementById("reloadApp");
 const addTextButton = document.getElementById("addText");
 const openLemmasButton = document.getElementById("openLemmas");
 const addTextModal = document.getElementById("addTextModal");
@@ -3985,6 +3986,11 @@ if (rssFeedList) {
     if (event.target.closest(".home-item")) {
       event.preventDefault();
     }
+  });
+}
+if (reloadApp) {
+  reloadApp.addEventListener("click", () => {
+    window.location.reload();
   });
 }
 

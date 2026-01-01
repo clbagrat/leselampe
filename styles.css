@@ -805,6 +805,12 @@ h1 {
   box-shadow: 0 18px 30px rgba(17, 16, 15, 0.12);
 }
 
+.settings-footer {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 12px;
+}
+
 .option-group {
   display: grid;
   gap: 10px;
