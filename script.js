@@ -92,6 +92,14 @@ const pageDotIcons = {
   settings: "assets/icons/icon-settings.svg",
 };
 
+const updateStandaloneMode = () => {
+  const isStandaloneMatch =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  const isIosStandalone = window.navigator.standalone === true;
+  document.body.classList.toggle("is-standalone", isStandaloneMatch || isIosStandalone);
+};
+
 let lastGerman = "";
 let lastTranslation = "";
 let lastGrammar = "";
@@ -2359,6 +2367,16 @@ if (openLemmasButton) {
 
 if (screenLayout) {
   screenLayout.addEventListener("scroll", requestPageDotsUpdate, { passive: true });
+}
+
+updateStandaloneMode();
+if (typeof window.matchMedia === "function") {
+  const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+  if (typeof standaloneQuery.addEventListener === "function") {
+    standaloneQuery.addEventListener("change", updateStandaloneMode);
+  } else if (typeof standaloneQuery.addListener === "function") {
+    standaloneQuery.addListener(updateStandaloneMode);
+  }
 }
 
 window.addEventListener("resize", () => {
