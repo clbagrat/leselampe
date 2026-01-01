@@ -38,7 +38,11 @@ export default {
 
     const response = await fetch(targetUrl.toString(), {
       headers: {
-        "User-Agent": "Leselampe RSS Proxy",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept:
+          "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, text/html;q=0.7, */*;q=0.5",
+        "Accept-Language": "en-US,en;q=0.9",
       },
     });
     const headers = new Headers(response.headers);

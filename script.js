@@ -897,21 +897,52 @@ const parseRssDate = (value) => {
   return date;
 };
 
+const getElementsByTag = (parent, tag) => {
+  if (!parent) {
+    return [];
+  }
+  if (parent.getElementsByTagNameNS) {
+    return Array.from(parent.getElementsByTagNameNS("*", tag));
+  }
+  return Array.from(parent.getElementsByTagName(tag));
+};
+
+const getFirstByTag = (parent, tag) => getElementsByTag(parent, tag)[0] || null;
+
+const getTextFromTag = (parent, tag) =>
+  getFirstByTag(parent, tag)?.textContent?.trim() || "";
+
+const getLinkFromNode = (node) => {
+  if (!node) {
+    return "";
+  }
+  return node.getAttribute("href") || node.textContent?.trim() || "";
+};
+
+const getAtomEntryLink = (entry) => {
+  const links = getElementsByTag(entry, "link");
+  if (!links.length) {
+    return "";
+  }
+  const alternate = links.find((link) => link.getAttribute("rel") === "alternate");
+  const preferred =
+    alternate ||
+    links.find((link) => link.getAttribute("rel") !== "self") ||
+    links[0];
+  return getLinkFromNode(preferred);
+};
+
 const parseFeedItems = (doc, sourceUrl) => {
-  const channelTitle =
-    doc.querySelector("channel > title")?.textContent?.trim() || sourceUrl;
-  const rssItems = Array.from(doc.querySelectorAll("item")).map((item) => {
-    const title = item.querySelector("title")?.textContent?.trim();
-    const linkEl = item.querySelector("link");
-    const link = linkEl?.getAttribute("href") || linkEl?.textContent?.trim();
+  const channel = getFirstByTag(doc, "channel");
+  const channelTitle = getTextFromTag(channel, "title") || sourceUrl;
+  const rssItems = getElementsByTag(doc, "item").map((item) => {
+    const title = getTextFromTag(item, "title");
+    const link = getLinkFromNode(getFirstByTag(item, "link"));
     const date = parseRssDate(
-      item.querySelector("pubDate")?.textContent ||
-        item.querySelector("date")?.textContent
+      getTextFromTag(item, "pubDate") || getTextFromTag(item, "date")
     );
     const contentHtml =
-      item.querySelector("content\\:encoded")?.textContent ||
-      item.querySelector("description")?.textContent ||
-      "";
+      getTextFromTag(item, "encoded") || getTextFromTag(item, "description");
     return {
       title,
       link,
@@ -924,20 +955,16 @@ const parseFeedItems = (doc, sourceUrl) => {
   if (rssItems.length) {
     return rssItems;
   }
-  const feedTitle = doc.querySelector("feed > title")?.textContent?.trim() || sourceUrl;
-  return Array.from(doc.querySelectorAll("entry")).map((entry) => {
-    const title = entry.querySelector("title")?.textContent?.trim();
-    const linkEl =
-      entry.querySelector('link[rel="alternate"]') || entry.querySelector("link");
-    const link = linkEl?.getAttribute("href") || linkEl?.textContent?.trim();
+  const feed = getFirstByTag(doc, "feed");
+  const feedTitle = getTextFromTag(feed, "title") || sourceUrl;
+  return getElementsByTag(doc, "entry").map((entry) => {
+    const title = getTextFromTag(entry, "title");
+    const link = getAtomEntryLink(entry);
     const date = parseRssDate(
-      entry.querySelector("updated")?.textContent ||
-        entry.querySelector("published")?.textContent
+      getTextFromTag(entry, "updated") || getTextFromTag(entry, "published")
     );
     const contentHtml =
-      entry.querySelector("content")?.textContent ||
-      entry.querySelector("summary")?.textContent ||
-      "";
+      getTextFromTag(entry, "content") || getTextFromTag(entry, "summary");
     return {
       title,
       link,
