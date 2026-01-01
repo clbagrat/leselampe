@@ -423,6 +423,7 @@ h1 {
 }
 
 .book-header h1 {
+  font-size: clamp(20px, 2.3vw, 28px);
   cursor: pointer;
 }
 
@@ -722,7 +723,7 @@ body[data-reader-size] .reader {
   display: inline-block;
   padding: 2px 4px;
   border-radius: 6px;
-  margin: 0 1px;
+  margin: 0 -1px;
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease;
 }
