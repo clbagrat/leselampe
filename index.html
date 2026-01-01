@@ -17,16 +17,6 @@
   </head>
   <body class="view-home">
     <div class="page">
-      <header class="top-bar">
-        <div class="brand">
-          <span class="brand-mark">✦</span>
-          <div>
-            <p class="brand-title">Leselampe</p>
-            <p class="brand-subtitle">German micro-reader</p>
-          </div>
-        </div>
-        <button class="ghost" type="button" id="toggleApi" aria-label="Settings">Settings</button>
-      </header>
       <div class="page-dots" id="pageDots" role="tablist" aria-label="Pages"></div>
 
       <main class="layout">
@@ -138,6 +128,60 @@
             <p class="panel-lemma-diff is-hidden" id="selectionLemmaDiff"></p>
           </div>
         </aside>
+
+        <section class="book-panel settings-panel" aria-label="Settings" data-screen="settings">
+          <section class="home-library" aria-label="Reader settings">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">Settings</p>
+                <h2 class="home-title">Reader controls</h2>
+              </div>
+              <button class="ghost mini" type="button" id="settingsBack">Library</button>
+            </div>
+            <div class="settings-body">
+              <div class="api-modal-body">
+                <label class="api-label" for="apiKey">ChatGPT API key</label>
+                <input
+                  id="apiKey"
+                  type="password"
+                  placeholder="sk-..."
+                  autocomplete="off"
+                />
+                <p class="helper-text api-key-help">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI Platform</a></p>
+                <div class="api-modal-actions">
+                  <button class="ghost" type="button" id="toggleKeyVisibility">Show</button>
+                  <button class="ghost" type="button" id="clearKey">Clear key</button>
+                  <button class="primary" type="button" id="saveKey">Save</button>
+                </div>
+                <div class="settings-divider" aria-hidden="true"></div>
+                <div class="theme-modal-body">
+                  <div class="option-group">
+                    <p class="form-label">Font</p>
+                    <div class="option-row">
+                      <button class="option-button" type="button" data-font="serif">Serif</button>
+                      <button class="option-button" type="button" data-font="sans">Sans</button>
+                    </div>
+                  </div>
+                  <div class="option-group">
+                    <p class="form-label">Size</p>
+                    <div class="slider-row">
+                      <span class="slider-label">A</span>
+                      <input
+                        class="size-slider"
+                        id="readerSize"
+                        type="range"
+                        min="10"
+                        max="30"
+                        step="1"
+                      />
+                      <span class="slider-label">A+</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
       </main>
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
@@ -176,58 +220,6 @@
           <button class="ghost mini" id="copySelection">Copy word</button>
         </div>
       </section>
-
-      <div class="modal is-hidden" id="apiKeyModal" role="dialog" aria-modal="true">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <p class="eyebrow">Settings</p>
-              <h2>Reader controls</h2>
-            </div>
-            <button class="ghost circle" type="button" data-close-modal aria-label="Close">×</button>
-          </div>
-          <div class="api-modal-body">
-            <label class="api-label" for="apiKey">ChatGPT API key</label>
-            <input
-              id="apiKey"
-              type="password"
-              placeholder="sk-..."
-              autocomplete="off"
-            />
-            <p class="helper-text api-key-help">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI Platform</a></p>
-            <div class="api-modal-actions">
-              <button class="ghost" type="button" id="toggleKeyVisibility">Show</button>
-              <button class="ghost" type="button" id="clearKey">Clear key</button>
-              <button class="primary" type="button" id="saveKey">Save</button>
-            </div>
-            <div class="settings-divider" aria-hidden="true"></div>
-            <div class="theme-modal-body">
-              <div class="option-group">
-                <p class="form-label">Font</p>
-                <div class="option-row">
-                  <button class="option-button" type="button" data-font="serif">Serif</button>
-                  <button class="option-button" type="button" data-font="sans">Sans</button>
-                </div>
-              </div>
-              <div class="option-group">
-                <p class="form-label">Size</p>
-                <div class="slider-row">
-                  <span class="slider-label">A</span>
-                  <input
-                    class="size-slider"
-                    id="readerSize"
-                    type="range"
-                    min="10"
-                    max="30"
-                    step="1"
-                  />
-                  <span class="slider-label">A+</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div class="modal is-hidden" id="addTextModal" role="dialog" aria-modal="true">
         <div class="modal-content">

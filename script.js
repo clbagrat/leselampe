@@ -43,8 +43,8 @@ const copySelection = document.getElementById("copySelection");
 const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
-const apiKeyModal = document.getElementById("apiKeyModal");
-const apiKeyModalClose = apiKeyModal.querySelector("[data-close-modal]");
+const settingsScreen = document.querySelector('[data-screen="settings"]');
+const settingsBack = document.getElementById("settingsBack");
 const fontOptions = document.querySelectorAll("[data-font]");
 const readerSize = document.getElementById("readerSize");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
@@ -97,6 +97,7 @@ let longPressTriggered = false;
 let sentenceTranslationEl = null;
 let currentStoryId = null;
 let readObserver = null;
+let lastSettingsReturnScreen = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -117,9 +118,10 @@ const updateScreenScrollLock = () => {
   }
   const hasActiveWord = Boolean(document.querySelector(".word.active"));
   const hasActiveSentence = Boolean(document.querySelector(".sentence.active"));
+  const requiresKey = document.body.classList.contains("requires-key");
   screenLayout.classList.toggle(
     "is-locked",
-    hasActiveWord || hasActiveSentence
+    hasActiveWord || hasActiveSentence || requiresKey
   );
 };
 
@@ -399,6 +401,28 @@ const getVisibleScreens = () => {
       !screen.classList.contains("is-hidden") &&
       screen.dataset.screen !== "translation"
   );
+};
+
+const getCurrentScreen = () => {
+  if (!screenLayout) {
+    return null;
+  }
+  const screens = getVisibleScreens();
+  if (!screens.length) {
+    return null;
+  }
+  const currentCenter = screenLayout.scrollLeft + screenLayout.clientWidth / 2;
+  let closestScreen = screens[0];
+  let closestDistance = Infinity;
+  screens.forEach((screen) => {
+    const screenCenter = screen.offsetLeft + screen.clientWidth / 2;
+    const distance = Math.abs(screenCenter - currentCenter);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestScreen = screen;
+    }
+  });
+  return closestScreen;
 };
 
 const buildPageDots = (screens) => {
@@ -2026,9 +2050,17 @@ applyStoryStyle(storedStyle);
 
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
-  if (apiKeyModalClose) {
-    apiKeyModalClose.disabled = required;
-    apiKeyModalClose.setAttribute("aria-disabled", String(required));
+  if (settingsBack) {
+    settingsBack.disabled = required;
+    settingsBack.setAttribute("aria-disabled", String(required));
+  }
+  updateScreenScrollLock();
+  if (required && settingsScreen) {
+    const currentScreen = getCurrentScreen();
+    if (currentScreen && currentScreen.dataset.screen !== "settings") {
+      lastSettingsReturnScreen = currentScreen;
+    }
+    scrollToScreen(settingsScreen, "auto");
   }
 };
 
@@ -2037,19 +2069,31 @@ const setKeyVisibility = (shouldShow) => {
   toggleKeyVisibility.textContent = shouldShow ? "Hide" : "Show";
 };
 
-const openApiKeyModal = (forceRequired = false) => {
+const openSettingsScreen = (forceRequired = false, behavior = "smooth") => {
   const storedKey = localStorage.getItem("chatgpt_api_key") || "";
   apiKeyInput.value = storedKey;
   setKeyVisibility(false);
   setApiKeyRequirement(forceRequired || !storedKey);
-  apiKeyModal.classList.remove("is-hidden");
+  const currentScreen = getCurrentScreen();
+  if (currentScreen && currentScreen.dataset.screen !== "settings") {
+    lastSettingsReturnScreen = currentScreen;
+  }
+  if (settingsScreen) {
+    scrollToScreen(settingsScreen, behavior);
+  }
 };
 
-const closeApiKeyModal = () => {
+const closeSettingsScreen = (behavior = "smooth", forceLibrary = false) => {
   if (document.body.classList.contains("requires-key")) {
     return;
   }
-  apiKeyModal.classList.add("is-hidden");
+  if (forceLibrary) {
+    showLibraryScreen(behavior);
+  } else if (lastSettingsReturnScreen) {
+    scrollToScreen(lastSettingsReturnScreen, behavior);
+  } else {
+    showLibraryScreen(behavior);
+  }
 };
 
 const validateApiKey = async (apiKey) => {
@@ -2096,7 +2140,7 @@ saveKey.addEventListener("click", async () => {
     setApiKeyRequirement(false);
     saveKey.textContent = originalText;
     saveKey.disabled = false;
-    closeApiKeyModal();
+    closeSettingsScreen("smooth", true);
   } else {
     // Show error message
     alert(validation.error);
@@ -2105,7 +2149,13 @@ saveKey.addEventListener("click", async () => {
   }
 });
 
-toggleApi.addEventListener("click", () => openApiKeyModal(false));
+if (toggleApi) {
+  toggleApi.addEventListener("click", () => openSettingsScreen(false));
+}
+
+if (settingsBack) {
+  settingsBack.addEventListener("click", () => closeSettingsScreen());
+}
 
 toggleKeyVisibility.addEventListener("click", () => {
   const shouldShow = apiKeyInput.type === "password";
@@ -2117,20 +2167,14 @@ clearKey.addEventListener("click", () => {
   apiKeyInput.value = "";
   setKeyVisibility(false);
   setApiKeyRequirement(true);
-  apiKeyModal.classList.remove("is-hidden");
-});
-
-apiKeyModal.addEventListener("click", (event) => {
-  if (event.target === apiKeyModal || event.target.closest("[data-close-modal]")) {
-    closeApiKeyModal();
-  }
+  openSettingsScreen(true);
 });
 
 const storedKey = localStorage.getItem("chatgpt_api_key");
 if (storedKey) {
   apiKeyInput.value = storedKey;
 } else {
-  openApiKeyModal(true);
+  openSettingsScreen(true, "auto");
 }
 updateLemmaBadge();
 
@@ -2179,7 +2223,7 @@ const setMode = (mode) => {
 const showAddTextModal = () => {
   const storedKey = localStorage.getItem("chatgpt_api_key");
   if (!storedKey) {
-    openApiKeyModal(true);
+    openSettingsScreen(true);
     return;
   }
   addTextModal.classList.remove("is-hidden");
@@ -2199,7 +2243,7 @@ const initializeStories = () => {
   }
   handleRoute();
   if (!storedKey) {
-    openApiKeyModal(true);
+    openSettingsScreen(true, "auto");
   }
   setupReadObserver();
   setInitialScreen();
@@ -2212,7 +2256,8 @@ const setInitialScreen = () => {
     hasSetInitialScreen ||
     !screenLayout ||
     !libraryScreen ||
-    document.body.classList.contains("view-reader")
+    document.body.classList.contains("view-reader") ||
+    document.body.classList.contains("requires-key")
   ) {
     return;
   }
@@ -2296,9 +2341,6 @@ addTextModal.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
-  }
-  if (event.key === "Escape" && !apiKeyModal.classList.contains("is-hidden")) {
-    closeApiKeyModal();
   }
 });
 
