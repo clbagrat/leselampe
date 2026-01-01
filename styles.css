@@ -149,7 +149,8 @@ body {
 .layout > * {
   height: 100%;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: auto;
+  overscroll-behavior-y: contain;
 }
 
 .layout::-webkit-scrollbar {
