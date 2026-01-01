@@ -52,6 +52,7 @@ const clearKey = document.getElementById("clearKey");
 const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
 const readerStatus = document.getElementById("readerStatus");
+const readerStatusLemmas = document.getElementById("readerStatusLemmas");
 const addTextButton = document.getElementById("addText");
 const openLemmasButton = document.getElementById("openLemmas");
 const addTextModal = document.getElementById("addTextModal");
@@ -1789,6 +1790,12 @@ const loadLemmaStats = () => {
       if (typeof entry.isLearned !== "boolean") {
         entry.isLearned = false;
       }
+      if (!Array.isArray(entry.originals)) {
+        entry.originals = [];
+      }
+      if (!entry.originals.length && entry.original) {
+        entry.originals = [{ word: entry.original, translation: "" }];
+      }
     });
     return parsed;
   } catch (error) {
@@ -1808,20 +1815,20 @@ const setReaderStatusMessage = (lemmas = []) => {
     return;
   }
   const labelEl = readerStatus.querySelector(".reader-status-label");
-  const lemmasEl = readerStatus.querySelector(".reader-status-lemmas");
   if (labelEl) {
     labelEl.textContent = "Marked as read.";
   } else {
     readerStatus.textContent = "Marked as read.";
   }
-  if (lemmasEl) {
-    if (Array.isArray(lemmas) && lemmas.length) {
-      lemmasEl.textContent = `Learned: ${lemmas.join(", ")}`;
-      lemmasEl.classList.remove("is-hidden");
-    } else {
-      lemmasEl.textContent = "";
-      lemmasEl.classList.add("is-hidden");
-    }
+  if (!readerStatusLemmas) {
+    return;
+  }
+  if (Array.isArray(lemmas) && lemmas.length) {
+    readerStatusLemmas.textContent = `Learned: ${lemmas.join(", ")}`;
+    readerStatusLemmas.classList.remove("is-hidden");
+  } else {
+    readerStatusLemmas.textContent = "";
+    readerStatusLemmas.classList.add("is-hidden");
   }
 };
 
@@ -1834,7 +1841,7 @@ const startReadSession = (storyId, usedLemmas = []) => {
   setReaderStatusMessage([]);
 };
 
-const recordLemmaTranslation = (lemma) => {
+const recordLemmaTranslation = (lemma, originalWord, translation) => {
   const normalized = normalizeLemmaKey(lemma);
   if (!normalized) {
     return;
@@ -1845,14 +1852,37 @@ const recordLemmaTranslation = (lemma) => {
   const stats = loadLemmaStats();
   const existing = stats[normalized];
   const nextCount = existing?.count ? Number(existing.count) + 1 : 1;
+  const trimmedLemma = String(lemma).trim();
+  const trimmedOriginal = String(originalWord || lemma).trim();
+  const trimmedTranslation = String(translation || "").trim();
+  const originals = Array.isArray(existing?.originals) ? existing.originals : [];
+  const originalKey = normalizeLemmaKey(trimmedOriginal);
+  const existingOriginal = originals.find(
+    (entry) => normalizeLemmaKey(entry?.word) === originalKey
+  );
+  if (originalKey) {
+    if (existingOriginal) {
+      if (!existingOriginal.translation && trimmedTranslation) {
+        existingOriginal.translation = trimmedTranslation;
+      }
+    } else {
+      originals.push({
+        word: trimmedOriginal,
+        translation: trimmedTranslation,
+      });
+    }
+  }
   stats[normalized] = {
-    lemma: existing?.lemma || String(lemma).trim(),
+    lemma: existing?.lemma || trimmedLemma,
+    original: existing?.original || trimmedOriginal,
+    originals,
     count: Number.isFinite(nextCount) ? nextCount : 1,
     lastTranslatedAt: new Date().toISOString(),
     isLearned: existing?.isLearned ?? false,
   };
   saveLemmaStats(stats);
   updateLemmaBadge();
+  renderLemmaList();
 };
 
 const updateLemmaBadge = () => {
@@ -1946,6 +1976,21 @@ const markLearnedLemmasInText = (text, lemmas) => {
   if (!changed) {
     return;
   }
+  saveLemmaStats(stats);
+  renderLemmaList();
+  updateLemmaBadge();
+};
+
+const setLemmaLearnedStatus = (lemma, isLearned) => {
+  const key = normalizeLemmaKey(lemma);
+  if (!key) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  if (!stats[key] || stats[key].isLearned === isLearned) {
+    return;
+  }
+  stats[key].isLearned = isLearned;
   saveLemmaStats(stats);
   renderLemmaList();
   updateLemmaBadge();
@@ -2352,6 +2397,12 @@ const refreshRssFeedItems = () => {
   renderRssFeedItems(rssCurrentItems);
 };
 
+const getReaderTextForLearning = () => {
+  const titleText = storyTitle?.textContent || "";
+  const bodyText = reader?.textContent || "";
+  return `${titleText}\n${bodyText}`.trim();
+};
+
 const markStoryRead = (storyId) => {
   if (!storyId) {
     return;
@@ -2371,19 +2422,43 @@ const markStoryRead = (storyId) => {
   saveReadStatus(status);
   let newlyLearned = [];
   if (currentReadSession && currentReadSession.storyId === key) {
+    const stats = loadLemmaStats();
     const clicked = currentReadSession.clickedLemmas;
-    const unique = new Set();
-    const candidates = currentReadSession.usedLemmas
-      .map((lemma) => ({ raw: lemma, key: normalizeLemmaKey(lemma) }))
-      .filter((item) => item.key && !clicked.has(item.key))
-      .filter((item) => {
-        if (unique.has(item.key)) {
-          return false;
+    const candidateKeys = new Set();
+    currentReadSession.usedLemmas
+      .map((lemma) => normalizeLemmaKey(lemma))
+      .filter((lemmaKey) => lemmaKey && !clicked.has(lemmaKey))
+      .forEach((lemmaKey) => {
+        if (stats[lemmaKey]) {
+          candidateKeys.add(lemmaKey);
         }
-        unique.add(item.key);
-        return true;
-      })
-      .map((item) => item.raw);
+      });
+    const storyText = getReaderTextForLearning();
+    if (storyText) {
+      Object.entries(stats).forEach(([lemmaKey, entry]) => {
+        if (!entry || clicked.has(lemmaKey) || entry.isLearned) {
+          return;
+        }
+        if (textIncludesLemma(storyText, entry.lemma)) {
+          candidateKeys.add(lemmaKey);
+          return;
+        }
+        const originals = Array.isArray(entry.originals) ? entry.originals : [];
+        const legacyOriginal = entry.original && !originals.length
+          ? [{ word: entry.original, translation: "" }]
+          : [];
+        const originalList = originals.length ? originals : legacyOriginal;
+        const hasOriginalMatch = originalList.some((original) =>
+          textIncludesLemma(storyText, original?.word || original)
+        );
+        if (hasOriginalMatch) {
+          candidateKeys.add(lemmaKey);
+        }
+      });
+    }
+    const candidates = Array.from(candidateKeys).map(
+      (lemmaKey) => stats[lemmaKey]?.lemma || lemmaKey
+    );
     newlyLearned = markLearnedLemmasAndGetNew(candidates);
   }
   setReaderStatusMessage(newlyLearned);
@@ -2473,6 +2548,60 @@ const getTopLemmaList = (limit = 10) => {
     .map((item) => item.lemma);
 };
 
+const buildLemmaOriginals = (entry) => {
+  const originals = Array.isArray(entry?.originals) ? entry.originals : [];
+  if (!originals.length) {
+    return null;
+  }
+  const details = document.createElement("div");
+  details.className = "lemma-originals";
+  originals.forEach((original) => {
+    const row = document.createElement("div");
+    row.className = "lemma-original";
+
+    const word = document.createElement("span");
+    word.className = "lemma-original-word";
+    word.textContent = original?.word || "";
+
+    row.appendChild(word);
+
+    const translationText = String(original?.translation || "").trim();
+    if (translationText) {
+      const translation = document.createElement("span");
+      translation.className = "lemma-original-translation";
+      translation.textContent = `- ${translationText}`;
+      row.appendChild(translation);
+    }
+
+    details.appendChild(row);
+  });
+  return details;
+};
+
+const attachLemmaDetailsToggle = (item, details, toggleEl) => {
+  if (!details) {
+    return;
+  }
+  const setExpanded = (expanded) => {
+    item.classList.toggle("is-expanded", expanded);
+  };
+  const toggleExpanded = () => {
+    setExpanded(!item.classList.contains("is-expanded"));
+  };
+
+  item.classList.add("is-collapsible");
+  item.setAttribute("role", "button");
+  item.setAttribute("tabindex", "0");
+  item.addEventListener("click", toggleExpanded);
+  item.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleExpanded();
+    }
+  });
+  setExpanded(false);
+};
+
 const renderLemmaList = () => {
   if (!lemmaList) {
     return;
@@ -2488,9 +2617,11 @@ const renderLemmaList = () => {
     entries.forEach((entry, index) => {
       const position = index + 1;
       const countValue = Number(entry.count) || 1;
-      const score = (total / position) * countValue;
       const item = document.createElement("div");
       item.className = "lemma-item";
+
+      const row = document.createElement("div");
+      row.className = "lemma-row";
 
       const name = document.createElement("span");
       name.className = "lemma-name";
@@ -2503,14 +2634,30 @@ const renderLemmaList = () => {
       count.className = "lemma-count";
       count.textContent = `×${countValue}`;
 
-      const scoreEl = document.createElement("span");
-      scoreEl.className = "lemma-score";
-      scoreEl.textContent = `Score ${score.toFixed(2)}`;
-
-      item.appendChild(name);
       metrics.appendChild(count);
-      metrics.appendChild(scoreEl);
-      item.appendChild(metrics);
+      const markLearned = document.createElement("button");
+      markLearned.className = "ghost mini lemma-action";
+      markLearned.type = "button";
+      markLearned.textContent = "Mark as learned";
+      markLearned.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setLemmaLearnedStatus(entry.lemma, true);
+      });
+      metrics.appendChild(markLearned);
+      const toggle = document.createElement("span");
+      toggle.className = "lemma-toggle";
+      metrics.appendChild(toggle);
+
+      row.appendChild(name);
+      row.appendChild(metrics);
+      item.appendChild(row);
+      const details = buildLemmaOriginals(entry);
+      if (details) {
+        item.appendChild(details);
+        attachLemmaDetailsToggle(item, details, toggle);
+      } else {
+        toggle.remove();
+      }
       fragment.appendChild(item);
     });
     lemmaList.appendChild(fragment);
@@ -2535,6 +2682,9 @@ const renderLearnedLemmaList = () => {
     const item = document.createElement("div");
     item.className = "lemma-item";
 
+    const row = document.createElement("div");
+    row.className = "lemma-row";
+
     const name = document.createElement("span");
     name.className = "lemma-name";
     name.textContent = entry.lemma;
@@ -2546,9 +2696,30 @@ const renderLearnedLemmaList = () => {
     count.className = "lemma-count";
     count.textContent = `×${Number(entry.count) || 1}`;
 
-    item.appendChild(name);
     metrics.appendChild(count);
-    item.appendChild(metrics);
+    const markUnlearned = document.createElement("button");
+    markUnlearned.className = "ghost mini lemma-action";
+    markUnlearned.type = "button";
+    markUnlearned.textContent = "Mark as unlearned";
+    markUnlearned.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setLemmaLearnedStatus(entry.lemma, false);
+    });
+    metrics.appendChild(markUnlearned);
+    const toggle = document.createElement("span");
+    toggle.className = "lemma-toggle";
+    metrics.appendChild(toggle);
+
+    row.appendChild(name);
+    row.appendChild(metrics);
+    item.appendChild(row);
+    const details = buildLemmaOriginals(entry);
+    if (details) {
+      item.appendChild(details);
+      attachLemmaDetailsToggle(item, details, toggle);
+    } else {
+      toggle.remove();
+    }
     fragment.appendChild(item);
   });
   lemmaLearnedList.appendChild(fragment);
@@ -3160,7 +3331,7 @@ const handleSentenceContainerClick = (event) => {
           "governing-gender"
         );
       }
-      recordLemmaTranslation(meta.lemma || displayGerman);
+      recordLemmaTranslation(meta.lemma || displayGerman, german, translation);
       setWordLoading(word, false);
       updateTranslation("word", displayGerman, translation, grammar, meta);
     });
@@ -3726,11 +3897,18 @@ if (readerFinish) {
     if (currentStoryId) {
       markStoryRead(currentStoryId);
       setTimeout(() => {
-        if (readerView) {
-          readerView.scrollTo({ top: readerView.scrollHeight, behavior: "smooth" });
-        } else {
-          readerEnd?.scrollIntoView({ behavior: "smooth", block: "end" });
+        if (readerStatusLemmas) {
+          readerStatusLemmas.scrollIntoView({ behavior: "smooth", block: "end" });
+          return;
         }
+        if (readerView) {
+          readerView.scrollTo({
+            top: readerView.scrollHeight,
+            behavior: "smooth",
+          });
+          return;
+        }
+        readerEnd?.scrollIntoView({ behavior: "smooth", block: "end" });
       }, 500);
     }
   });
