@@ -91,6 +91,7 @@ const archiveList = document.getElementById("archiveList");
 const archiveEmpty = document.getElementById("archiveEmpty");
 const pageDots = document.getElementById("pageDots");
 const rssManage = document.getElementById("rssManage");
+const rssRefresh = document.getElementById("rssRefresh");
 const rssModal = document.getElementById("rssModal");
 const closeRssModal = document.getElementById("closeRssModal");
 const rssUrlInput = document.getElementById("rssUrlInput");
@@ -4017,6 +4018,11 @@ if (homeEmptyAdd) {
 }
 if (rssManage) {
   rssManage.addEventListener("click", openRssModal);
+}
+if (rssRefresh) {
+  rssRefresh.addEventListener("click", () => {
+    loadRssItems();
+  });
 }
 if (backToLibrary) {
   backToLibrary.addEventListener("click", () => {

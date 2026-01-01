@@ -239,6 +239,12 @@ body {
   gap: 12px;
 }
 
+.home-library-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .home-title {
   margin: 6px 0 0;
   font-family: var(--serif);
