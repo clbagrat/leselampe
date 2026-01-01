@@ -83,10 +83,25 @@ const readerEnd = document.getElementById("readerEnd");
 const archiveList = document.getElementById("archiveList");
 const archiveEmpty = document.getElementById("archiveEmpty");
 const pageDots = document.getElementById("pageDots");
+const rssManage = document.getElementById("rssManage");
+const rssModal = document.getElementById("rssModal");
+const closeRssModal = document.getElementById("closeRssModal");
+const rssUrlInput = document.getElementById("rssUrlInput");
+const rssAdd = document.getElementById("rssAdd");
+const rssSearchInput = document.getElementById("rssSearchInput");
+const rssSearch = document.getElementById("rssSearch");
+const rssSearchResults = document.getElementById("rssSearchResults");
+const rssSubscriptions = document.getElementById("rssSubscriptions");
+const rssSubscriptionsEmpty = document.getElementById("rssSubscriptionsEmpty");
+const rssFeedList = document.getElementById("rssFeedList");
+const rssFeedEmpty = document.getElementById("rssFeedEmpty");
+const rssFeedStatus = document.getElementById("rssFeedStatus");
+const rssModalStatus = document.getElementById("rssModalStatus");
 
 const pageDotIcons = {
   archive: "assets/icons/icon-archive.svg",
   library: "assets/icons/icon-library.svg",
+  rss: "assets/icons/icon-rss.svg",
   reader: "assets/icons/icon-reader.svg",
   lemmas: "assets/icons/icon-lemmas.svg",
   settings: "assets/icons/icon-settings.svg",
@@ -114,6 +129,7 @@ let sentenceTranslationEl = null;
 let currentStoryId = null;
 let readObserver = null;
 let lastSettingsReturnScreen = null;
+let rssCurrentItems = [];
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -121,6 +137,7 @@ const STORY_WORD_COUNT_KEY = "reader_story_word_count";
 const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const READ_STATUS_KEY = "reader_story_read_v1";
+const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
@@ -194,6 +211,518 @@ const normalizeCompare = (value) =>
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/-/g, "");
+
+const loadRssUrls = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RSS_STORAGE_KEY) || "[]");
+    if (Array.isArray(stored)) {
+      return stored.filter((value) => typeof value === "string" && value.trim());
+    }
+  } catch (error) {
+    console.warn("Failed to load RSS subscriptions.", error);
+  }
+  return [];
+};
+
+const saveRssUrls = (urls) => {
+  localStorage.setItem(RSS_STORAGE_KEY, JSON.stringify(urls));
+};
+
+const normalizeRssUrl = (value) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+
+const setRssStatus = (message, { isError = false } = {}) => {
+  if (!rssFeedStatus) {
+    return;
+  }
+  rssFeedStatus.textContent = message || "";
+  rssFeedStatus.classList.toggle("is-hidden", !message);
+  rssFeedStatus.classList.toggle("is-error", isError);
+};
+
+const setRssModalStatus = (message, { isError = false } = {}) => {
+  if (!rssModalStatus) {
+    return;
+  }
+  rssModalStatus.textContent = message || "";
+  rssModalStatus.classList.toggle("is-hidden", !message);
+  rssModalStatus.classList.toggle("is-error", isError);
+};
+
+const getFeedSearchUrl = (query) =>
+  `https://feedsearch.dev/api/v1/search?url=${encodeURIComponent(
+    query
+  )}&info=true&favicon=false&opml=false&skip_crawl=false`;
+
+const fetchFeedSearchResults = async (query) => {
+  const url = getFeedSearchUrl(query);
+  const tryParse = (text) => {
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return null;
+    }
+  };
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+  const text = await response.text();
+  const directData = tryParse(text);
+  if (response.ok && directData) {
+    return directData;
+  }
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  const proxyResponse = await fetch(proxyUrl);
+  if (!proxyResponse.ok) {
+    throw new Error(`Search failed: ${proxyResponse.status}`);
+  }
+  const proxyText = await proxyResponse.text();
+  const proxyData = tryParse(proxyText);
+  if (!proxyData) {
+    throw new Error("Invalid search response");
+  }
+  return proxyData;
+};
+
+const renderRssSearchResults = (items) => {
+  if (!rssSearchResults) {
+    return;
+  }
+  rssSearchResults.innerHTML = "";
+  if (!items.length) {
+    rssSearchResults.classList.add("is-hidden");
+    return;
+  }
+  rssSearchResults.classList.remove("is-hidden");
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "rss-search-item";
+    const meta = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "rss-search-title";
+    title.textContent = item.title || "Feed";
+    const url = document.createElement("div");
+    url.className = "rss-search-url";
+    url.textContent = item.url || "";
+    meta.append(title, url);
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "ghost mini";
+    addButton.textContent = "Add";
+    addButton.dataset.url = item.url;
+    row.append(meta, addButton);
+    rssSearchResults.appendChild(row);
+  });
+};
+
+const normalizeSearchItem = (item) => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const url =
+    item.url ||
+    item.feedUrl ||
+    item.feed ||
+    item.rss ||
+    item.link ||
+    item.website ||
+    item.self_url ||
+    "";
+  if (!url) {
+    return null;
+  }
+  return {
+    title: item.title || item.site_name || item.siteName || item.name || url,
+    url,
+  };
+};
+
+const searchRssFeeds = async () => {
+  if (!rssSearchInput) {
+    return;
+  }
+  const query = rssSearchInput.value.trim();
+  if (!query) {
+    setRssModalStatus("Enter a URL to search for feeds.", { isError: true });
+    return;
+  }
+  const requestUrl = getFeedSearchUrl(query);
+  setRssModalStatus(`Searching feeds. Requesting: ${requestUrl}`);
+  renderRssSearchResults([]);
+  try {
+    const data = await fetchFeedSearchResults(query);
+    const rawItems = Array.isArray(data) ? data : data?.feeds || data?.results || [];
+    const items = rawItems
+      .map(normalizeSearchItem)
+      .filter(Boolean)
+      .slice(0, 8);
+    if (!items.length) {
+      setRssModalStatus(
+        `No feeds found. Requesting: ${getFeedSearchUrl(query)}`,
+        { isError: true }
+      );
+      return;
+    }
+    setRssModalStatus("");
+    renderRssSearchResults(items);
+  } catch (error) {
+    setRssModalStatus(
+      `Couldn't reach feedsearch.dev. Requesting: ${getFeedSearchUrl(query)}`,
+      { isError: true }
+    );
+  }
+};
+
+const renderRssSubscriptions = () => {
+  if (!rssSubscriptions || !rssSubscriptionsEmpty) {
+    return;
+  }
+  const urls = loadRssUrls();
+  rssSubscriptions.innerHTML = "";
+  rssSubscriptionsEmpty.classList.toggle("is-hidden", urls.length > 0);
+  urls.forEach((url) => {
+    const item = document.createElement("div");
+    item.className = "rss-subscription-item";
+    const label = document.createElement("span");
+    label.className = "rss-subscription-url";
+    label.textContent = url;
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "ghost mini";
+    removeButton.textContent = "Remove";
+    removeButton.dataset.url = url;
+    item.append(label, removeButton);
+    rssSubscriptions.appendChild(item);
+  });
+};
+
+const renderRssFeedItems = (items) => {
+  if (!rssFeedList || !rssFeedEmpty) {
+    return;
+  }
+  rssCurrentItems = items;
+  rssFeedList.innerHTML = "";
+  if (!items.length) {
+    rssFeedEmpty.textContent = "No items found yet.";
+    rssFeedEmpty.classList.remove("is-hidden");
+    return;
+  }
+  rssFeedEmpty.classList.add("is-hidden");
+  items.forEach((item, index) => {
+    const card = document.createElement("article");
+    card.className = "rss-feed-item";
+    card.dataset.index = String(index);
+    const title = document.createElement("h3");
+    title.className = "rss-feed-title";
+    const link = document.createElement("a");
+    link.href = item.link;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = item.title || "Untitled post";
+    title.appendChild(link);
+    const meta = document.createElement("div");
+    meta.className = "rss-feed-meta";
+    const source = document.createElement("span");
+    source.className = "rss-feed-source";
+    source.textContent = item.source || "Feed";
+    meta.appendChild(source);
+    if (item.date) {
+      const date = document.createElement("span");
+      date.textContent = item.date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
+      meta.appendChild(date);
+    }
+    card.append(title, meta);
+    rssFeedList.appendChild(card);
+  });
+};
+
+const parseRssDate = (value) => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+};
+
+const parseFeedItems = (doc, sourceUrl) => {
+  const channelTitle =
+    doc.querySelector("channel > title")?.textContent?.trim() || sourceUrl;
+  const rssItems = Array.from(doc.querySelectorAll("item")).map((item) => {
+    const title = item.querySelector("title")?.textContent?.trim();
+    const linkEl = item.querySelector("link");
+    const link = linkEl?.getAttribute("href") || linkEl?.textContent?.trim();
+    const date = parseRssDate(
+      item.querySelector("pubDate")?.textContent ||
+        item.querySelector("date")?.textContent
+    );
+    const contentHtml =
+      item.querySelector("content\\:encoded")?.textContent ||
+      item.querySelector("description")?.textContent ||
+      "";
+    return { title, link, date, source: channelTitle, contentHtml };
+  });
+  if (rssItems.length) {
+    return rssItems;
+  }
+  const feedTitle = doc.querySelector("feed > title")?.textContent?.trim() || sourceUrl;
+  return Array.from(doc.querySelectorAll("entry")).map((entry) => {
+    const title = entry.querySelector("title")?.textContent?.trim();
+    const linkEl =
+      entry.querySelector('link[rel="alternate"]') || entry.querySelector("link");
+    const link = linkEl?.getAttribute("href") || linkEl?.textContent?.trim();
+    const date = parseRssDate(
+      entry.querySelector("updated")?.textContent ||
+        entry.querySelector("published")?.textContent
+    );
+    const contentHtml =
+      entry.querySelector("content")?.textContent ||
+      entry.querySelector("summary")?.textContent ||
+      "";
+    return { title, link, date, source: feedTitle, contentHtml };
+  });
+};
+
+const normalizeArticleText = (value) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\u00a0/g, " ")
+    .trim();
+
+const extractArticleBlocks = (html) => {
+  if (!html) {
+    return [];
+  }
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc
+    .querySelectorAll(
+      "script, style, noscript, svg, img, figure, video, audio, canvas, iframe, nav, header, footer, form, button, aside"
+    )
+    .forEach((node) => node.remove());
+  const selectors = [
+    "article",
+    "main",
+    "[role='main']",
+    ".entry-content",
+    ".post-content",
+    ".article-content",
+    "#content",
+    ".content",
+  ];
+  const target =
+    selectors.map((selector) => doc.querySelector(selector)).find(Boolean) ||
+    doc.body;
+  if (!target) {
+    return [];
+  }
+  const tags = new Set(["H1", "H2", "H3", "H4", "P", "LI", "BLOCKQUOTE"]);
+  const blocks = [];
+  const matched = new Set();
+  const walker = doc.createTreeWalker(target, NodeFilter.SHOW_ELEMENT);
+  let node = walker.nextNode();
+  while (node) {
+    if (tags.has(node.tagName)) {
+      const hasMatchedAncestor = Array.from(matched).some((ancestor) =>
+        ancestor.contains(node)
+      );
+      if (!hasMatchedAncestor) {
+        const text = normalizeArticleText(node.textContent || "");
+        if (text) {
+          blocks.push({
+            type: ["H1", "H2", "H3", "H4"].includes(node.tagName)
+              ? "heading"
+              : "paragraph",
+            text,
+          });
+          matched.add(node);
+        }
+      }
+    }
+    node = walker.nextNode();
+  }
+  return blocks;
+};
+
+const renderRssStory = (title, blocks) => {
+  currentStoryId = null;
+  storyTitle.innerHTML = "";
+  if (title) {
+    storyTitle.appendChild(buildSentenceSpan(title));
+  }
+  reader.innerHTML = "";
+  resetTranslation();
+  if (!blocks || !blocks.length) {
+    const empty = document.createElement("p");
+    empty.className = "story";
+    empty.textContent = "No readable text found for this article.";
+    reader.appendChild(empty);
+    return;
+  }
+  blocks.forEach((block) => {
+    if (block.type === "heading") {
+      const heading = document.createElement("h2");
+      heading.className = "story-heading";
+      heading.appendChild(buildSentenceSpan(block.text));
+      reader.appendChild(heading);
+      return;
+    }
+    const sentences = splitIntoSentences(block.text);
+    const paragraph = document.createElement("p");
+    paragraph.className = "story";
+    sentences.forEach((sentence, index) => {
+      const sentenceSpan = buildSentenceSpan(sentence);
+      paragraph.appendChild(sentenceSpan);
+      if (index < sentences.length - 1) {
+        paragraph.appendChild(document.createTextNode(" "));
+      }
+    });
+    reader.appendChild(paragraph);
+  });
+};
+
+const openRssReaderScreen = (title, blocks, { behavior = "smooth" } = {}) => {
+  if (readerStatus) {
+    readerStatus.classList.add("is-hidden");
+    readerStatus.classList.remove("is-visible");
+  }
+  readerPanel?.classList.remove("is-hidden");
+  syncPageDots();
+  renderRssStory(title, blocks);
+  setView("reader");
+  requestAnimationFrame(() => {
+    scrollToScreen(readerScreen, behavior);
+  });
+};
+
+const showRssLoading = (title) => {
+  currentStoryId = null;
+  readerPanel?.classList.remove("is-hidden");
+  syncPageDots();
+  storyTitle.innerHTML = "";
+  if (title) {
+    storyTitle.appendChild(buildSentenceSpan(title));
+  }
+  reader.innerHTML = "";
+  const paragraph = document.createElement("p");
+  paragraph.className = "story";
+  paragraph.textContent = "Loading article...";
+  reader.appendChild(paragraph);
+};
+
+const openRssItem = async (item) => {
+  if (!item?.link) {
+    return;
+  }
+  setRssStatus("");
+  showRssLoading(item.title || "RSS article");
+  setView("reader");
+  requestAnimationFrame(() => {
+    scrollToScreen(readerScreen, "smooth");
+  });
+  try {
+    const html = await fetchRssText(item.link);
+    const blocks = extractArticleBlocks(html);
+    if (blocks.length) {
+      openRssReaderScreen(item.title, blocks);
+      return;
+    }
+    if (item.contentHtml) {
+      const fallbackBlocks = extractArticleBlocks(item.contentHtml);
+      openRssReaderScreen(item.title, fallbackBlocks);
+      return;
+    }
+    setRssStatus("Couldn't extract article text.", { isError: true });
+    openRssReaderScreen(item.title, []);
+  } catch (error) {
+    const fallbackBlocks = extractArticleBlocks(item.contentHtml || "");
+    setRssStatus("Couldn't load the article content.", { isError: true });
+    openRssReaderScreen(item.title, fallbackBlocks);
+  }
+};
+
+const fetchRssText = async (url) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.text();
+  } catch (error) {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
+    if (!response.ok) {
+      throw new Error(`Proxy HTTP ${response.status}`);
+    }
+    return await response.text();
+  }
+};
+
+const loadRssItems = async () => {
+  if (!rssFeedList || !rssFeedEmpty) {
+    return;
+  }
+  const urls = loadRssUrls();
+  if (!urls.length) {
+    rssFeedList.innerHTML = "";
+    rssFeedEmpty.textContent = "Add a feed to start reading.";
+    rssFeedEmpty.classList.remove("is-hidden");
+    setRssStatus("");
+    return;
+  }
+  rssFeedList.innerHTML = "";
+  rssFeedEmpty.textContent = "Loading feeds...";
+  rssFeedEmpty.classList.remove("is-hidden");
+  setRssStatus("");
+  const parser = new DOMParser();
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const xmlText = await fetchRssText(url);
+      const doc = parser.parseFromString(xmlText, "text/xml");
+      if (doc.querySelector("parsererror")) {
+        throw new Error("Invalid RSS XML");
+      }
+      return parseFeedItems(doc, url);
+    })
+  );
+  let errors = 0;
+  const items = [];
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      result.value
+        .filter((item) => item.link)
+        .forEach((item) => items.push(item));
+    } else {
+      errors += 1;
+    }
+  });
+  items.sort((a, b) => {
+    const aTime = a.date ? a.date.getTime() : 0;
+    const bTime = b.date ? b.date.getTime() : 0;
+    return bTime - aTime;
+  });
+  renderRssFeedItems(items.slice(0, 30));
+  if (errors) {
+    setRssStatus(
+      `Couldn't load ${errors} feed${errors === 1 ? "" : "s"}.`,
+      { isError: true }
+    );
+  }
+};
 
 const formatGrammarHtml = (text, highlights, { wholeWord = false } = {}) => {
   const safeText = escapeHtml(text || "");
@@ -2283,12 +2812,83 @@ const showAddTextModal = () => {
   setMode("generate");
 };
 
+const openRssModal = () => {
+  if (!rssModal) {
+    return;
+  }
+  rssModal.classList.remove("is-hidden");
+  renderRssSubscriptions();
+  setRssModalStatus("");
+  renderRssSearchResults([]);
+  if (rssUrlInput) {
+    rssUrlInput.focus();
+  }
+};
+
+const closeRssModalPanel = () => {
+  if (!rssModal) {
+    return;
+  }
+  rssModal.classList.add("is-hidden");
+};
+
+const addRssSubscription = () => {
+  if (!rssUrlInput) {
+    return;
+  }
+  const normalized = normalizeRssUrl(rssUrlInput.value);
+  if (!normalized) {
+    setRssModalStatus("Paste a feed URL to add it.", { isError: true });
+    return;
+  }
+  let url;
+  try {
+    url = new URL(normalized).toString();
+  } catch (error) {
+    setRssModalStatus("Enter a valid URL.", { isError: true });
+    return;
+  }
+  const urls = loadRssUrls();
+  if (!urls.includes(url)) {
+    urls.push(url);
+    saveRssUrls(urls);
+  }
+  rssUrlInput.value = "";
+  setRssModalStatus("");
+  renderRssSubscriptions();
+  loadRssItems();
+};
+
+const addRssSubscriptionUrl = (rawUrl) => {
+  const normalized = normalizeRssUrl(rawUrl);
+  if (!normalized) {
+    return;
+  }
+  let url;
+  try {
+    url = new URL(normalized).toString();
+  } catch (error) {
+    setRssModalStatus("Enter a valid URL.", { isError: true });
+    return;
+  }
+  const urls = loadRssUrls();
+  if (!urls.includes(url)) {
+    urls.push(url);
+    saveRssUrls(urls);
+  }
+  setRssModalStatus("");
+  renderRssSubscriptions();
+  loadRssItems();
+};
+
 const initializeStories = () => {
   const storedKey = localStorage.getItem("chatgpt_api_key");
   const stories = loadStories();
   renderHomeStories(stories);
   renderArchiveStories(stories);
   renderLemmaList();
+  renderRssSubscriptions();
+  loadRssItems();
   if (!stories.length) {
     storyTitle.textContent = "";
     reader.innerHTML = "";
@@ -2336,6 +2936,9 @@ if (homeAddText) {
 }
 if (homeEmptyAdd) {
   homeEmptyAdd.addEventListener("click", showAddTextModal);
+}
+if (rssManage) {
+  rssManage.addEventListener("click", openRssModal);
 }
 if (backToLibrary) {
   backToLibrary.addEventListener("click", () => {
@@ -2406,7 +3009,88 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
   }
+  if (event.key === "Escape" && rssModal && !rssModal.classList.contains("is-hidden")) {
+    closeRssModalPanel();
+  }
 });
+
+if (closeRssModal) {
+  closeRssModal.addEventListener("click", closeRssModalPanel);
+}
+
+if (rssModal) {
+  rssModal.addEventListener("click", (event) => {
+    if (event.target === rssModal || event.target.closest("[data-close-modal]")) {
+      closeRssModalPanel();
+    }
+  });
+}
+
+if (rssAdd) {
+  rssAdd.addEventListener("click", addRssSubscription);
+}
+
+if (rssUrlInput) {
+  rssUrlInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addRssSubscription();
+    }
+  });
+}
+
+if (rssSubscriptions) {
+  rssSubscriptions.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("button[data-url]");
+    if (!removeButton) {
+      return;
+    }
+    const url = removeButton.dataset.url;
+    const urls = loadRssUrls().filter((item) => item !== url);
+    saveRssUrls(urls);
+    renderRssSubscriptions();
+    loadRssItems();
+  });
+}
+
+if (rssSearch) {
+  rssSearch.addEventListener("click", searchRssFeeds);
+}
+
+if (rssSearchInput) {
+  rssSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchRssFeeds();
+    }
+  });
+}
+
+if (rssSearchResults) {
+  rssSearchResults.addEventListener("click", (event) => {
+    const addButton = event.target.closest("button[data-url]");
+    if (!addButton) {
+      return;
+    }
+    addRssSubscriptionUrl(addButton.dataset.url);
+  });
+}
+
+if (rssFeedList) {
+  rssFeedList.addEventListener("click", (event) => {
+    const card = event.target.closest(".rss-feed-item");
+    if (!card) {
+      return;
+    }
+    const index = Number(card.dataset.index);
+    const item = rssCurrentItems[index];
+    if (!item) {
+      return;
+    }
+    event.preventDefault();
+    openRssItem(item);
+  });
+}
 
 document.addEventListener("click", (event) => {
   if (

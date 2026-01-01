@@ -59,6 +59,22 @@
           </section>
         </section>
 
+        <section class="book-panel" aria-label="RSS reader" data-screen="rss">
+          <section class="home-library" aria-label="RSS feed reader">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">RSS</p>
+                <h2 class="home-title">Latest feeds</h2>
+              </div>
+              <button class="ghost mini" type="button" id="rssManage">Manage</button>
+            </div>
+            <p class="home-subtitle">Unread posts from your subscribed feeds.</p>
+            <p class="helper-text rss-status is-hidden" id="rssFeedStatus"></p>
+            <p class="home-empty" id="rssFeedEmpty">Add a feed to start reading.</p>
+            <div class="rss-feed-list" id="rssFeedList"></div>
+          </section>
+        </section>
+
         <section class="book-panel reader-panel is-hidden" aria-label="Reader" data-screen="reader">
           <div class="reader-view" id="readerView">
             <div class="book-header">
@@ -306,6 +322,44 @@
             <button class="primary" type="button" id="savePaste">Add to reader</button>
           </div>
 
+        </div>
+      </div>
+
+      <div class="modal is-hidden" id="rssModal" role="dialog" aria-modal="true" aria-labelledby="rssModalTitle">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <p class="eyebrow">RSS manager</p>
+              <h2 id="rssModalTitle">Manage feeds</h2>
+            </div>
+            <button class="ghost circle" type="button" id="closeRssModal" data-close-modal aria-label="Close">×</button>
+          </div>
+          <div class="rss-input-row">
+            <input
+              id="rssUrlInput"
+              type="url"
+              placeholder="https://example.com/feed.xml"
+              autocomplete="off"
+            />
+            <button class="primary" type="button" id="rssAdd">Add feed</button>
+          </div>
+          <div class="rss-search-row">
+            <input
+              id="rssSearchInput"
+              type="url"
+              placeholder="Search by site or article URL"
+              autocomplete="off"
+            />
+            <button class="ghost" type="button" id="rssSearch">Search</button>
+          </div>
+          <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
+          <p class="helper-text rss-attribution">
+            <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
+          </p>
+          <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
+          <p class="helper-text">We store your subscriptions locally in this browser.</p>
+          <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
+          <div class="rss-subscription-list" id="rssSubscriptions"></div>
         </div>
       </div>
 
