@@ -395,10 +395,14 @@ const renderRssFeedItems = (items) => {
     return;
   }
   rssFeedEmpty.classList.add("is-hidden");
+  const readStatus = loadReadStatus();
   items.forEach((item, index) => {
     const card = document.createElement("article");
     card.className = "rss-feed-item";
     card.dataset.index = String(index);
+    card.dataset.id = item.id;
+    const isRead = Boolean(readStatus[item.id]?.isRead);
+    card.classList.toggle("is-read", isRead);
     const title = document.createElement("h3");
     title.className = "rss-feed-title";
     const link = document.createElement("a");
@@ -413,6 +417,11 @@ const renderRssFeedItems = (items) => {
     source.className = "rss-feed-source";
     source.textContent = item.source || "Feed";
     meta.appendChild(source);
+    const readBadge = document.createElement("span");
+    readBadge.className = "rss-feed-read";
+    readBadge.textContent = "Read";
+    readBadge.classList.toggle("is-hidden", !isRead);
+    meta.appendChild(readBadge);
     if (item.date) {
       const date = document.createElement("span");
       date.textContent = item.date.toLocaleDateString(undefined, {
@@ -535,8 +544,8 @@ const extractArticleBlocks = (html) => {
   return blocks;
 };
 
-const renderRssStory = (title, blocks) => {
-  currentStoryId = null;
+const renderRssStory = (title, blocks, itemId) => {
+  currentStoryId = itemId || null;
   storyTitle.innerHTML = "";
   if (title) {
     storyTitle.appendChild(buildSentenceSpan(title));
@@ -572,14 +581,14 @@ const renderRssStory = (title, blocks) => {
   });
 };
 
-const openRssReaderScreen = (title, blocks, { behavior = "smooth" } = {}) => {
+const openRssReaderScreen = (title, blocks, itemId, { behavior = "smooth" } = {}) => {
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
     readerStatus.classList.remove("is-visible");
   }
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
-  renderRssStory(title, blocks);
+  renderRssStory(title, blocks, itemId);
   setView("reader");
   requestAnimationFrame(() => {
     scrollToScreen(readerScreen, behavior);
@@ -606,6 +615,9 @@ const openRssItem = async (item) => {
     return;
   }
   setRssStatus("");
+  if (item.id) {
+    markStoryUnread(item.id);
+  }
   showRssLoading(item.title || "RSS article");
   setView("reader");
   requestAnimationFrame(() => {
@@ -615,20 +627,20 @@ const openRssItem = async (item) => {
     const html = await fetchRssText(item.link);
     const blocks = extractArticleBlocks(html);
     if (blocks.length) {
-      openRssReaderScreen(item.title, blocks);
+      openRssReaderScreen(item.title, blocks, item.id);
       return;
     }
     if (item.contentHtml) {
       const fallbackBlocks = extractArticleBlocks(item.contentHtml);
-      openRssReaderScreen(item.title, fallbackBlocks);
+      openRssReaderScreen(item.title, fallbackBlocks, item.id);
       return;
     }
     setRssStatus("Couldn't extract article text.", { isError: true });
-    openRssReaderScreen(item.title, []);
+    openRssReaderScreen(item.title, [], item.id);
   } catch (error) {
     const fallbackBlocks = extractArticleBlocks(item.contentHtml || "");
     setRssStatus("Couldn't load the article content.", { isError: true });
-    openRssReaderScreen(item.title, fallbackBlocks);
+    openRssReaderScreen(item.title, fallbackBlocks, item.id);
   }
 };
 
@@ -684,7 +696,11 @@ const loadRssItems = async () => {
     const bTime = b.date ? b.date.getTime() : 0;
     return bTime - aTime;
   });
-  renderRssFeedItems(items.slice(0, 30));
+  const sliced = items.slice(0, 30);
+  sliced.forEach((item) => {
+    item.id = createRssItemId(item);
+  });
+  renderRssFeedItems(sliced);
   if (errors) {
     setRssStatus(
       `Couldn't load ${errors} feed${errors === 1 ? "" : "s"}.`,
@@ -757,6 +773,23 @@ const updateCopyButtonLabel = (type) => {
   }
   const label = type === "sentence" ? "Copy sentence" : "Copy word";
   copySelection.textContent = label;
+};
+
+const hashString = (value) => {
+  const text = String(value || "");
+  let hash = 5381;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 33) ^ text.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const createRssItemId = (item) => {
+  const link = item?.link || "";
+  const signature =
+    link ||
+    `${item?.title || ""}|${item?.source || ""}|${item?.date?.toISOString() || ""}`;
+  return `rss:${hashString(signature)}`;
 };
 
 const updateTranslation = (type, german, translation, grammar, meta) => {
@@ -1595,6 +1628,21 @@ const updateHomeReadStatus = (storyId, isRead) => {
   }
 };
 
+const updateRssReadStatus = (itemId, isRead) => {
+  if (!rssFeedList || !itemId) {
+    return;
+  }
+  const item = rssFeedList.querySelector(`.rss-feed-item[data-id="${itemId}"]`);
+  if (!item) {
+    return;
+  }
+  item.classList.toggle("is-read", isRead);
+  const badge = item.querySelector(".rss-feed-read");
+  if (badge) {
+    badge.classList.toggle("is-hidden", !isRead);
+  }
+};
+
 const markStoryRead = (storyId) => {
   if (!storyId) {
     return;
@@ -1616,6 +1664,7 @@ const markStoryRead = (storyId) => {
     });
   }
   updateHomeReadStatus(String(storyId), true);
+  updateRssReadStatus(String(storyId), true);
   renderHomeStories(loadStories());
   renderArchiveStories(loadStories());
 };
@@ -1635,6 +1684,7 @@ const markStoryUnread = (storyId) => {
     readerStatus.classList.add("is-hidden");
   }
   updateHomeReadStatus(key, false);
+  updateRssReadStatus(key, false);
   renderHomeStories(loadStories());
   renderArchiveStories(loadStories());
 };

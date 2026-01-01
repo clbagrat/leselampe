@@ -263,6 +263,10 @@ body {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
 
+.rss-feed-item.is-read {
+  opacity: 0.65;
+}
+
 .rss-feed-title {
   margin: 0;
   font-family: var(--serif);
@@ -288,6 +292,13 @@ body {
 
 .rss-feed-source {
   font-weight: 600;
+}
+
+.rss-feed-read {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
 }
 
 .rss-status {
