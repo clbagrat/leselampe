@@ -1373,6 +1373,81 @@ const updateCopyButtonLabel = (type) => {
   copySelection.textContent = label;
 };
 
+const syncReaderBottomPadding = () => {
+  if (!readerPanel) {
+    return;
+  }
+  const panelVisible =
+    translationPanel && !translationPanel.classList.contains("is-hidden");
+  const sheetVisible = bottomSheet && !bottomSheet.classList.contains("is-hidden");
+  if (!panelVisible || !sheetVisible) {
+    readerPanel.style.paddingBottom = "";
+    return;
+  }
+  const sheetRect = bottomSheet.getBoundingClientRect();
+  const extra = Math.max(0, Math.round(sheetRect.height) + 24);
+  readerPanel.style.paddingBottom = `${extra}px`;
+};
+
+const getActiveReaderScrollContainer = (element) =>
+  element?.closest(".book-panel") || null;
+
+const getEffectiveReaderBottom = (containerRect) => {
+  if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return containerRect.bottom;
+  }
+  const sheetRect = bottomSheet.getBoundingClientRect();
+  if (sheetRect.height <= 0) {
+    return containerRect.bottom;
+  }
+  const overlaps =
+    sheetRect.top < containerRect.bottom && sheetRect.bottom > containerRect.top;
+  return overlaps ? Math.min(containerRect.bottom, sheetRect.top) : containerRect.bottom;
+};
+
+const getActiveSentenceTarget = () =>
+  document.querySelector(".sentence.active") ||
+  document.querySelector(".sentence.sentence-translation") ||
+  document.querySelector(".word.active")?.closest(".sentence") ||
+  document.querySelector(".word.active");
+
+const ensureActiveWordVisible = (behavior = "smooth") => {
+  const target = getActiveSentenceTarget();
+  if (!target) {
+    return;
+  }
+  const container = getActiveReaderScrollContainer(target);
+  if (!container) {
+    target.scrollIntoView({ behavior, block: "center" });
+    return;
+  }
+  const containerRect = container.getBoundingClientRect();
+  const wordRect = target.getBoundingClientRect();
+  const topPadding = 16;
+  const bottomPadding = 16;
+  const visibleTop = containerRect.top + topPadding;
+  const visibleBottom = getEffectiveReaderBottom(containerRect) - bottomPadding;
+
+  const isTallerThanView = wordRect.height > visibleBottom - visibleTop;
+
+  if (wordRect.top < visibleTop || isTallerThanView) {
+    container.scrollBy({ top: wordRect.top - visibleTop, behavior });
+  } else if (wordRect.bottom > visibleBottom) {
+    container.scrollBy({ top: wordRect.bottom - visibleBottom, behavior });
+  }
+};
+
+let activeWordScrollFrame = null;
+const scheduleActiveWordScroll = () => {
+  if (activeWordScrollFrame) {
+    return;
+  }
+  activeWordScrollFrame = requestAnimationFrame(() => {
+    activeWordScrollFrame = null;
+    ensureActiveWordVisible();
+  });
+};
+
 const hashString = (value) => {
   const text = String(value || "");
   let hash = 5381;
@@ -1440,6 +1515,7 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
   sheetDivider?.classList.toggle("is-hidden", !isWord);
   updateCopyButtonLabel(type);
   syncPageDots();
+  syncReaderBottomPadding();
 
   const hasMeta =
     meta &&
@@ -1472,6 +1548,7 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
     grammarMeta.classList.add("is-hidden");
     sheetGrammarMeta.classList.add("is-hidden");
   }
+  scheduleActiveWordScroll();
 };
 
 const clearActiveWord = () => {
@@ -3509,6 +3586,7 @@ const resetTranslation = () => {
   sheetGrammarMeta.classList.add("is-hidden");
   translationPanel.classList.add("is-hidden");
   bottomSheet.classList.add("is-hidden");
+  syncReaderBottomPadding();
   updateCopyButtonLabel("word");
   syncPageDots();
 };
@@ -3993,6 +4071,11 @@ if (reloadApp) {
     window.location.reload();
   });
 }
+
+window.addEventListener("resize", () => {
+  syncReaderBottomPadding();
+  scheduleActiveWordScroll();
+});
 
 
 if (openLemmasButton) {
