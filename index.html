@@ -17,7 +17,15 @@
   </head>
   <body class="view-home">
     <div class="page">
-      <div class="page-dots" id="pageDots" role="tablist" aria-label="Pages"></div>
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">✦</span>
+          <div>
+            <p class="brand-title">Leselampe</p>
+          </div>
+        </div>
+        <div class="page-dots" id="pageDots" role="tablist" aria-label="Pages"></div>
+      </header>
 
       <main class="layout">
         <section class="book-panel archive-panel" aria-label="Archive" data-screen="archive">
@@ -63,7 +71,7 @@
             <article class="reader" id="reader" aria-live="polite"></article>
             <div class="reader-end" id="readerEnd" aria-hidden="true"></div>
             <div class="reader-cta">
-              <button class="primary" type="button" id="addStoryCta">Add new story</button>
+              <p class="reader-status is-hidden" id="readerStatus">Marked as read.</p>
             </div>
           </div>
         </section>

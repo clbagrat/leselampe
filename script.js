@@ -51,7 +51,7 @@ const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
 const clearKey = document.getElementById("clearKey");
 const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
-const addStoryCta = document.getElementById("addStoryCta");
+const readerStatus = document.getElementById("readerStatus");
 const addTextButton = document.getElementById("addText");
 const openLemmasButton = document.getElementById("openLemmas");
 const addTextModal = document.getElementById("addTextModal");
@@ -516,6 +516,11 @@ const requestPageDotsUpdate = () => {
 const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   if (!story) {
     return;
+  }
+  markStoryUnread(story.id);
+  if (readerStatus) {
+    readerStatus.classList.add("is-hidden");
+    readerStatus.classList.remove("is-visible");
   }
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
@@ -1097,7 +1102,33 @@ const markStoryRead = (storyId) => {
     readAt: new Date().toISOString(),
   };
   saveReadStatus(status);
+  if (readerStatus) {
+    readerStatus.classList.remove("is-hidden");
+    readerStatus.classList.remove("is-visible");
+    requestAnimationFrame(() => {
+      readerStatus.classList.add("is-visible");
+    });
+  }
   updateHomeReadStatus(String(storyId), true);
+  renderHomeStories(loadStories());
+  renderArchiveStories(loadStories());
+};
+
+const markStoryUnread = (storyId) => {
+  if (!storyId) {
+    return;
+  }
+  const status = loadReadStatus();
+  const key = String(storyId);
+  if (!status[key]?.isRead) {
+    return;
+  }
+  delete status[key];
+  saveReadStatus(status);
+  if (readerStatus) {
+    readerStatus.classList.add("is-hidden");
+  }
+  updateHomeReadStatus(key, false);
   renderHomeStories(loadStories());
   renderArchiveStories(loadStories());
 };
@@ -2292,7 +2323,6 @@ initializeStories();
 if (addTextButton) {
   addTextButton.addEventListener("click", showAddTextModal);
 }
-addStoryCta.addEventListener("click", showAddTextModal);
 if (homeAddText) {
   homeAddText.addEventListener("click", showAddTextModal);
 }
