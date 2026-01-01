@@ -84,6 +84,14 @@ const archiveList = document.getElementById("archiveList");
 const archiveEmpty = document.getElementById("archiveEmpty");
 const pageDots = document.getElementById("pageDots");
 
+const pageDotIcons = {
+  archive: "assets/icons/icon-archive.svg",
+  library: "assets/icons/icon-library.svg",
+  reader: "assets/icons/icon-reader.svg",
+  lemmas: "assets/icons/icon-lemmas.svg",
+  settings: "assets/icons/icon-settings.svg",
+};
+
 let lastGerman = "";
 let lastTranslation = "";
 let lastGrammar = "";
@@ -441,6 +449,14 @@ const buildPageDots = (screens) => {
     const label =
       screen.getAttribute("aria-label") || screen.dataset.screen || "Page";
     dot.setAttribute("aria-label", `${label} (${index + 1} of ${total})`);
+    const icon = pageDotIcons[screen.dataset.screen];
+    if (icon) {
+      dot.style.setProperty("--dot-icon", `url("${icon}")`);
+      const iconEl = document.createElement("span");
+      iconEl.className = "page-dot-icon";
+      iconEl.setAttribute("aria-hidden", "true");
+      dot.appendChild(iconEl);
+    }
     dot.addEventListener("click", () => {
       scrollToScreen(screen);
     });

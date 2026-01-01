@@ -71,13 +71,30 @@ body {
   padding: 0;
   background: rgba(29, 27, 25, 0.25);
   cursor: pointer;
-  transition: width 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  display: grid;
+  place-items: center;
+  transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
 .page-dot.is-active {
   width: 18px;
+  height: 18px;
   background: var(--ink);
   transform: scale(1.05);
+}
+
+.page-dot-icon {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  opacity: 0;
+  -webkit-mask: var(--dot-icon) center/contain no-repeat;
+  mask: var(--dot-icon) center/contain no-repeat;
+  transition: opacity 0.2s ease;
+}
+
+.page-dot.is-active .page-dot-icon {
+  opacity: 1;
 }
 
 .page-dot:focus-visible {
