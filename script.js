@@ -2305,12 +2305,14 @@ const initializeStories = () => {
 
 let hasSetInitialScreen = false;
 const setInitialScreen = () => {
+  if (hasSetInitialScreen || !screenLayout) {
+    return;
+  }
+  const requiresKey = document.body.classList.contains("requires-key");
+  const targetScreen = requiresKey ? settingsScreen : libraryScreen;
   if (
-    hasSetInitialScreen ||
-    !screenLayout ||
-    !libraryScreen ||
-    document.body.classList.contains("view-reader") ||
-    document.body.classList.contains("requires-key")
+    !targetScreen ||
+    (!requiresKey && document.body.classList.contains("view-reader"))
   ) {
     return;
   }
@@ -2318,7 +2320,7 @@ const setInitialScreen = () => {
   requestAnimationFrame(() => {
     const previousBehavior = screenLayout.style.scrollBehavior;
     screenLayout.style.scrollBehavior = "auto";
-    screenLayout.scrollLeft = libraryScreen.offsetLeft;
+    screenLayout.scrollLeft = targetScreen.offsetLeft;
     screenLayout.style.scrollBehavior = previousBehavior;
     requestPageDotsUpdate();
   });
