@@ -4024,6 +4024,20 @@ if (lemmaSearch) {
   lemmaSearch.addEventListener("input", () => {
     renderLemmaList();
   });
+  lemmaSearch.addEventListener("focus", () => {
+    const panel = lemmaSearch.closest(".book-panel");
+    if (!panel) {
+      return;
+    }
+    const stickyOffset = -20;
+    setTimeout(() => {
+      const panelRect = panel.getBoundingClientRect();
+      const inputRect = lemmaSearch.getBoundingClientRect();
+      const delta = inputRect.top - panelRect.top;
+      const targetTop = Math.max(0, panel.scrollTop + delta + stickyOffset);
+      panel.scrollTo({ top: targetTop, behavior: "smooth" });
+    }, 60);
+  });
 }
 
 const closeAddTextModal = () => {
