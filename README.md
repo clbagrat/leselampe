@@ -14,3 +14,12 @@ Live site: https://clbagrat.github.io/leselampe/
 1. Push to `main` (or `master`).
 2. In GitHub repo settings, set Pages → Source to "GitHub Actions".
 3. The site will be available at the URL shown in the Actions run summary.
+
+## RSS proxy (Cloudflare Worker)
+
+Fetching RSS feeds and article content requires a server-side proxy to avoid CORS issues. This project includes a minimal Worker in `worker/rss-proxy.js`.
+
+1. Create a Cloudflare Worker (Workers & Pages → Create → Worker).
+2. Paste the contents of `worker/rss-proxy.js` into the editor and deploy.
+3. Copy the Worker URL (e.g. `https://leselampe-rss.your-subdomain.workers.dev`).
+4. Update `RSS_PROXY_BASE` in `script.js` with that URL.

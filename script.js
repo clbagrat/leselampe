@@ -138,6 +138,7 @@ const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const READ_STATUS_KEY = "reader_story_read_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
+const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
@@ -263,35 +264,13 @@ const getFeedSearchUrl = (query) =>
   )}&info=true&favicon=false&opml=false&skip_crawl=false`;
 
 const fetchFeedSearchResults = async (query) => {
-  const url = getFeedSearchUrl(query);
-  const tryParse = (text) => {
-    try {
-      return JSON.parse(text);
-    } catch (error) {
-      return null;
-    }
-  };
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
-  const text = await response.text();
-  const directData = tryParse(text);
-  if (response.ok && directData) {
-    return directData;
+  const apiUrl = getFeedSearchUrl(query);
+  const proxyUrl = `${RSS_PROXY_BASE}?url=${encodeURIComponent(apiUrl)}`;
+  const response = await fetch(proxyUrl);
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.status}`);
   }
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  const proxyResponse = await fetch(proxyUrl);
-  if (!proxyResponse.ok) {
-    throw new Error(`Search failed: ${proxyResponse.status}`);
-  }
-  const proxyText = await proxyResponse.text();
-  const proxyData = tryParse(proxyText);
-  if (!proxyData) {
-    throw new Error("Invalid search response");
-  }
-  return proxyData;
+  return await response.json();
 };
 
 const renderRssSearchResults = (items) => {
@@ -367,19 +346,17 @@ const searchRssFeeds = async () => {
       .filter(Boolean)
       .slice(0, 8);
     if (!items.length) {
-      setRssModalStatus(
-        `No feeds found. Requesting: ${getFeedSearchUrl(query)}`,
-        { isError: true }
-      );
+      setRssModalStatus(`No feeds found. Requesting: ${requestUrl}`, {
+        isError: true,
+      });
       return;
     }
     setRssModalStatus("");
     renderRssSearchResults(items);
   } catch (error) {
-    setRssModalStatus(
-      `Couldn't reach feedsearch.dev. Requesting: ${getFeedSearchUrl(query)}`,
-      { isError: true }
-    );
+    setRssModalStatus(`Couldn't reach feedsearch.dev. Requesting: ${requestUrl}`, {
+      isError: true,
+    });
   }
 };
 
@@ -656,20 +633,12 @@ const openRssItem = async (item) => {
 };
 
 const fetchRssText = async (url) => {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return await response.text();
-  } catch (error) {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    const response = await fetch(proxyUrl);
-    if (!response.ok) {
-      throw new Error(`Proxy HTTP ${response.status}`);
-    }
-    return await response.text();
+  const proxyUrl = `${RSS_PROXY_BASE}?url=${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
+  if (!response.ok) {
+    throw new Error(`Proxy HTTP ${response.status}`);
   }
+  return await response.text();
 };
 
 const loadRssItems = async () => {
