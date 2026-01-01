@@ -159,14 +159,14 @@ const highlightGoverningWord = (
     return;
   }
 
-  const normalized = targetText.trim().toLowerCase();
+  const normalized = stripTokenPunctuation(targetText).trim().toLowerCase();
   const candidates = Array.from(sentenceEl.querySelectorAll(".word"));
   const match = candidates.find((candidate) => {
     if (candidate === clickedWord) {
       return false;
     }
     const lemma = candidate.dataset.lemma?.toLowerCase() || "";
-    const text = candidate.textContent.trim().toLowerCase();
+    const text = getCleanWordText(candidate).toLowerCase();
     return lemma === normalized || text === normalized;
   });
 
@@ -1287,9 +1287,11 @@ const articleMap = {
 };
 
 const isWordToken = (token) => /[\p{L}\d]/u.test(token);
+const stripTokenPunctuation = (token) =>
+  String(token || "").replace(/^[^\p{L}\d]+|[^\p{L}\d]+$/gu, "");
+const getCleanWordText = (wordEl) =>
+  stripTokenPunctuation(wordEl?.dataset.clean || wordEl?.textContent || "").trim();
 
-const noSpaceBefore = new Set([",", ".", "!", "?", ":", ";", ")", "]", "}", "»", "”", "’"]);
-const noSpaceAfter = new Set(["(", "[", "{", "«", "„", "“", "‘"]);
 const separablePrefixes = new Set([
   "ab",
   "an",
@@ -1404,7 +1406,7 @@ const normalizeUmlauts = (text) =>
     .replace(/ß/g, "ss");
 
 const normalizeWordText = (wordEl) =>
-  normalizeUmlauts(wordEl.textContent.trim().toLowerCase());
+  normalizeUmlauts(getCleanWordText(wordEl).toLowerCase());
 
 const isVerbLikeWord = (wordEl) => {
   if (!wordEl) {
@@ -1497,39 +1499,32 @@ const buildSentenceSpan = (sentence) => {
   sentenceSpan.className = "sentence";
   sentenceSpan.dataset.translation = "";
 
-  const tokens =
-    sentence.match(/[\p{L}]+(?:-[\p{L}]+)?|\d+|[^\s\p{L}\d]+/gu) || [];
-  let previousToken = null;
+  const tokens = sentence.match(/\S+/g) || [];
 
   tokens.forEach((token) => {
-    const needsSpace =
-      previousToken &&
-      !noSpaceBefore.has(token) &&
-      !noSpaceAfter.has(previousToken);
-
-    if (needsSpace) {
+    if (sentenceSpan.childNodes.length) {
       sentenceSpan.appendChild(document.createTextNode(" "));
     }
 
-    if (isWordToken(token)) {
+    const cleanToken = stripTokenPunctuation(token);
+    if (isWordToken(cleanToken)) {
       const span = document.createElement("span");
       span.className = "word";
       span.dataset.translation = "";
       span.textContent = token;
-      const lower = token.toLowerCase();
+      span.dataset.clean = cleanToken;
+      const lower = cleanToken.toLowerCase();
       if (articleMap[lower]) {
         span.dataset.pos = "article";
         span.dataset.articleBase = articleMap[lower];
-      } else if (/^\p{Lu}/u.test(token)) {
+      } else if (/^\p{Lu}/u.test(cleanToken)) {
         span.dataset.pos = "noun";
-        span.dataset.lemma = token;
+        span.dataset.lemma = cleanToken;
       }
       sentenceSpan.appendChild(span);
     } else {
       sentenceSpan.appendChild(document.createTextNode(token));
     }
-
-    previousToken = token;
   });
 
   return sentenceSpan;
@@ -1768,7 +1763,7 @@ const handleSentenceContainerClick = (event) => {
     setActiveSentence(sentenceEl);
     word.classList.add("active");
     setWordLoading(word, true);
-    const german = word.textContent.trim();
+    const german = getCleanWordText(word);
     const requestId = ++translationRequestId;
     updateTranslation(
       "word",
@@ -1793,7 +1788,10 @@ const handleSentenceContainerClick = (event) => {
           // Find the detached prefix/verb element in the same sentence
           let candidateEl = null;
           for (const candidate of sentenceEl.querySelectorAll(".word")) {
-            if (candidate !== word && candidate.textContent.trim().toLowerCase() === normalized) {
+            if (
+              candidate !== word &&
+              getCleanWordText(candidate).toLowerCase() === normalized
+            ) {
               candidateEl = candidate;
               break;
             }
@@ -1840,7 +1838,7 @@ const handleSentenceContainerClick = (event) => {
           .slice(wordIndex + 1)
           .find((item) => item.dataset.pos === "noun");
         if (headWord) {
-          meta.head = headWord.dataset.lemma || headWord.textContent.trim();
+          meta.head = headWord.dataset.lemma || getCleanWordText(headWord);
           if (!meta.genderWord) {
             meta.genderWord = meta.head;
           }
