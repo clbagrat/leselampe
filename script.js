@@ -127,9 +127,11 @@ let longPressTimer = null;
 let longPressTriggered = false;
 let sentenceTranslationEl = null;
 let currentStoryId = null;
+let currentRssItem = null;
 let readObserver = null;
 let lastSettingsReturnScreen = null;
 let rssCurrentItems = [];
+let rssSearchItems = [];
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -138,6 +140,8 @@ const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const READ_STATUS_KEY = "reader_story_read_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
+const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
+const RSS_LEVELS_KEY = "reader_rss_levels_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
@@ -229,6 +233,155 @@ const saveRssUrls = (urls) => {
   localStorage.setItem(RSS_STORAGE_KEY, JSON.stringify(urls));
 };
 
+const RSS_LEVELS = ["raw", "A1", "A2", "B1", "B2", "C1", "C2"];
+
+const loadRssLevels = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RSS_LEVELS_KEY) || "{}");
+    if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+      return stored;
+    }
+  } catch (error) {
+    console.warn("Failed to load RSS levels.", error);
+  }
+  return {};
+};
+
+const saveRssLevels = (levels) => {
+  localStorage.setItem(RSS_LEVELS_KEY, JSON.stringify(levels));
+};
+
+const getRssLevel = (url) => {
+  if (!url) {
+    return "";
+  }
+  const levels = loadRssLevels();
+  return levels[url] || "";
+};
+
+const ensureRssLevel = (url, fallback = "raw") => {
+  if (!url || !RSS_LEVELS.includes(fallback)) {
+    return "";
+  }
+  const current = getRssLevel(url);
+  if (current) {
+    return current;
+  }
+  setRssLevel(url, fallback);
+  return fallback;
+};
+
+const setRssLevel = (url, level) => {
+  if (!url || !RSS_LEVELS.includes(level)) {
+    return false;
+  }
+  const levels = loadRssLevels();
+  levels[url] = level;
+  saveRssLevels(levels);
+  return true;
+};
+
+const isRssSubscribed = (url) => {
+  if (!url) {
+    return false;
+  }
+  return loadRssUrls().includes(url);
+};
+
+const removeRssSubscriptionUrl = (rawUrl) => {
+  const normalized = normalizeRssUrl(rawUrl);
+  if (!normalized) {
+    return false;
+  }
+  let url;
+  try {
+    url = new URL(normalized).toString();
+  } catch (error) {
+    setRssModalStatus("Enter a valid URL.", { isError: true });
+    return false;
+  }
+  const urls = loadRssUrls().filter((item) => item !== url);
+  saveRssUrls(urls);
+  const levels = loadRssLevels();
+  if (levels[url]) {
+    delete levels[url];
+    saveRssLevels(levels);
+  }
+  setRssModalStatus("");
+  renderRssSubscriptions();
+  loadRssItems();
+  return true;
+};
+
+const loadRssArchiveItems = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RSS_ARCHIVE_STORAGE_KEY) || "[]");
+    if (Array.isArray(stored)) {
+      return stored.filter((item) => item && typeof item.id === "string");
+    }
+  } catch (error) {
+    console.warn("Failed to load RSS archive.", error);
+  }
+  return [];
+};
+
+const saveRssArchiveItems = (items) => {
+  localStorage.setItem(RSS_ARCHIVE_STORAGE_KEY, JSON.stringify(items));
+};
+
+const isRssItemId = (value) => String(value || "").startsWith("rss:");
+
+const stripHtmlText = (value) => {
+  if (!value) {
+    return "";
+  }
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = value;
+  return wrapper.textContent || "";
+};
+
+const buildRssExcerpt = (item) => {
+  const plain = stripHtmlText(item?.contentHtml || "");
+  const fallback = plain || (item?.source ? `From ${item.source}.` : "") || item?.title || "";
+  return buildStoryExcerpt(fallback);
+};
+
+const upsertRssArchiveItem = (item, readAt) => {
+  if (!item?.id) {
+    return;
+  }
+  const id = String(item.id);
+  const archive = loadRssArchiveItems();
+  const entry = {
+    id,
+    title: item.title || "Untitled post",
+    link: item.link || "",
+    source: item.source || "Feed",
+    date: item.date instanceof Date ? item.date.toISOString() : item.date || "",
+    contentHtml: item.contentHtml || "",
+    readAt: readAt || new Date().toISOString(),
+  };
+  const existingIndex = archive.findIndex((stored) => stored.id === id);
+  if (existingIndex >= 0) {
+    archive[existingIndex] = { ...archive[existingIndex], ...entry };
+  } else {
+    archive.unshift(entry);
+  }
+  saveRssArchiveItems(archive);
+};
+
+const removeRssArchiveItem = (itemId) => {
+  if (!itemId) {
+    return;
+  }
+  const key = String(itemId);
+  const archive = loadRssArchiveItems();
+  const next = archive.filter((item) => item.id !== key);
+  if (next.length !== archive.length) {
+    saveRssArchiveItems(next);
+  }
+};
+
 const normalizeRssUrl = (value) => {
   const trimmed = String(value || "").trim();
   if (!trimmed) {
@@ -238,6 +391,18 @@ const normalizeRssUrl = (value) => {
     return `https://${trimmed}`;
   }
   return trimmed;
+};
+
+const getCanonicalRssUrl = (value) => {
+  const normalized = normalizeRssUrl(value);
+  if (!normalized) {
+    return "";
+  }
+  try {
+    return new URL(normalized).toString();
+  } catch (error) {
+    return normalized;
+  }
 };
 
 const setRssStatus = (message, { isError = false } = {}) => {
@@ -284,9 +449,12 @@ const renderRssSearchResults = (items) => {
   }
   rssSearchResults.classList.remove("is-hidden");
   items.forEach((item) => {
+    const canonicalUrl = getCanonicalRssUrl(item.url);
+    const isSubscribed = isRssSubscribed(canonicalUrl);
     const row = document.createElement("div");
     row.className = "rss-search-item";
     const meta = document.createElement("div");
+    meta.className = "rss-search-meta";
     const title = document.createElement("div");
     title.className = "rss-search-title";
     title.textContent = item.title || "Feed";
@@ -294,12 +462,32 @@ const renderRssSearchResults = (items) => {
     url.className = "rss-search-url";
     url.textContent = item.url || "";
     meta.append(title, url);
-    const addButton = document.createElement("button");
-    addButton.type = "button";
-    addButton.className = "ghost mini";
-    addButton.textContent = "Add";
-    addButton.dataset.url = item.url;
-    row.append(meta, addButton);
+    const levels = document.createElement("div");
+    levels.className = "rss-levels";
+    if (isSubscribed) {
+      const selectedLevel = ensureRssLevel(canonicalUrl, "raw");
+      RSS_LEVELS.forEach((level) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rss-level";
+        button.textContent = level;
+        button.dataset.url = canonicalUrl;
+        button.dataset.level = level;
+        if (selectedLevel === level) {
+          button.classList.add("is-active");
+        }
+        levels.appendChild(button);
+      });
+    }
+    const actions = document.createElement("div");
+    actions.className = "rss-search-actions";
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "ghost mini";
+    actionButton.textContent = isSubscribed ? "Remove" : "Add";
+    actionButton.dataset.url = canonicalUrl || item.url || "";
+    actions.appendChild(actionButton);
+    row.append(meta, levels, actions);
     rssSearchResults.appendChild(row);
   });
 };
@@ -335,9 +523,9 @@ const searchRssFeeds = async () => {
     setRssModalStatus("Enter a URL to search for feeds.", { isError: true });
     return;
   }
-  const requestUrl = getFeedSearchUrl(query);
-  setRssModalStatus(`Searching feeds. Requesting: ${requestUrl}`);
+  setRssModalStatus("Searching...");
   renderRssSearchResults([]);
+  rssSearchItems = [];
   try {
     const data = await fetchFeedSearchResults(query);
     const rawItems = Array.isArray(data) ? data : data?.feeds || data?.results || [];
@@ -346,15 +534,16 @@ const searchRssFeeds = async () => {
       .filter(Boolean)
       .slice(0, 8);
     if (!items.length) {
-      setRssModalStatus(`No feeds found. Requesting: ${requestUrl}`, {
+      setRssModalStatus("No feeds found.", {
         isError: true,
       });
       return;
     }
     setRssModalStatus("");
+    rssSearchItems = items;
     renderRssSearchResults(items);
   } catch (error) {
-    setRssModalStatus(`Couldn't reach feedsearch.dev. Requesting: ${requestUrl}`, {
+    setRssModalStatus("Couldn't reach feedsearch.dev.", {
       isError: true,
     });
   }
@@ -373,12 +562,30 @@ const renderRssSubscriptions = () => {
     const label = document.createElement("span");
     label.className = "rss-subscription-url";
     label.textContent = url;
+    const levels = document.createElement("div");
+    levels.className = "rss-levels";
+    const selectedLevel = ensureRssLevel(url, "raw");
+    RSS_LEVELS.forEach((level) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "rss-level";
+      button.textContent = level;
+      button.dataset.url = url;
+      button.dataset.level = level;
+      if (selectedLevel === level) {
+        button.classList.add("is-active");
+      }
+      levels.appendChild(button);
+    });
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "ghost mini";
     removeButton.textContent = "Remove";
     removeButton.dataset.url = url;
-    item.append(label, removeButton);
+    const actions = document.createElement("div");
+    actions.className = "rss-subscription-actions";
+    actions.appendChild(removeButton);
+    item.append(label, levels, actions);
     rssSubscriptions.appendChild(item);
   });
 };
@@ -394,34 +601,38 @@ const renderRssFeedItems = (items) => {
     rssFeedEmpty.classList.remove("is-hidden");
     return;
   }
-  rssFeedEmpty.classList.add("is-hidden");
   const readStatus = loadReadStatus();
-  items.forEach((item, index) => {
+  const visibleItems = items.filter((item) => !readStatus[item.id]?.isRead);
+  if (!visibleItems.length) {
+    rssFeedEmpty.textContent = "No unread items right now.";
+    rssFeedEmpty.classList.remove("is-hidden");
+    return;
+  }
+  rssFeedEmpty.classList.add("is-hidden");
+  visibleItems.forEach((item) => {
     const card = document.createElement("article");
-    card.className = "rss-feed-item";
-    card.dataset.index = String(index);
+    card.className = "home-item";
     card.dataset.id = item.id;
-    const isRead = Boolean(readStatus[item.id]?.isRead);
-    card.classList.toggle("is-read", isRead);
-    const title = document.createElement("h3");
-    title.className = "rss-feed-title";
-    const link = document.createElement("a");
-    link.href = item.link;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = item.title || "Untitled post";
-    title.appendChild(link);
+
+    const content = document.createElement("button");
+    content.className = "home-item-content";
+    content.type = "button";
+
+    const head = document.createElement("div");
+    head.className = "home-item-head";
+
+    const title = document.createElement("p");
+    title.className = "home-item-title";
+    title.textContent = item.title || "Untitled post";
+
+    head.appendChild(title);
+
     const meta = document.createElement("div");
     meta.className = "rss-feed-meta";
     const source = document.createElement("span");
     source.className = "rss-feed-source";
     source.textContent = item.source || "Feed";
     meta.appendChild(source);
-    const readBadge = document.createElement("span");
-    readBadge.className = "rss-feed-read";
-    readBadge.textContent = "Read";
-    readBadge.classList.toggle("is-hidden", !isRead);
-    meta.appendChild(readBadge);
     if (item.date) {
       const date = document.createElement("span");
       date.textContent = item.date.toLocaleDateString(undefined, {
@@ -430,7 +641,31 @@ const renderRssFeedItems = (items) => {
       });
       meta.appendChild(date);
     }
-    card.append(title, meta);
+
+    const excerpt = document.createElement("p");
+    excerpt.className = "home-item-excerpt";
+    excerpt.textContent = buildRssExcerpt(item);
+
+    content.appendChild(head);
+    content.appendChild(meta);
+    content.appendChild(excerpt);
+
+    const actions = document.createElement("div");
+    actions.className = "home-item-actions";
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "home-action toggle";
+    toggleButton.type = "button";
+    toggleButton.textContent = "Mark as read";
+    toggleButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      markStoryRead(item.id);
+      closeAllHomeMenus(undefined, rssFeedList);
+    });
+    actions.appendChild(toggleButton);
+
+    card.appendChild(content);
+    card.appendChild(actions);
+    setupHomeItemLongPress(card, rssFeedList);
     rssFeedList.appendChild(card);
   });
 };
@@ -610,12 +845,13 @@ const showRssLoading = (title) => {
   reader.appendChild(paragraph);
 };
 
-const openRssItem = async (item) => {
+const openRssItem = async (item, { markUnread = true } = {}) => {
   if (!item?.link) {
     return;
   }
   setRssStatus("");
-  if (item.id) {
+  currentRssItem = item || null;
+  if (markUnread && item.id) {
     markStoryUnread(item.id);
   }
   showRssLoading(item.title || "RSS article");
@@ -1543,7 +1779,14 @@ const renderArchiveStories = (stories) => {
   const readStories = stories.filter((story) =>
     Boolean(statusMap[String(story.id)]?.isRead)
   );
-  if (!readStories.length) {
+  const rssArchive = loadRssArchiveItems();
+  const readRssItems = rssArchive.filter((item) =>
+    Boolean(statusMap[item.id]?.isRead)
+  );
+  if (readRssItems.length !== rssArchive.length) {
+    saveRssArchiveItems(readRssItems);
+  }
+  if (!readStories.length && !readRssItems.length) {
     archiveEmpty?.classList.remove("is-hidden");
     return;
   }
@@ -1609,6 +1852,64 @@ const renderArchiveStories = (stories) => {
     setupHomeItemLongPress(item, archiveList);
     archiveList.appendChild(item);
   });
+
+  if (!readRssItems.length) {
+    return;
+  }
+  readRssItems
+    .slice()
+    .sort((a, b) => {
+      const timeA = Date.parse(a.readAt || "") || 0;
+      const timeB = Date.parse(b.readAt || "") || 0;
+      return timeB - timeA;
+    })
+    .forEach((rssItem) => {
+      const item = document.createElement("div");
+      item.className = "home-item is-read";
+      item.dataset.rssId = String(rssItem.id);
+
+      const content = document.createElement("button");
+      content.className = "home-item-content";
+      content.type = "button";
+
+      const head = document.createElement("div");
+      head.className = "home-item-head";
+
+      const title = document.createElement("p");
+      title.className = "home-item-title";
+      title.textContent = rssItem.title || "Untitled post";
+
+      head.appendChild(title);
+
+      const excerpt = document.createElement("p");
+      excerpt.className = "home-item-excerpt";
+      excerpt.textContent = buildRssExcerpt(rssItem);
+
+      content.appendChild(head);
+      content.appendChild(excerpt);
+      content.addEventListener("click", () => {
+        closeAllHomeMenus(undefined, archiveList);
+        openRssItem(rssItem, { markUnread: false });
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "home-item-actions";
+      const toggleButton = document.createElement("button");
+      toggleButton.className = "home-action toggle";
+      toggleButton.type = "button";
+      toggleButton.textContent = "Mark as unread";
+      toggleButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        markStoryUnread(rssItem.id);
+        closeAllHomeMenus(undefined, archiveList);
+      });
+      actions.appendChild(toggleButton);
+
+      item.appendChild(content);
+      item.appendChild(actions);
+      setupHomeItemLongPress(item, archiveList);
+      archiveList.appendChild(item);
+    });
 };
 
 const updateHomeReadStatus = (storyId, isRead) => {
@@ -1632,15 +1933,25 @@ const updateRssReadStatus = (itemId, isRead) => {
   if (!rssFeedList || !itemId) {
     return;
   }
-  const item = rssFeedList.querySelector(`.rss-feed-item[data-id="${itemId}"]`);
+  const item = rssFeedList.querySelector(`.home-item[data-id="${itemId}"]`);
   if (!item) {
     return;
   }
   item.classList.toggle("is-read", isRead);
-  const badge = item.querySelector(".rss-feed-read");
-  if (badge) {
-    badge.classList.toggle("is-hidden", !isRead);
+  const toggleButton = item.querySelector(".home-action.toggle");
+  if (toggleButton) {
+    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
   }
+};
+
+const refreshRssFeedItems = () => {
+  if (!rssFeedList) {
+    return;
+  }
+  if (!Array.isArray(rssCurrentItems) || !rssCurrentItems.length) {
+    return;
+  }
+  renderRssFeedItems(rssCurrentItems);
 };
 
 const markStoryRead = (storyId) => {
@@ -1648,14 +1959,24 @@ const markStoryRead = (storyId) => {
     return;
   }
   const status = loadReadStatus();
-  if (status[String(storyId)]?.isRead) {
+  const key = String(storyId);
+  if (status[key]?.isRead) {
     return;
   }
-  status[String(storyId)] = {
+  status[key] = {
     isRead: true,
     readAt: new Date().toISOString(),
   };
   saveReadStatus(status);
+  if (isRssItemId(key)) {
+    const rssItem =
+      currentRssItem?.id === key
+        ? currentRssItem
+        : rssCurrentItems.find((entry) => String(entry.id) === key);
+    if (rssItem) {
+      upsertRssArchiveItem(rssItem, status[key].readAt);
+    }
+  }
   if (readerStatus) {
     readerStatus.classList.remove("is-hidden");
     readerStatus.classList.remove("is-visible");
@@ -1665,6 +1986,9 @@ const markStoryRead = (storyId) => {
   }
   updateHomeReadStatus(String(storyId), true);
   updateRssReadStatus(String(storyId), true);
+  if (isRssItemId(key)) {
+    refreshRssFeedItems();
+  }
   renderHomeStories(loadStories());
   renderArchiveStories(loadStories());
 };
@@ -1680,11 +2004,17 @@ const markStoryUnread = (storyId) => {
   }
   delete status[key];
   saveReadStatus(status);
+  if (isRssItemId(key)) {
+    removeRssArchiveItem(key);
+  }
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
   }
   updateHomeReadStatus(key, false);
   updateRssReadStatus(key, false);
+  if (isRssItemId(key)) {
+    refreshRssFeedItems();
+  }
   renderHomeStories(loadStories());
   renderArchiveStories(loadStories());
 };
@@ -2839,6 +3169,7 @@ const openRssModal = () => {
   renderRssSubscriptions();
   setRssModalStatus("");
   renderRssSearchResults([]);
+  rssSearchItems = [];
   if (rssUrlInput) {
     rssUrlInput.focus();
   }
@@ -2868,36 +3199,44 @@ const addRssSubscription = () => {
     return;
   }
   const urls = loadRssUrls();
+  let added = false;
   if (!urls.includes(url)) {
     urls.push(url);
     saveRssUrls(urls);
+    ensureRssLevel(url, "raw");
+    added = true;
   }
   rssUrlInput.value = "";
   setRssModalStatus("");
   renderRssSubscriptions();
   loadRssItems();
+  return added;
 };
 
 const addRssSubscriptionUrl = (rawUrl) => {
   const normalized = normalizeRssUrl(rawUrl);
   if (!normalized) {
-    return;
+    return false;
   }
   let url;
   try {
     url = new URL(normalized).toString();
   } catch (error) {
     setRssModalStatus("Enter a valid URL.", { isError: true });
-    return;
+    return false;
   }
   const urls = loadRssUrls();
+  let added = false;
   if (!urls.includes(url)) {
     urls.push(url);
     saveRssUrls(urls);
+    ensureRssLevel(url, "raw");
+    added = true;
   }
   setRssModalStatus("");
   renderRssSubscriptions();
   loadRssItems();
+  return added;
 };
 
 const initializeStories = () => {
@@ -2974,6 +3313,14 @@ if (homeList) {
 
 if (archiveList) {
   archiveList.addEventListener("contextmenu", (event) => {
+    if (event.target.closest(".home-item")) {
+      event.preventDefault();
+    }
+  });
+}
+
+if (rssFeedList) {
+  rssFeedList.addEventListener("contextmenu", (event) => {
     if (event.target.closest(".home-item")) {
       event.preventDefault();
     }
@@ -3060,15 +3407,20 @@ if (rssUrlInput) {
 
 if (rssSubscriptions) {
   rssSubscriptions.addEventListener("click", (event) => {
+    const levelButton = event.target.closest("button[data-level]");
+    if (levelButton) {
+      const url = levelButton.dataset.url;
+      const level = levelButton.dataset.level;
+      if (setRssLevel(url, level)) {
+        renderRssSubscriptions();
+      }
+      return;
+    }
     const removeButton = event.target.closest("button[data-url]");
     if (!removeButton) {
       return;
     }
-    const url = removeButton.dataset.url;
-    const urls = loadRssUrls().filter((item) => item !== url);
-    saveRssUrls(urls);
-    renderRssSubscriptions();
-    loadRssItems();
+    removeRssSubscriptionUrl(removeButton.dataset.url);
   });
 }
 
@@ -3087,26 +3439,50 @@ if (rssSearchInput) {
 
 if (rssSearchResults) {
   rssSearchResults.addEventListener("click", (event) => {
+    const levelButton = event.target.closest("button[data-level]");
+    if (levelButton) {
+      const url = levelButton.dataset.url;
+      const level = levelButton.dataset.level;
+      if (setRssLevel(url, level)) {
+        renderRssSubscriptions();
+        renderRssSearchResults(rssSearchItems);
+      }
+      return;
+    }
     const addButton = event.target.closest("button[data-url]");
     if (!addButton) {
       return;
     }
-    addRssSubscriptionUrl(addButton.dataset.url);
+    const url = addButton.dataset.url;
+    const isSubscribed = isRssSubscribed(url);
+    const updated = isSubscribed
+      ? removeRssSubscriptionUrl(url)
+      : addRssSubscriptionUrl(url);
+    if (updated) {
+      renderRssSearchResults(rssSearchItems);
+    }
   });
 }
 
 if (rssFeedList) {
   rssFeedList.addEventListener("click", (event) => {
-    const card = event.target.closest(".rss-feed-item");
-    if (!card) {
+    if (event.target.closest(".home-action")) {
       return;
     }
-    const index = Number(card.dataset.index);
-    const item = rssCurrentItems[index];
+    const card = event.target.closest(".home-item");
+    if (!card || !rssFeedList.contains(card)) {
+      return;
+    }
+    const itemId = card.dataset.id;
+    if (!itemId) {
+      return;
+    }
+    const item = rssCurrentItems.find((entry) => String(entry.id) === itemId);
     if (!item) {
       return;
     }
     event.preventDefault();
+    closeAllHomeMenus(undefined, rssFeedList);
     openRssItem(item);
   });
 }
