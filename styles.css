@@ -21,6 +21,7 @@
 
 html {
   background: var(--paper);
+  overscroll-behavior: none;
 }
 
 body {
@@ -29,6 +30,7 @@ body {
   min-height: 100dvh;
   font-family: var(--mono);
   color: var(--ink);
+  overscroll-behavior: none;
   background: radial-gradient(circle at 20% 20%, #fff6d1 0%, transparent 55%),
     radial-gradient(circle at 80% 0%, #cfe3ff 0%, transparent 45%),
     linear-gradient(140deg, #f8c9b9 0%, #f2ecd6 50%, #dbe7f7 100%);
