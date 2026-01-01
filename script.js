@@ -490,7 +490,8 @@ const adaptRssArticleWithChatGPT = async (title, blocks, level) => {
               `You are a translator and text adapter for German learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array).
 If the source text is not in German, translate it into German first. Then adapt the German to CEFR ${level} vocabulary and grammar.
 If the source text is already in German, adapt/simplify it to CEFR ${level}.
-Keep names, places, and numbers. Preserve meaning and key details. Keep the length reasonably close to the original.
+Keep names, places, and numbers. Preserve meaning and key details. Do not summarize or omit facts.
+Keep the length very close to the original (aim for 85%-115% of the source length). If simplification is needed, split long sentences and use simpler phrasing rather than dropping content.
 Use short paragraphs separated by blank lines. Do not use markdown or bullet lists.${lemmaInstruction}`,
           },
           {
