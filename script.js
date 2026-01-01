@@ -79,7 +79,9 @@ const homeEmpty = document.getElementById("homeEmpty");
 const homeEmptyAdd = document.getElementById("homeEmptyAdd");
 const homeAddText = document.getElementById("homeAddText");
 const backToLibrary = document.getElementById("backToLibrary");
+const readerFinish = document.getElementById("readerFinish");
 const readerEnd = document.getElementById("readerEnd");
+const readerView = document.getElementById("readerView");
 const archiveList = document.getElementById("archiveList");
 const archiveEmpty = document.getElementById("archiveEmpty");
 const pageDots = document.getElementById("pageDots");
@@ -1050,6 +1052,9 @@ const openRssReaderScreen = (
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
   startReadSession(itemId, usedLemmas);
+  if (readerFinish) {
+    readerFinish.classList.remove("is-hidden");
+  }
   renderRssStory(title, blocks, itemId);
   setView("reader");
   requestAnimationFrame(() => {
@@ -1646,6 +1651,9 @@ const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   }
   markStoryUnread(story.id);
   startReadSession(story.id, story.usedLemmas || []);
+  if (readerFinish) {
+    readerFinish.classList.remove("is-hidden");
+  }
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
     readerStatus.classList.remove("is-visible");
@@ -1679,29 +1687,7 @@ const handleRoute = () => {
   showLibraryScreen("auto");
 };
 
-const setupReadObserver = () => {
-  if (!readerEnd || typeof IntersectionObserver === "undefined") {
-    return;
-  }
-  if (readObserver) {
-    readObserver.disconnect();
-  }
-  readObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (
-          entry.isIntersecting &&
-          document.body.classList.contains("view-reader") &&
-          currentStoryId
-        ) {
-          markStoryRead(currentStoryId);
-        }
-      });
-    },
-    { threshold: 0.6 }
-  );
-  readObserver.observe(readerEnd);
-};
+const setupReadObserver = () => {};
 
 const isWithinReader = (element) => reader && element && reader.contains(element);
 
@@ -2369,6 +2355,9 @@ const refreshRssFeedItems = () => {
 const markStoryRead = (storyId) => {
   if (!storyId) {
     return;
+  }
+  if (readerFinish) {
+    readerFinish.classList.add("is-hidden");
   }
   const status = loadReadStatus();
   const key = String(storyId);
@@ -3686,7 +3675,6 @@ const initializeStories = () => {
   if (!storedKey) {
     openSettingsScreen(true, "auto");
   }
-  setupReadObserver();
   setInitialScreen();
   syncPageDots();
 };
@@ -3731,6 +3719,20 @@ if (rssManage) {
 if (backToLibrary) {
   backToLibrary.addEventListener("click", () => {
     showLibraryScreen();
+  });
+}
+if (readerFinish) {
+  readerFinish.addEventListener("click", () => {
+    if (currentStoryId) {
+      markStoryRead(currentStoryId);
+      setTimeout(() => {
+        if (readerView) {
+          readerView.scrollTo({ top: readerView.scrollHeight, behavior: "smooth" });
+        } else {
+          readerEnd?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
+      }, 500);
+    }
   });
 }
 if (homeList) {
