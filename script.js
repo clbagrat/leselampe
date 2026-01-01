@@ -133,6 +133,11 @@ let lastSettingsReturnScreen = null;
 let rssCurrentItems = [];
 let rssSearchItems = [];
 let rssAdaptController = null;
+let currentReadSession = null;
+let rssLoadController = null;
+let rssLoadingItemId = null;
+let rssLoadingMessage = "";
+let rssLoadingRequestId = 0;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -159,9 +164,10 @@ const updateScreenScrollLock = () => {
   const hasActiveWord = Boolean(document.querySelector(".word.active"));
   const hasActiveSentence = Boolean(document.querySelector(".sentence.active"));
   const requiresKey = document.body.classList.contains("requires-key");
+  const isRssLoading = Boolean(rssLoadingItemId);
   screenLayout.classList.toggle(
     "is-locked",
-    hasActiveWord || hasActiveSentence || requiresKey
+    hasActiveWord || hasActiveSentence || requiresKey || isRssLoading
   );
 };
 
@@ -348,6 +354,39 @@ const buildRssExcerpt = (item) => {
   return buildStoryExcerpt(fallback);
 };
 
+const setRssLoadingState = (itemId, message) => {
+  rssLoadingItemId = itemId || null;
+  rssLoadingMessage = message || "";
+  rssLoadingRequestId += 1;
+  if (rssFeedList) {
+    rssFeedList.classList.toggle("is-loading", Boolean(rssLoadingItemId));
+  }
+  updateScreenScrollLock();
+  refreshRssFeedItems();
+  return rssLoadingRequestId;
+};
+
+const clearRssLoadingState = () => {
+  rssLoadingItemId = null;
+  rssLoadingMessage = "";
+  rssLoadingRequestId += 1;
+  if (rssFeedList) {
+    rssFeedList.classList.remove("is-loading");
+  }
+  updateScreenScrollLock();
+  refreshRssFeedItems();
+};
+
+const abortRssLoading = () => {
+  if (rssLoadController) {
+    rssLoadController.abort();
+  }
+  if (rssAdaptController) {
+    rssAdaptController.abort();
+  }
+  clearRssLoadingState();
+};
+
 const loadRssAdaptations = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(RSS_ADAPT_STORAGE_KEY) || "{}");
@@ -383,6 +422,7 @@ const setRssAdaptation = (itemId, level, payload) => {
     title: payload.title || "",
     text: payload.text,
     level,
+    usedLemmas: Array.isArray(payload.usedLemmas) ? payload.usedLemmas : [],
     updatedAt: new Date().toISOString(),
   };
   saveRssAdaptations(adaptations);
@@ -440,7 +480,7 @@ const adaptRssArticleWithChatGPT = async (title, blocks, level) => {
           {
             role: "system",
             content:
-              `You are a translator and text adapter for German learners. Respond with strict JSON: {"title":"...","text":"..."}.
+              `You are a translator and text adapter for German learners. Respond with strict JSON: {"title":"...","text":"...","used_lemmas":["..."]}. "used_lemmas" must list the lemmas you actually used from the requested list (or empty array).
 If the source text is not in German, translate it into German first. Then adapt the German to CEFR ${level} vocabulary and grammar.
 If the source text is already in German, adapt/simplify it to CEFR ${level}.
 Keep names, places, and numbers. Preserve meaning and key details. Keep the length reasonably close to the original.
@@ -470,6 +510,7 @@ Use short paragraphs separated by blank lines. Do not use markdown or bullet lis
     return {
       title: parsed.title || title || "Artikel",
       text: parsed.text,
+      usedLemmas: Array.isArray(parsed.used_lemmas) ? parsed.used_lemmas : [],
     };
   } catch (error) {
     if (error.name === "AbortError") {
@@ -747,6 +788,13 @@ const renderRssFeedItems = (items) => {
     const card = document.createElement("article");
     card.className = "home-item";
     card.dataset.id = item.id;
+    const isLoading = rssLoadingItemId && String(item.id) === String(rssLoadingItemId);
+    if (isLoading) {
+      card.classList.add("is-loading");
+    }
+    const level = getRssLevel(item.feedUrl) || "raw";
+    const cached = getRssAdaptation(item.id, level);
+    const isReady = Boolean(cached?.text);
 
     const content = document.createElement("button");
     content.className = "home-item-content";
@@ -767,6 +815,12 @@ const renderRssFeedItems = (items) => {
     source.className = "rss-feed-source";
     source.textContent = item.source || "Feed";
     meta.appendChild(source);
+    if (isReady && !isLoading) {
+      const ready = document.createElement("span");
+      ready.className = "rss-feed-check";
+      ready.textContent = "✓";
+      meta.appendChild(ready);
+    }
     if (item.date) {
       const date = document.createElement("span");
       date.textContent = item.date.toLocaleDateString(undefined, {
@@ -782,23 +836,42 @@ const renderRssFeedItems = (items) => {
 
     content.appendChild(head);
     content.appendChild(meta);
-    content.appendChild(excerpt);
+    if (isLoading) {
+      const loadingRow = document.createElement("div");
+      loadingRow.className = "rss-item-loading-row";
+      const loading = document.createElement("p");
+      loading.className = "rss-item-loading";
+      loading.textContent = rssLoadingMessage || "Loading...";
+      const abortButton = document.createElement("button");
+      abortButton.type = "button";
+      abortButton.className = "rss-item-abort";
+      abortButton.textContent = "Abort";
+      abortButton.dataset.abort = "true";
+      loadingRow.append(loading, abortButton);
+      content.appendChild(loadingRow);
+    } else {
+      content.appendChild(excerpt);
+    }
 
     const actions = document.createElement("div");
     actions.className = "home-item-actions";
-    const toggleButton = document.createElement("button");
-    toggleButton.className = "home-action toggle";
-    toggleButton.type = "button";
-    toggleButton.textContent = "Mark as read";
-    toggleButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      markStoryRead(item.id);
-      closeAllHomeMenus(undefined, rssFeedList);
-    });
-    actions.appendChild(toggleButton);
+    if (!isLoading) {
+      const toggleButton = document.createElement("button");
+      toggleButton.className = "home-action toggle";
+      toggleButton.type = "button";
+      toggleButton.textContent = "Mark as read";
+      toggleButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        markStoryRead(item.id);
+        closeAllHomeMenus(undefined, rssFeedList);
+      });
+      actions.appendChild(toggleButton);
+    }
 
     card.appendChild(content);
-    card.appendChild(actions);
+    if (actions.childNodes.length) {
+      card.appendChild(actions);
+    }
     setupHomeItemLongPress(card, rssFeedList);
     rssFeedList.appendChild(card);
   });
@@ -964,13 +1037,19 @@ const renderRssStory = (title, blocks, itemId) => {
   });
 };
 
-const openRssReaderScreen = (title, blocks, itemId, { behavior = "smooth" } = {}) => {
+const openRssReaderScreen = (
+  title,
+  blocks,
+  itemId,
+  { behavior = "smooth", usedLemmas = [] } = {}
+) => {
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
     readerStatus.classList.remove("is-visible");
   }
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
+  startReadSession(itemId, usedLemmas);
   renderRssStory(title, blocks, itemId);
   setView("reader");
   requestAnimationFrame(() => {
@@ -1006,31 +1085,38 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
   if (markUnread && item.id) {
     markStoryUnread(item.id);
   }
-  if (wantsAdaptation) {
-    showRssLoading(item.title || "RSS article", `Adapting for ${selectedLevel}...`);
-    if (!canAdapt) {
-      setRssStatus("Add an API key to adapt RSS articles.", { isError: true });
-    }
-  } else {
-    showRssLoading(item.title || "RSS article");
+  const loadingMessage = wantsAdaptation
+    ? `Adapting for ${selectedLevel}...`
+    : "Loading article...";
+  const requestId = setRssLoadingState(item.id, loadingMessage);
+  if (wantsAdaptation && !canAdapt) {
+    setRssStatus("Add an API key to adapt RSS articles.", { isError: true });
   }
-  setView("reader");
-  requestAnimationFrame(() => {
-    scrollToScreen(readerScreen, "smooth");
-  });
   try {
+    if (rssLoadController) {
+      rssLoadController.abort();
+    }
+    rssLoadController = new AbortController();
     if (canAdapt && item.id) {
       const cached = getRssAdaptation(item.id, selectedLevel);
       if (cached?.text) {
+        if (requestId !== rssLoadingRequestId) {
+          return;
+        }
+        clearRssLoadingState();
         openRssReaderScreen(
           cached.title || item.title,
           buildBlocksFromText(cached.text),
-          item.id
+          item.id,
+          { usedLemmas: cached.usedLemmas || [] }
         );
         return;
       }
     }
-    const html = await fetchRssText(item.link);
+    const html = await fetchRssText(item.link, rssLoadController.signal);
+    if (requestId !== rssLoadingRequestId) {
+      return;
+    }
     const blocks = extractArticleBlocks(html);
     const usableBlocks =
       blocks.length
@@ -1045,18 +1131,29 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
           usableBlocks,
           selectedLevel
         );
+        if (requestId !== rssLoadingRequestId) {
+          return;
+        }
         if (adapted?.text) {
           setRssAdaptation(item.id, selectedLevel, adapted);
+          clearRssLoadingState();
           openRssReaderScreen(
             adapted.title || item.title,
             buildBlocksFromText(adapted.text),
-            item.id
+            item.id,
+            { usedLemmas: adapted.usedLemmas || [] }
           );
           return;
         }
         setRssStatus("Couldn't adapt this article.", { isError: true });
       }
-      openRssReaderScreen(item.title, usableBlocks, item.id);
+      clearRssLoadingState();
+      setRssAdaptation(item.id, "raw", {
+        title: item.title || "",
+        text: blocksToPlainText(usableBlocks),
+        usedLemmas: [],
+      });
+      openRssReaderScreen(item.title, usableBlocks, item.id, { usedLemmas: [] });
       return;
     }
     if (item.contentHtml) {
@@ -1067,23 +1164,39 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
           fallbackBlocks,
           selectedLevel
         );
+        if (requestId !== rssLoadingRequestId) {
+          return;
+        }
         if (adapted?.text) {
           setRssAdaptation(item.id, selectedLevel, adapted);
+          clearRssLoadingState();
           openRssReaderScreen(
             adapted.title || item.title,
             buildBlocksFromText(adapted.text),
-            item.id
+            item.id,
+            { usedLemmas: adapted.usedLemmas || [] }
           );
           return;
         }
         setRssStatus("Couldn't adapt this article.", { isError: true });
       }
-      openRssReaderScreen(item.title, fallbackBlocks, item.id);
+      clearRssLoadingState();
+      setRssAdaptation(item.id, "raw", {
+        title: item.title || "",
+        text: blocksToPlainText(fallbackBlocks),
+        usedLemmas: [],
+      });
+      openRssReaderScreen(item.title, fallbackBlocks, item.id, { usedLemmas: [] });
       return;
     }
     setRssStatus("Couldn't extract article text.", { isError: true });
-    openRssReaderScreen(item.title, [], item.id);
+    clearRssLoadingState();
+    openRssReaderScreen(item.title, [], item.id, { usedLemmas: [] });
   } catch (error) {
+    if (error?.name === "AbortError") {
+      setRssStatus("Canceled.", { isError: false });
+      return;
+    }
     const fallbackBlocks = extractArticleBlocks(item.contentHtml || "");
     if (canAdapt && fallbackBlocks.length) {
       const adapted = await adaptRssArticleWithChatGPT(
@@ -1091,24 +1204,37 @@ const openRssItem = async (item, { markUnread = true } = {}) => {
         fallbackBlocks,
         selectedLevel
       );
+      if (requestId !== rssLoadingRequestId) {
+        return;
+      }
       if (adapted?.text) {
         setRssAdaptation(item.id, selectedLevel, adapted);
+        clearRssLoadingState();
         openRssReaderScreen(
           adapted.title || item.title,
           buildBlocksFromText(adapted.text),
-          item.id
+          item.id,
+          { usedLemmas: adapted.usedLemmas || [] }
         );
         return;
       }
     }
     setRssStatus("Couldn't load the article content.", { isError: true });
-    openRssReaderScreen(item.title, fallbackBlocks, item.id);
+    clearRssLoadingState();
+    if (fallbackBlocks.length) {
+      setRssAdaptation(item.id, "raw", {
+        title: item.title || "",
+        text: blocksToPlainText(fallbackBlocks),
+        usedLemmas: [],
+      });
+    }
+    openRssReaderScreen(item.title, fallbackBlocks, item.id, { usedLemmas: [] });
   }
 };
 
-const fetchRssText = async (url) => {
+const fetchRssText = async (url, signal) => {
   const proxyUrl = `${RSS_PROXY_BASE}?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
+  const response = await fetch(proxyUrl, { signal });
   if (!response.ok) {
     throw new Error(`Proxy HTTP ${response.status}`);
   }
@@ -1134,7 +1260,7 @@ const loadRssItems = async () => {
   const parser = new DOMParser();
   const results = await Promise.allSettled(
     urls.map(async (url) => {
-      const xmlText = await fetchRssText(url);
+    const xmlText = await fetchRssText(url);
       const doc = parser.parseFromString(xmlText, "text/xml");
       if (doc.querySelector("parsererror")) {
         throw new Error("Invalid RSS XML");
@@ -1519,6 +1645,7 @@ const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
     return;
   }
   markStoryUnread(story.id);
+  startReadSession(story.id, story.usedLemmas || []);
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
     readerStatus.classList.remove("is-visible");
@@ -1690,10 +1817,44 @@ const saveLemmaStats = (stats) => {
 const normalizeLemmaKey = (value) =>
   String(value || "").trim().toLowerCase();
 
+const setReaderStatusMessage = (lemmas = []) => {
+  if (!readerStatus) {
+    return;
+  }
+  const labelEl = readerStatus.querySelector(".reader-status-label");
+  const lemmasEl = readerStatus.querySelector(".reader-status-lemmas");
+  if (labelEl) {
+    labelEl.textContent = "Marked as read.";
+  } else {
+    readerStatus.textContent = "Marked as read.";
+  }
+  if (lemmasEl) {
+    if (Array.isArray(lemmas) && lemmas.length) {
+      lemmasEl.textContent = `Learned: ${lemmas.join(", ")}`;
+      lemmasEl.classList.remove("is-hidden");
+    } else {
+      lemmasEl.textContent = "";
+      lemmasEl.classList.add("is-hidden");
+    }
+  }
+};
+
+const startReadSession = (storyId, usedLemmas = []) => {
+  currentReadSession = {
+    storyId: String(storyId || ""),
+    usedLemmas: Array.isArray(usedLemmas) ? usedLemmas : [],
+    clickedLemmas: new Set(),
+  };
+  setReaderStatusMessage([]);
+};
+
 const recordLemmaTranslation = (lemma) => {
   const normalized = normalizeLemmaKey(lemma);
   if (!normalized) {
     return;
+  }
+  if (currentReadSession && currentReadSession.storyId === String(currentStoryId)) {
+    currentReadSession.clickedLemmas.add(normalized);
   }
   const stats = loadLemmaStats();
   const existing = stats[normalized];
@@ -1753,6 +1914,31 @@ const markLearnedLemmas = (lemmas) => {
   saveLemmaStats(stats);
   renderLemmaList();
   updateLemmaBadge();
+};
+
+const markLearnedLemmasAndGetNew = (lemmas) => {
+  if (!Array.isArray(lemmas) || !lemmas.length) {
+    return [];
+  }
+  const stats = loadLemmaStats();
+  let changed = false;
+  const newlyLearned = [];
+  lemmas.forEach((lemma) => {
+    const normalized = normalizeLemmaKey(lemma);
+    if (!normalized || !stats[normalized] || stats[normalized].isLearned) {
+      return;
+    }
+    stats[normalized].isLearned = true;
+    changed = true;
+    newlyLearned.push(stats[normalized].lemma || String(lemma).trim());
+  });
+  if (!changed) {
+    return [];
+  }
+  saveLemmaStats(stats);
+  renderLemmaList();
+  updateLemmaBadge();
+  return newlyLearned;
 };
 
 const markLearnedLemmasInText = (text, lemmas) => {
@@ -2194,6 +2380,24 @@ const markStoryRead = (storyId) => {
     readAt: new Date().toISOString(),
   };
   saveReadStatus(status);
+  let newlyLearned = [];
+  if (currentReadSession && currentReadSession.storyId === key) {
+    const clicked = currentReadSession.clickedLemmas;
+    const unique = new Set();
+    const candidates = currentReadSession.usedLemmas
+      .map((lemma) => ({ raw: lemma, key: normalizeLemmaKey(lemma) }))
+      .filter((item) => item.key && !clicked.has(item.key))
+      .filter((item) => {
+        if (unique.has(item.key)) {
+          return false;
+        }
+        unique.add(item.key);
+        return true;
+      })
+      .map((item) => item.raw);
+    newlyLearned = markLearnedLemmasAndGetNew(candidates);
+  }
+  setReaderStatusMessage(newlyLearned);
   if (isRssItemId(key)) {
     const rssItem =
       currentRssItem?.id === key
@@ -3553,6 +3757,7 @@ if (rssFeedList) {
   });
 }
 
+
 if (openLemmasButton) {
   openLemmasButton.addEventListener("click", () => {
     renderLemmaList();
@@ -3692,6 +3897,13 @@ if (rssSearchResults) {
 
 if (rssFeedList) {
   rssFeedList.addEventListener("click", (event) => {
+    if (event.target.closest("[data-abort]")) {
+      abortRssLoading();
+      return;
+    }
+    if (rssLoadingItemId) {
+      return;
+    }
     if (event.target.closest(".home-action")) {
       return;
     }
@@ -3902,15 +4114,11 @@ generateStory.addEventListener("click", async () => {
   if (!story) {
     return;
   }
-  if (Array.isArray(story.usedLemmas) && story.usedLemmas.length) {
-    markLearnedLemmas(story.usedLemmas);
-  } else {
-    markLearnedLemmasInText(story.text, lemmas);
-  }
   const newStory = {
     id: Date.now(),
     title: story.title,
     text: story.text,
+    usedLemmas: Array.isArray(story.usedLemmas) ? story.usedLemmas : [],
   };
   const current = loadStories();
   const next = [newStory, ...current];
