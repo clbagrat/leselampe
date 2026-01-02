@@ -44,10 +44,9 @@
               </p>
               <section class="home-library" aria-label="Your stories">
                 <div class="home-library-header">
-                  <div>
-                    <p class="eyebrow">Library</p>
-                    <h2 class="home-title">Your stories</h2>
-                  </div>
+                <div>
+                  <h2 class="home-title">Your stories</h2>
+                </div>
                   <button class="ghost mini" type="button" id="homeAddText">Add</button>
                 </div>
                 <p class="home-subtitle">Tap a text to open it in the reader.</p>
@@ -68,10 +67,9 @@
               </p>
               <section class="home-library" aria-label="RSS feed">
                 <div class="home-library-header">
-                  <div>
-                    <p class="eyebrow">RSS</p>
-                    <h2 class="home-title">RSS feed</h2>
-                  </div>
+                <div>
+                  <h2 class="home-title">RSS feed</h2>
+                </div>
               <div class="home-library-actions">
                 <button class="ghost mini" type="button" id="rssRefresh">Refresh</button>
               </div>
@@ -92,10 +90,9 @@
           <div class="reader-view" id="readerView">
             <div class="book-header">
               <div>
-                <p class="eyebrow">Heute lesen wir</p>
                 <h1></h1>
               </div>
-              <button class="ghost mini" type="button" id="backToLibrary">Library</button>
+              <button class="ghost mini" type="button" id="openReaderAppearance">Font</button>
             </div>
 
             <article class="reader" id="reader" aria-live="polite"></article>
@@ -114,7 +111,6 @@
           <section class="home-library" aria-label="Translated lemmas">
             <div class="home-library-header">
               <div>
-                <p class="eyebrow">Lemmas</p>
                 <h2 class="home-title">Translated lemmas</h2>
               </div>
             </div>
@@ -178,10 +174,8 @@
           <section class="home-library" aria-label="Reader settings">
             <div class="home-library-header">
               <div>
-                <p class="eyebrow">Settings</p>
-                <h2 class="home-title">Reader controls</h2>
+                <h2 class="home-title">Settings</h2>
               </div>
-              <button class="ghost mini" type="button" id="settingsBack">Library</button>
             </div>
             <div class="settings-body">
               <div class="api-modal-body">
@@ -198,67 +192,43 @@
                   <button class="ghost" type="button" id="clearKey">Clear key</button>
                   <button class="primary" type="button" id="saveKey">Save</button>
                 </div>
-                <div class="settings-divider" aria-hidden="true"></div>
-                <div class="theme-modal-body">
-                  <div class="option-group">
-                    <p class="form-label">Font</p>
-                    <div class="option-row">
-                      <button class="option-button" type="button" data-font="serif">Serif</button>
-                      <button class="option-button" type="button" data-font="sans">Sans</button>
-                    </div>
-                  </div>
-                  <div class="option-group">
-                    <p class="form-label">Size</p>
-                    <div class="slider-row">
-                      <span class="slider-label">A</span>
-                      <input
-                        class="size-slider"
-                        id="readerSize"
-                        type="range"
-                        min="10"
-                        max="30"
-                        step="1"
-                      />
-                      <span class="slider-label">A+</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </section>
           <section class="home-library" aria-label="RSS manager">
             <div class="home-library-header">
               <div>
-                <p class="eyebrow">RSS manager</p>
                 <h2 class="home-title">Manage feeds</h2>
               </div>
             </div>
-            <div class="rss-input-row">
-              <input
-                id="rssUrlInput"
-                type="url"
-                placeholder="https://example.com/feed.xml"
-                autocomplete="off"
-              />
-              <button class="primary" type="button" id="rssAdd">Add feed</button>
+            <div class="settings-body">
+              <div class="rss-input-row">
+                <input
+                  id="rssUrlInput"
+                  type="url"
+                  placeholder="https://example.com/feed.xml"
+                  autocomplete="off"
+                />
+                <button class="primary" type="button" id="rssAdd">Add feed</button>
+              </div>
+              <div class="rss-search-row">
+                <input
+                  id="rssSearchInput"
+                  type="url"
+                  placeholder="Search by site or article URL"
+                  autocomplete="off"
+                />
+                <button class="ghost" type="button" id="rssSearch">Search</button>
+              </div>
+              <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
+              <p class="helper-text rss-attribution">
+                <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
+              </p>
+              <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
+              <p class="helper-text">We store your subscriptions locally in this browser.</p>
+              <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
+              <div class="rss-subscription-list" id="rssSubscriptions"></div>
             </div>
-            <div class="rss-search-row">
-              <input
-                id="rssSearchInput"
-                type="url"
-                placeholder="Search by site or article URL"
-                autocomplete="off"
-              />
-              <button class="ghost" type="button" id="rssSearch">Search</button>
-            </div>
-            <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
-            <p class="helper-text rss-attribution">
-              <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
-            </p>
-            <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
-            <p class="helper-text">We store your subscriptions locally in this browser.</p>
-            <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
-            <div class="rss-subscription-list" id="rssSubscriptions"></div>
           </section>
           <div class="settings-footer">
             <button class="ghost mini" type="button" id="reloadApp">Reload</button>
@@ -309,7 +279,6 @@
         <div class="modal-content">
           <div class="modal-header">
             <div>
-              <p class="eyebrow">Add new text</p>
               <h2>Bring new stories</h2>
             </div>
             <button class="ghost circle" type="button" id="closeAddText" data-close-modal aria-label="Close">×</button>
@@ -379,6 +348,55 @@
             <button class="primary" type="button" id="savePaste">Add to reader</button>
           </div>
 
+        </div>
+      </div>
+
+      <div
+        class="modal is-hidden"
+        id="readerAppearanceModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="readerAppearanceTitle"
+      >
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2 id="readerAppearanceTitle">Reader appearance</h2>
+            </div>
+            <button
+              class="ghost circle"
+              type="button"
+              id="closeReaderAppearance"
+              data-close-modal
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div class="theme-modal-body">
+            <div class="option-group">
+              <p class="form-label">Font</p>
+              <div class="option-row">
+                <button class="option-button" type="button" data-font="serif">Serif</button>
+                <button class="option-button" type="button" data-font="sans">Sans</button>
+              </div>
+            </div>
+            <div class="option-group">
+              <p class="form-label">Size</p>
+              <div class="slider-row">
+                <span class="slider-label">A</span>
+                <input
+                  class="size-slider"
+                  id="readerSize"
+                  type="range"
+                  min="10"
+                  max="30"
+                  step="1"
+                />
+                <span class="slider-label">A+</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

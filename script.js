@@ -44,7 +44,6 @@ const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
 const settingsScreen = document.querySelector('[data-screen="settings"]');
-const settingsBack = document.getElementById("settingsBack");
 const fontOptions = document.querySelectorAll("[data-font]");
 const readerSize = document.getElementById("readerSize");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
@@ -83,7 +82,7 @@ const homeList = document.getElementById("homeList");
 const homeEmpty = document.getElementById("homeEmpty");
 const homeEmptyAdd = document.getElementById("homeEmptyAdd");
 const homeAddText = document.getElementById("homeAddText");
-const backToLibrary = document.getElementById("backToLibrary");
+const openReaderAppearance = document.getElementById("openReaderAppearance");
 const readerFinish = document.getElementById("readerFinish");
 const readerEnd = document.getElementById("readerEnd");
 const readerView = document.getElementById("readerView");
@@ -101,6 +100,8 @@ const rssFeedEmpty = document.getElementById("rssFeedEmpty");
 const rssFeedEmptyAction = document.getElementById("rssFeedEmptyAction");
 const rssFeedStatus = document.getElementById("rssFeedStatus");
 const rssModalStatus = document.getElementById("rssModalStatus");
+const readerAppearanceModal = document.getElementById("readerAppearanceModal");
+const closeReaderAppearance = document.getElementById("closeReaderAppearance");
 
 const pageDotIcons = {
   library: "assets/icons/icon-library.svg",
@@ -3873,10 +3874,6 @@ applyStoryStyle(storedStyle);
 
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
-  if (settingsBack) {
-    settingsBack.disabled = required;
-    settingsBack.setAttribute("aria-disabled", String(required));
-  }
   updateScreenScrollLock();
   if (required && settingsScreen) {
     const currentScreen = getCurrentScreen();
@@ -3976,9 +3973,6 @@ if (toggleApi) {
   toggleApi.addEventListener("click", () => openSettingsScreen(false));
 }
 
-if (settingsBack) {
-  settingsBack.addEventListener("click", () => closeSettingsScreen());
-}
 
 toggleKeyVisibility.addEventListener("click", () => {
   const shouldShow = apiKeyInput.type === "password";
@@ -4051,6 +4045,20 @@ const showAddTextModal = () => {
   }
   addTextModal.classList.remove("is-hidden");
   setMode("generate");
+};
+
+const openReaderAppearanceModal = () => {
+  if (!readerAppearanceModal) {
+    return;
+  }
+  readerAppearanceModal.classList.remove("is-hidden");
+};
+
+const closeReaderAppearanceModal = () => {
+  if (!readerAppearanceModal) {
+    return;
+  }
+  readerAppearanceModal.classList.add("is-hidden");
 };
 
 const addRssSubscription = () => {
@@ -4181,9 +4189,9 @@ if (rssRefresh) {
 if (rssFeedEmptyAction) {
   rssFeedEmptyAction.addEventListener("click", openRssManagerInSettings);
 }
-if (backToLibrary) {
-  backToLibrary.addEventListener("click", () => {
-    showLibraryScreen();
+if (openReaderAppearance) {
+  openReaderAppearance.addEventListener("click", () => {
+    openReaderAppearanceModal();
   });
 }
 if (readerFinish) {
@@ -4297,9 +4305,27 @@ addTextModal.addEventListener("click", (event) => {
   }
 });
 
+if (closeReaderAppearance) {
+  closeReaderAppearance.addEventListener("click", closeReaderAppearanceModal);
+}
+
+if (readerAppearanceModal) {
+  readerAppearanceModal.addEventListener("click", (event) => {
+    if (
+      event.target === readerAppearanceModal ||
+      event.target.closest("[data-close-modal]")
+    ) {
+      closeReaderAppearanceModal();
+    }
+  });
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {
     closeAddTextModal();
+  }
+  if (event.key === "Escape" && readerAppearanceModal && !readerAppearanceModal.classList.contains("is-hidden")) {
+    closeReaderAppearanceModal();
   }
 });
 
