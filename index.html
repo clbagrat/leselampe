@@ -30,51 +30,62 @@
       </header>
 
       <main class="layout">
-        <section class="book-panel archive-panel" aria-label="Archive" data-screen="archive">
-          <section class="home-library" aria-label="Read stories">
-            <div class="home-library-header">
-              <div>
-                <p class="eyebrow">Archive</p>
-                <h2 class="home-title">Already read</h2>
-              </div>
+        <section
+          class="book-panel library-panel"
+          aria-label="German reader"
+          data-screen="library"
+          data-library-view="stories"
+        >
+          <div class="library-stack" id="libraryStack">
+            <div class="library-view" data-library-view="stories">
+              <p class="library-hint">
+                <span class="library-hint-arrow">^^^^</span>
+                <span class="library-hint-label">RSS feed</span>
+              </p>
+              <section class="home-library" aria-label="Your stories">
+                <div class="home-library-header">
+                  <div>
+                    <p class="eyebrow">Library</p>
+                    <h2 class="home-title">Your stories</h2>
+                  </div>
+                  <button class="ghost mini" type="button" id="homeAddText">Add</button>
+                </div>
+                <p class="home-subtitle">Tap a text to open it in the reader.</p>
+                <p class="home-empty is-hidden" id="homeEmpty">
+                  No texts yet. Add your first story to start reading.
+                </p>
+                <button class="primary is-hidden home-empty-action" type="button" id="homeEmptyAdd">
+                  Add new story
+                </button>
+                <div class="home-list" id="homeList"></div>
+              </section>
             </div>
-            <p class="home-subtitle">Stories you have finished live here.</p>
-            <p class="home-empty is-hidden" id="archiveEmpty">No read stories yet.</p>
-            <div class="home-list" id="archiveList"></div>
-          </section>
-        </section>
 
-        <section class="book-panel" aria-label="German reader" data-screen="library">
-          <section class="home-library" aria-label="Your stories">
-            <div class="home-library-header">
-              <div>
-                <p class="eyebrow">Library</p>
-                <h2 class="home-title">Your stories</h2>
-              </div>
-              <button class="ghost mini" type="button" id="homeAddText">Add</button>
-            </div>
-            <p class="home-subtitle">Tap a text to open it in the reader.</p>
-            <p class="home-empty is-hidden" id="homeEmpty">No texts yet. Add your first story to start reading.</p>
-            <button class="primary is-hidden home-empty-action" type="button" id="homeEmptyAdd">Add new story</button>
-            <div class="home-list" id="homeList"></div>
-          </section>
-
-          <section class="home-library" aria-label="RSS feed">
-            <div class="home-library-header">
-              <div>
-                <p class="eyebrow">RSS</p>
-                <h2 class="home-title">RSS feed</h2>
-              </div>
+            <div class="library-view" data-library-view="rss">
+              <p class="library-hint">
+                <span class="library-hint-arrow">^^^^</span>
+                <span class="library-hint-label">Your stories</span>
+              </p>
+              <section class="home-library" aria-label="RSS feed">
+                <div class="home-library-header">
+                  <div>
+                    <p class="eyebrow">RSS</p>
+                    <h2 class="home-title">RSS feed</h2>
+                  </div>
               <div class="home-library-actions">
                 <button class="ghost mini" type="button" id="rssRefresh">Refresh</button>
-                <button class="ghost mini" type="button" id="rssManage">Manage</button>
               </div>
             </div>
             <p class="home-subtitle">Unread posts from your subscribed feeds.</p>
             <p class="helper-text rss-status is-hidden" id="rssFeedStatus"></p>
             <p class="home-empty" id="rssFeedEmpty">Add a feed to start reading.</p>
+            <button class="primary is-hidden home-empty-action" type="button" id="rssFeedEmptyAction">
+              Add a feed
+            </button>
             <div class="home-list rss-feed-list" id="rssFeedList"></div>
-          </section>
+              </section>
+            </div>
+          </div>
         </section>
 
         <section class="book-panel reader-panel is-hidden" aria-label="Reader" data-screen="reader">
@@ -215,6 +226,40 @@
               </div>
             </div>
           </section>
+          <section class="home-library" aria-label="RSS manager">
+            <div class="home-library-header">
+              <div>
+                <p class="eyebrow">RSS manager</p>
+                <h2 class="home-title">Manage feeds</h2>
+              </div>
+            </div>
+            <div class="rss-input-row">
+              <input
+                id="rssUrlInput"
+                type="url"
+                placeholder="https://example.com/feed.xml"
+                autocomplete="off"
+              />
+              <button class="primary" type="button" id="rssAdd">Add feed</button>
+            </div>
+            <div class="rss-search-row">
+              <input
+                id="rssSearchInput"
+                type="url"
+                placeholder="Search by site or article URL"
+                autocomplete="off"
+              />
+              <button class="ghost" type="button" id="rssSearch">Search</button>
+            </div>
+            <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
+            <p class="helper-text rss-attribution">
+              <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
+            </p>
+            <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
+            <p class="helper-text">We store your subscriptions locally in this browser.</p>
+            <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
+            <div class="rss-subscription-list" id="rssSubscriptions"></div>
+          </section>
           <div class="settings-footer">
             <button class="ghost mini" type="button" id="reloadApp">Reload</button>
           </div>
@@ -334,44 +379,6 @@
             <button class="primary" type="button" id="savePaste">Add to reader</button>
           </div>
 
-        </div>
-      </div>
-
-      <div class="modal is-hidden" id="rssModal" role="dialog" aria-modal="true" aria-labelledby="rssModalTitle">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <p class="eyebrow">RSS manager</p>
-              <h2 id="rssModalTitle">Manage feeds</h2>
-            </div>
-            <button class="ghost circle" type="button" id="closeRssModal" data-close-modal aria-label="Close">×</button>
-          </div>
-          <div class="rss-input-row">
-            <input
-              id="rssUrlInput"
-              type="url"
-              placeholder="https://example.com/feed.xml"
-              autocomplete="off"
-            />
-            <button class="primary" type="button" id="rssAdd">Add feed</button>
-          </div>
-          <div class="rss-search-row">
-            <input
-              id="rssSearchInput"
-              type="url"
-              placeholder="Search by site or article URL"
-              autocomplete="off"
-            />
-            <button class="ghost" type="button" id="rssSearch">Search</button>
-          </div>
-          <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
-          <p class="helper-text rss-attribution">
-            <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
-          </p>
-          <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
-          <p class="helper-text">We store your subscriptions locally in this browser.</p>
-          <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
-          <div class="rss-subscription-list" id="rssSubscriptions"></div>
         </div>
       </div>
 
