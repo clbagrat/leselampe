@@ -40,6 +40,7 @@ const sheetCaseWord = document.getElementById("sheetCaseWord");
 const panelGoverningLegend = document.getElementById("panelGoverningLegend");
 const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const copySelection = document.getElementById("copySelection");
+const skipLemma = document.getElementById("skipLemma");
 const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
@@ -157,6 +158,8 @@ let sheetDragPointerId = null;
 let sheetDragStartY = 0;
 let sheetDragDeltaY = 0;
 let sheetDragActive = false;
+let resetTranslationTimer = null;
+let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -1578,7 +1581,7 @@ const createRssItemId = (item) => {
   return `rss:${hashString(signature)}`;
 };
 
-const updateTranslation = (type, german, translation, grammar, meta) => {
+const updateTranslation = (type, german, translation, grammar, meta, options = {}) => {
   lastGerman = german;
   lastTranslation = translation;
   lastGrammar = grammar;
@@ -1608,6 +1611,9 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
     isWord && !!(meta?.genderWord || meta?.caseWord);
   panelGoverningLegend.classList.toggle("is-hidden", !hasLegend);
   sheetGoverningLegend.classList.toggle("is-hidden", !hasLegend);
+  if (skipLemma) {
+    skipLemma.classList.toggle("is-hidden", !isWord);
+  }
   selectionGrammar.classList.toggle("is-hidden", !isWord);
   sheetGrammar.classList.toggle("is-hidden", !isWord);
   if (selectionLemmaDiff) {
@@ -1618,9 +1624,12 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
       lemmaDiffDivider.classList.toggle("is-hidden", !isWord || !explanation);
     }
   }
-  translationPanel.classList.remove("is-hidden");
-  bottomSheet.classList.remove("is-hidden", "is-closing");
-  bottomSheet.classList.add("is-visible");
+  const shouldShowSheet = options.show !== false;
+  if (shouldShowSheet) {
+    translationPanel.classList.remove("is-hidden");
+    bottomSheet.classList.remove("is-hidden", "is-closing");
+    bottomSheet.classList.add("is-visible");
+  }
   translationPanel.classList.toggle("is-sentence", isSentence);
   bottomSheet.classList.toggle("is-sentence", isSentence);
   sentenceDivider?.classList.toggle("is-hidden", !isSentence);
@@ -2255,6 +2264,42 @@ const recordLemmaTranslation = (lemma, originalWord, translation) => {
   saveLemmaStats(stats);
   updateLemmaBadge();
   renderLemmaList();
+};
+
+const setPendingLemmaEntry = (lemma, originalWord, translation, sourceEl) => {
+  const normalized = normalizeLemmaKey(lemma);
+  if (!normalized) {
+    pendingLemmaEntry = null;
+    return;
+  }
+  pendingLemmaEntry = {
+    lemma,
+    originalWord,
+    translation,
+    sourceEl,
+  };
+};
+
+const commitPendingLemmaEntry = () => {
+  if (!pendingLemmaEntry) {
+    return;
+  }
+  recordLemmaTranslation(
+    pendingLemmaEntry.lemma,
+    pendingLemmaEntry.originalWord,
+    pendingLemmaEntry.translation
+  );
+  pendingLemmaEntry = null;
+};
+
+const commitPendingLemmaIfNeeded = (nextWordEl) => {
+  if (!pendingLemmaEntry) {
+    return;
+  }
+  if (nextWordEl && pendingLemmaEntry.sourceEl === nextWordEl) {
+    return;
+  }
+  commitPendingLemmaEntry();
 };
 
 const updateLemmaBadge = () => {
@@ -3550,6 +3595,8 @@ const handleSentenceContainerClick = (event) => {
   }
   const activeSentence = document.querySelector(".sentence.active");
   const word = event.target.closest(".word");
+  const sentence = event.target.closest(".sentence");
+  commitPendingLemmaIfNeeded(word);
   if (activeSentence && !word) {
     resetTranslation();
     return;
@@ -3665,14 +3712,13 @@ const handleSentenceContainerClick = (event) => {
           "governing-gender"
         );
       }
-      recordLemmaTranslation(meta.lemma || displayGerman, german, translation);
+      setPendingLemmaEntry(meta.lemma || displayGerman, german, translation, word);
       setWordLoading(word, false);
       updateTranslation("word", displayGerman, translation, grammar, meta);
     });
     return;
   }
 
-  const sentence = event.target.closest(".sentence");
   if (sentence) {
     const german = sentence.textContent.trim();
     setActiveSentence(sentence);
@@ -3695,6 +3741,7 @@ const handleSentencePointerDown = (event) => {
       return;
     }
     longPressTriggered = true;
+    commitPendingLemmaIfNeeded(null);
     clearActiveWord();
     clearGoverningHighlight();
     setActiveSentence(sentenceEl);
@@ -3755,7 +3802,7 @@ const endBottomSheetDrag = (event) => {
   sheetDragDeltaY = 0;
   bottomSheet.style.transform = "";
   if (shouldClose) {
-    resetTranslation();
+    resetTranslation({ animate: false });
   }
 };
 
@@ -3806,7 +3853,7 @@ const endBottomSheetTouchDrag = () => {
   sheetDragDeltaY = 0;
   bottomSheet.style.transform = "";
   if (shouldClose) {
-    resetTranslation();
+    resetTranslation({ animate: false });
   }
 };
 
@@ -3869,22 +3916,34 @@ const translateSentenceText = (
   });
 };
 
-const resetTranslation = () => {
+const resetTranslation = ({ animate = true, commitLemma = true } = {}) => {
   if (pendingController) {
     pendingController.abort();
+  }
+  if (commitLemma) {
+    commitPendingLemmaEntry();
+  } else {
+    pendingLemmaEntry = null;
   }
   translationRequestId += 1;
   clearActiveWord();
   clearSentenceTranslationHighlight();
   clearActiveSentence();
   clearGoverningHighlight();
-  updateTranslation(
-    "word",
-    "Tap a word",
-    "Перевод на русский появится здесь.",
-    "Объяснение склонения появится здесь.",
-    null
-  );
+  const applyEmptyTranslation = () => {
+    updateTranslation(
+      "word",
+      "Tap a word",
+      "Перевод на русский появится здесь.",
+      "Объяснение склонения появится здесь.",
+      null,
+      { show: false }
+    );
+  };
+  if (resetTranslationTimer) {
+    window.clearTimeout(resetTranslationTimer);
+    resetTranslationTimer = null;
+  }
   selectionGrammar.classList.add("is-hidden");
   sheetGrammar.classList.add("is-hidden");
   if (selectionLemmaDiff) {
@@ -3899,12 +3958,22 @@ const resetTranslation = () => {
   translationPanel.classList.add("is-hidden");
   if (bottomSheet) {
     bottomSheet.classList.remove("is-dragging");
-    bottomSheet.classList.add("is-closing");
     bottomSheet.style.transform = "";
-    window.setTimeout(() => {
+    if (bottomSheet.classList.contains("is-visible") && animate) {
+      bottomSheet.classList.add("is-closing");
+      resetTranslationTimer = window.setTimeout(() => {
+        applyEmptyTranslation();
+        bottomSheet.classList.add("is-hidden");
+        bottomSheet.classList.remove("is-visible", "is-closing");
+        resetTranslationTimer = null;
+      }, 360);
+    } else {
+      applyEmptyTranslation();
       bottomSheet.classList.add("is-hidden");
       bottomSheet.classList.remove("is-visible", "is-closing");
-    }, 200);
+    }
+  } else {
+    applyEmptyTranslation();
   }
   syncReaderBottomPadding();
   updateCopyButtonLabel("word");
@@ -3941,6 +4010,10 @@ copySelection?.addEventListener("click", () => {
     : "word";
   const text = type === "sentence" ? lastGerman : lastGerman;
   copyTextToClipboard(text);
+});
+
+skipLemma?.addEventListener("click", () => {
+  resetTranslation({ commitLemma: false });
 });
 
 resetTranslation();
