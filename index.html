@@ -230,8 +230,77 @@
               <div class="rss-subscription-list" id="rssSubscriptions"></div>
             </div>
           </section>
+          <section class="home-library" aria-label="Reader appearance">
+            <div class="home-library-header">
+              <div>
+                <h2 class="home-title">Reader appearance</h2>
+              </div>
+            </div>
+            <div class="settings-body">
+              <div class="option-group">
+                <p class="form-label">Reader font</p>
+                <div class="option-row">
+                  <button class="option-button" type="button" data-font="serif">Serif</button>
+                  <button class="option-button" type="button" data-font="sans">Sans</button>
+                </div>
+              </div>
+              <div class="option-group">
+                <p class="form-label">Reader size</p>
+                <div class="slider-row">
+                  <span class="slider-label">A</span>
+                  <input
+                    class="size-slider"
+                    id="readerSizeSettings"
+                    type="range"
+                    min="10"
+                    max="30"
+                    step="1"
+                  />
+                  <span class="slider-label">A+</span>
+                </div>
+              </div>
+              <div class="option-group">
+                <p class="form-label">Line spacing</p>
+                <div class="slider-row">
+                  <span class="slider-label">Tight</span>
+                  <input
+                    class="size-slider"
+                    id="readerLeadingSettings"
+                    type="range"
+                    min="1.1"
+                    max="2"
+                    step="0.05"
+                  />
+                  <span class="slider-label">Loose</span>
+                </div>
+              </div>
+              <div class="option-group">
+                <p class="form-label">Hyphenation</p>
+                <div class="option-row">
+                  <button class="option-button" type="button" data-hyphenation="on">
+                    On
+                  </button>
+                  <button class="option-button" type="button" data-hyphenation="off">
+                    Off
+                  </button>
+                </div>
+              </div>
+              <div class="option-group">
+                <p class="form-label">Justification</p>
+                <div class="option-row">
+                  <button class="option-button" type="button" data-justify="left">
+                    Left
+                  </button>
+                  <button class="option-button" type="button" data-justify="justify">
+                    Justify
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
           <div class="settings-footer">
             <button class="ghost mini" type="button" id="reloadApp">Reload</button>
+            <button class="danger mini" type="button" id="resetAllData">Reset all data</button>
           </div>
         </section>
       </main>

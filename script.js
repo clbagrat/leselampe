@@ -49,7 +49,9 @@ const fontOptions = document.querySelectorAll("[data-font]");
 const hyphenationOptions = document.querySelectorAll("[data-hyphenation]");
 const justificationOptions = document.querySelectorAll("[data-justify]");
 const readerSize = document.getElementById("readerSize");
+const readerSizeSettings = document.getElementById("readerSizeSettings");
 const readerLeading = document.getElementById("readerLeading");
+const readerLeadingSettings = document.getElementById("readerLeadingSettings");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
 const clearKey = document.getElementById("clearKey");
 const translationPanel = document.getElementById("translationPanel");
@@ -107,6 +109,7 @@ const rssModalStatus = document.getElementById("rssModalStatus");
 const readerAppearanceModal = document.getElementById("readerAppearanceModal");
 const closeReaderAppearance = document.getElementById("closeReaderAppearance");
 const bottomSheetHandle = document.querySelector("#bottomSheet .sheet-handle");
+const resetAllDataButton = document.getElementById("resetAllData");
 
 const pageDotIcons = {
   library: "assets/icons/icon-library.svg",
@@ -4034,6 +4037,9 @@ const applyReaderSize = (size) => {
   if (readerSize) {
     readerSize.value = String(clamped);
   }
+  if (readerSizeSettings) {
+    readerSizeSettings.value = String(clamped);
+  }
 };
 
 const applyReaderLeading = (leading) => {
@@ -4042,6 +4048,9 @@ const applyReaderLeading = (leading) => {
   localStorage.setItem("reader_leading", String(clamped));
   if (readerLeading) {
     readerLeading.value = String(clamped);
+  }
+  if (readerLeadingSettings) {
+    readerLeadingSettings.value = String(clamped);
   }
 };
 
@@ -4119,10 +4128,20 @@ if (readerSize) {
     applyReaderSize(readerSize.value);
   });
 }
+if (readerSizeSettings) {
+  readerSizeSettings.addEventListener("input", () => {
+    applyReaderSize(readerSizeSettings.value);
+  });
+}
 
 if (readerLeading) {
   readerLeading.addEventListener("input", () => {
     applyReaderLeading(readerLeading.value);
+  });
+}
+if (readerLeadingSettings) {
+  readerLeadingSettings.addEventListener("input", () => {
+    applyReaderLeading(readerLeadingSettings.value);
   });
 }
 
@@ -4590,6 +4609,21 @@ if (readerAppearanceModal) {
     }
   });
 }
+
+resetAllDataButton?.addEventListener("click", () => {
+  const shouldReset = window.confirm(
+    "Reset all stored data (stories, lemmas, RSS, and reader settings)? This will keep your API key."
+  );
+  if (!shouldReset) {
+    return;
+  }
+  const apiKey = localStorage.getItem("chatgpt_api_key");
+  localStorage.clear();
+  if (apiKey) {
+    localStorage.setItem("chatgpt_api_key", apiKey);
+  }
+  window.location.reload();
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addTextModal.classList.contains("is-hidden")) {

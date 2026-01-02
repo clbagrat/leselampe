@@ -896,6 +896,7 @@ h1 {
 .settings-footer {
   display: flex;
   justify-content: center;
+  gap: 10px;
   padding-bottom: 12px;
 }
 
@@ -1098,6 +1099,10 @@ body[data-reader-size] .reader {
   box-shadow: 0 10px 18px rgba(29, 27, 25, 0.12);
   transform: translateY(-2px);
   padding: 0 2px;
+}
+
+.sentence.active.sentence-translation {
+  padding: 0 1px;
 }
 
 .sentence.sentence-translation {
@@ -1714,6 +1719,12 @@ button {
   color: #fff;
 }
 
+.danger {
+  background: #d1463f;
+  color: #fff;
+  border: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .sentence:hover {
     background: rgba(240, 112, 79, 0.12);
@@ -1732,6 +1743,10 @@ button {
 
   .primary:hover {
     background: var(--accent-dark);
+  }
+
+  .danger:hover {
+    background: #b63a35;
   }
 }
 
