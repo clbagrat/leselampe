@@ -361,6 +361,9 @@ body {
 }
 
 .rss-feed-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 700;
   color: rgba(26, 102, 60, 0.9);
@@ -521,6 +524,18 @@ body {
   color: rgba(0, 0, 0, 0.75);
 }
 
+.rss-item-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.rss-item-levels .rss-level {
+  text-transform: lowercase;
+  letter-spacing: 0.4px;
+}
+
 .home-item {
   position: relative;
   box-sizing: border-box;
@@ -594,6 +609,7 @@ body {
   gap: 8px;
   padding: 10px 0 0;
   display: none;
+  flex-wrap: wrap;
 }
 
 .home-action {

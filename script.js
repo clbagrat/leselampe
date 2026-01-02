@@ -156,6 +156,7 @@ const READ_STATUS_KEY = "reader_story_read_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
+const RSS_ITEM_LEVELS_KEY = "reader_rss_item_levels_v1";
 const RSS_ADAPT_STORAGE_KEY = "reader_rss_adapt_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const storyTitle = document.querySelector(".book-header h1");
@@ -265,6 +266,41 @@ const loadRssLevels = () => {
 
 const saveRssLevels = (levels) => {
   localStorage.setItem(RSS_LEVELS_KEY, JSON.stringify(levels));
+};
+
+const loadRssItemLevels = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RSS_ITEM_LEVELS_KEY) || "{}");
+    if (!stored || typeof stored !== "object") {
+      return {};
+    }
+    return stored;
+  } catch (error) {
+    console.warn("Failed to load RSS item levels.", error);
+    return {};
+  }
+};
+
+const saveRssItemLevels = (levels) => {
+  localStorage.setItem(RSS_ITEM_LEVELS_KEY, JSON.stringify(levels));
+};
+
+const getRssItemLevel = (itemId) => {
+  if (!itemId) {
+    return "";
+  }
+  const levels = loadRssItemLevels();
+  return levels[itemId] || "";
+};
+
+const setRssItemLevel = (itemId, level) => {
+  if (!itemId || !RSS_LEVELS.includes(level)) {
+    return false;
+  }
+  const levels = loadRssItemLevels();
+  levels[itemId] = level;
+  saveRssItemLevels(levels);
+  return true;
 };
 
 const getRssLevel = (url) => {
@@ -801,8 +837,9 @@ const renderRssFeedItems = (items) => {
     if (isLoading) {
       card.classList.add("is-loading");
     }
-    const level = getRssLevel(item.feedUrl) || "raw";
-    const cached = getRssAdaptation(item.id, level);
+    const overrideLevel = getRssItemLevel(item.id);
+    const effectiveLevel = overrideLevel || getRssLevel(item.feedUrl) || "raw";
+    const cached = getRssAdaptation(item.id, effectiveLevel);
     const isReady = Boolean(cached?.text);
 
     const content = document.createElement("button");
@@ -827,7 +864,7 @@ const renderRssFeedItems = (items) => {
     if (isReady && !isLoading) {
       const ready = document.createElement("span");
       ready.className = "rss-feed-check";
-      ready.textContent = "✓";
+      ready.textContent = `✓ ${effectiveLevel.toUpperCase()}`;
       meta.appendChild(ready);
     }
     if (item.date) {
@@ -875,6 +912,26 @@ const renderRssFeedItems = (items) => {
         closeAllHomeMenus(undefined, rssFeedList);
       });
       actions.appendChild(toggleButton);
+      const levelActions = document.createElement("div");
+      levelActions.className = "rss-item-levels";
+      RSS_LEVELS.forEach((level) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rss-level rss-item-level";
+        button.textContent = level.toLowerCase();
+        button.dataset.level = level;
+        if (effectiveLevel === level) {
+          button.classList.add("is-active");
+        }
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          if (setRssItemLevel(item.id, level)) {
+            requestRssItemOpen(item, { levelOverride: level });
+          }
+        });
+        levelActions.appendChild(button);
+      });
+      actions.appendChild(levelActions);
     }
 
     card.appendChild(content);
@@ -1111,14 +1168,22 @@ const showRssLoading = (title, message = "Loading article...") => {
   reader.appendChild(paragraph);
 };
 
-const openRssItem = async (item, { markUnread = true } = {}) => {
+const requestRssItemOpen = (item, options = {}) => {
+  if (rssLoadingItemId) {
+    return;
+  }
+  closeAllHomeMenus(undefined, rssFeedList);
+  openRssItem(item, options);
+};
+
+const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {}) => {
   if (!item?.link) {
     return;
   }
   setRssStatus("");
   currentRssItem = item || null;
   const feedUrl = item.feedUrl || "";
-  const selectedLevel = getRssLevel(feedUrl);
+  const selectedLevel = levelOverride || getRssLevel(feedUrl) || "raw";
   const wantsAdaptation = selectedLevel && selectedLevel !== "raw";
   const canAdapt = wantsAdaptation && Boolean(getApiKey());
   if (markUnread && item.id) {
@@ -4307,6 +4372,10 @@ if (rssFeedList) {
     if (event.target.closest(".home-action")) {
       return;
     }
+    const content = event.target.closest(".home-item-content");
+    if (!content) {
+      return;
+    }
     const card = event.target.closest(".home-item");
     if (!card || !rssFeedList.contains(card)) {
       return;
@@ -4320,8 +4389,7 @@ if (rssFeedList) {
       return;
     }
     event.preventDefault();
-    closeAllHomeMenus(undefined, rssFeedList);
-    openRssItem(item);
+    requestRssItemOpen(item, { levelOverride: getRssItemLevel(item.id) });
   });
 }
 
@@ -4535,7 +4603,7 @@ window.addEventListener("hashchange", handleRoute);
 document.addEventListener(
   "click",
   (event) => {
-    const lists = [homeList, archiveList].filter(Boolean);
+    const lists = [homeList, archiveList, rssFeedList].filter(Boolean);
     const activeList = lists.find((list) => list.classList.contains("has-active"));
     if (!activeList) {
       return;
