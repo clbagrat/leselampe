@@ -95,7 +95,7 @@
               <button class="ghost mini" type="button" id="openReaderAppearance">Font</button>
             </div>
 
-            <article class="reader" id="reader" aria-live="polite"></article>
+            <article class="reader" id="reader" aria-live="polite" lang="de"></article>
             <div class="reader-end" id="readerEnd" aria-hidden="true"></div>
             <div class="reader-cta">
               <button class="primary" type="button" id="readerFinish">I finish reading</button>
@@ -237,6 +237,7 @@
       </main>
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
+        <div class="sheet-handle" aria-hidden="true"></div>
         <p class="sheet-german" id="sheetGerman">Tap a word or sentence</p>
         <div class="panel-divider sheet-divider sentence-divider is-hidden" id="sheetSentenceDivider" aria-hidden="true"></div>
         <p class="sheet-english" id="sheetEnglish">Перевод на русский появится здесь.</p>
@@ -394,6 +395,43 @@
                   step="1"
                 />
                 <span class="slider-label">A+</span>
+              </div>
+            </div>
+            <div class="option-group">
+              <p class="form-label">Line spacing</p>
+              <div class="slider-row">
+                <span class="slider-label">Tight</span>
+                <input
+                  class="size-slider"
+                  id="readerLeading"
+                  type="range"
+                  min="1.1"
+                  max="2"
+                  step="0.05"
+                />
+                <span class="slider-label">Loose</span>
+              </div>
+            </div>
+            <div class="option-group">
+              <p class="form-label">Hyphenation</p>
+              <div class="option-row">
+                <button class="option-button" type="button" data-hyphenation="on">
+                  On
+                </button>
+                <button class="option-button" type="button" data-hyphenation="off">
+                  Off
+                </button>
+              </div>
+            </div>
+            <div class="option-group">
+              <p class="form-label">Justification</p>
+              <div class="option-row">
+                <button class="option-button" type="button" data-justify="left">
+                  Left
+                </button>
+                <button class="option-button" type="button" data-justify="justify">
+                  Justify
+                </button>
               </div>
             </div>
           </div>

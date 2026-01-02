@@ -45,7 +45,10 @@ const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
 const settingsScreen = document.querySelector('[data-screen="settings"]');
 const fontOptions = document.querySelectorAll("[data-font]");
+const hyphenationOptions = document.querySelectorAll("[data-hyphenation]");
+const justificationOptions = document.querySelectorAll("[data-justify]");
 const readerSize = document.getElementById("readerSize");
+const readerLeading = document.getElementById("readerLeading");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
 const clearKey = document.getElementById("clearKey");
 const translationPanel = document.getElementById("translationPanel");
@@ -102,6 +105,7 @@ const rssFeedStatus = document.getElementById("rssFeedStatus");
 const rssModalStatus = document.getElementById("rssModalStatus");
 const readerAppearanceModal = document.getElementById("readerAppearanceModal");
 const closeReaderAppearance = document.getElementById("closeReaderAppearance");
+const bottomSheetHandle = document.querySelector("#bottomSheet .sheet-handle");
 
 const pageDotIcons = {
   library: "assets/icons/icon-library.svg",
@@ -149,6 +153,10 @@ let libraryTouchStartY = 0;
 let libraryTouchStartX = 0;
 let libraryTouchAxis = "";
 let libraryTouchActive = false;
+let sheetDragPointerId = null;
+let sheetDragStartY = 0;
+let sheetDragDeltaY = 0;
+let sheetDragActive = false;
 const STORY_STORAGE_KEY = "reader_texts_v1";
 const LAST_STORY_KEY = "reader_last_story_id";
 const STORY_LEVEL_KEY = "reader_story_level";
@@ -1611,7 +1619,8 @@ const updateTranslation = (type, german, translation, grammar, meta) => {
     }
   }
   translationPanel.classList.remove("is-hidden");
-  bottomSheet.classList.remove("is-hidden");
+  bottomSheet.classList.remove("is-hidden", "is-closing");
+  bottomSheet.classList.add("is-visible");
   translationPanel.classList.toggle("is-sentence", isSentence);
   bottomSheet.classList.toggle("is-sentence", isSentence);
   sentenceDivider?.classList.toggle("is-hidden", !isSentence);
@@ -3037,6 +3046,19 @@ const splitIntoSentences = (text) => {
   return matches.map((sentence) => sentence.trim()).filter(Boolean);
 };
 
+const buildStoryBlocks = (text) => {
+  const raw = String(text || "").replace(/\r\n/g, "\n").trim();
+  if (!raw) {
+    return [];
+  }
+  const hasParagraphBreaks = /\n\s*\n/.test(raw);
+  const chunks = hasParagraphBreaks ? raw.split(/\n\s*\n/) : raw.split(/\n+/);
+  return chunks
+    .map((chunk) => normalizeArticleText(chunk.replace(/\n+/g, " ")))
+    .filter(Boolean)
+    .map((line) => ({ type: "paragraph", text: line }));
+};
+
 const articleMap = {
   der: "der",
   die: "die",
@@ -3310,17 +3332,27 @@ const renderStory = (story) => {
   reader.innerHTML = "";
   resetTranslation();
 
-  const sentences = splitIntoSentences(story.text);
-  const paragraph = document.createElement("p");
-  paragraph.className = "story";
-  sentences.forEach((sentence, index) => {
-    const sentenceSpan = buildSentenceSpan(sentence);
-    paragraph.appendChild(sentenceSpan);
-    if (index < sentences.length - 1) {
-      paragraph.appendChild(document.createTextNode(" "));
-    }
+  const blocks = buildStoryBlocks(story.text);
+  if (!blocks.length) {
+    const empty = document.createElement("p");
+    empty.className = "story";
+    empty.textContent = "No readable text available.";
+    reader.appendChild(empty);
+    return;
+  }
+  blocks.forEach((block) => {
+    const sentences = splitIntoSentences(block.text);
+    const paragraph = document.createElement("p");
+    paragraph.className = "story";
+    sentences.forEach((sentence, index) => {
+      const sentenceSpan = buildSentenceSpan(sentence);
+      paragraph.appendChild(sentenceSpan);
+      if (index < sentences.length - 1) {
+        paragraph.appendChild(document.createTextNode(" "));
+      }
+    });
+    reader.appendChild(paragraph);
   });
-  reader.appendChild(paragraph);
 };
 
 const getApiKey = () => {
@@ -3682,6 +3714,102 @@ const handleSentenceContextMenu = (event) => {
   event.preventDefault();
 };
 
+const startBottomSheetDrag = (event) => {
+  if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  if (event.button && event.button !== 0) {
+    return;
+  }
+  if (event.target.closest("button, a, input, textarea, select")) {
+    return;
+  }
+  sheetDragPointerId = event.pointerId;
+  sheetDragStartY = event.clientY;
+  sheetDragDeltaY = 0;
+  sheetDragActive = true;
+  bottomSheet.classList.add("is-dragging");
+  bottomSheet.setPointerCapture?.(event.pointerId);
+};
+
+const moveBottomSheetDrag = (event) => {
+  if (!sheetDragActive || event.pointerId !== sheetDragPointerId) {
+    return;
+  }
+  const delta = Math.max(0, event.clientY - sheetDragStartY);
+  sheetDragDeltaY = delta;
+  bottomSheet.style.transform = `translateY(${delta}px)`;
+};
+
+const endBottomSheetDrag = (event) => {
+  if (!sheetDragActive || event.pointerId !== sheetDragPointerId) {
+    return;
+  }
+  bottomSheet.releasePointerCapture?.(event.pointerId);
+  bottomSheet.classList.remove("is-dragging");
+  const threshold = Math.max(80, bottomSheet.getBoundingClientRect().height * 0.25);
+  const shouldClose = sheetDragDeltaY > threshold;
+  sheetDragActive = false;
+  sheetDragPointerId = null;
+  sheetDragStartY = 0;
+  sheetDragDeltaY = 0;
+  bottomSheet.style.transform = "";
+  if (shouldClose) {
+    resetTranslation();
+  }
+};
+
+const startBottomSheetTouchDrag = (event) => {
+  if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  const touch = event.touches?.[0];
+  if (!touch) {
+    return;
+  }
+  if (event.target.closest("button, a, input, textarea, select")) {
+    return;
+  }
+  sheetDragPointerId = "touch";
+  sheetDragStartY = touch.clientY;
+  sheetDragDeltaY = 0;
+  sheetDragActive = true;
+  bottomSheet.classList.add("is-dragging");
+};
+
+const moveBottomSheetTouchDrag = (event) => {
+  if (!sheetDragActive || sheetDragPointerId !== "touch") {
+    return;
+  }
+  const touch = event.touches?.[0];
+  if (!touch) {
+    return;
+  }
+  const delta = Math.max(0, touch.clientY - sheetDragStartY);
+  sheetDragDeltaY = delta;
+  bottomSheet.style.transform = `translateY(${delta}px)`;
+  if (delta > 0) {
+    event.preventDefault();
+  }
+};
+
+const endBottomSheetTouchDrag = () => {
+  if (!sheetDragActive || sheetDragPointerId !== "touch") {
+    return;
+  }
+  bottomSheet.classList.remove("is-dragging");
+  const threshold = Math.max(80, bottomSheet.getBoundingClientRect().height * 0.25);
+  const shouldClose = sheetDragDeltaY > threshold;
+  sheetDragActive = false;
+  sheetDragPointerId = null;
+  sheetDragStartY = 0;
+  sheetDragDeltaY = 0;
+  bottomSheet.style.transform = "";
+  if (shouldClose) {
+    resetTranslation();
+  }
+};
+
 reader.addEventListener("pointerdown", handleSentencePointerDown);
 reader.addEventListener("pointerup", handleSentencePointerCancel);
 reader.addEventListener("pointerleave", handleSentencePointerCancel);
@@ -3693,6 +3821,17 @@ storyTitle.addEventListener("pointerup", handleSentencePointerCancel);
 storyTitle.addEventListener("pointerleave", handleSentencePointerCancel);
 storyTitle.addEventListener("pointercancel", handleSentencePointerCancel);
 storyTitle.addEventListener("contextmenu", handleSentenceContextMenu);
+
+if (bottomSheet) {
+  bottomSheet.addEventListener("pointerdown", startBottomSheetDrag);
+  bottomSheet.addEventListener("pointermove", moveBottomSheetDrag);
+  bottomSheet.addEventListener("pointerup", endBottomSheetDrag);
+  bottomSheet.addEventListener("pointercancel", endBottomSheetDrag);
+  bottomSheet.addEventListener("touchstart", startBottomSheetTouchDrag, { passive: true });
+  bottomSheet.addEventListener("touchmove", moveBottomSheetTouchDrag, { passive: false });
+  bottomSheet.addEventListener("touchend", endBottomSheetTouchDrag);
+  bottomSheet.addEventListener("touchcancel", endBottomSheetTouchDrag);
+}
 
 const translateSentenceText = (
   german,
@@ -3758,7 +3897,15 @@ const resetTranslation = () => {
   grammarMeta.classList.add("is-hidden");
   sheetGrammarMeta.classList.add("is-hidden");
   translationPanel.classList.add("is-hidden");
-  bottomSheet.classList.add("is-hidden");
+  if (bottomSheet) {
+    bottomSheet.classList.remove("is-dragging");
+    bottomSheet.classList.add("is-closing");
+    bottomSheet.style.transform = "";
+    window.setTimeout(() => {
+      bottomSheet.classList.add("is-hidden");
+      bottomSheet.classList.remove("is-visible", "is-closing");
+    }, 200);
+  }
   syncReaderBottomPadding();
   updateCopyButtonLabel("word");
   syncPageDots();
@@ -3816,6 +3963,33 @@ const applyReaderSize = (size) => {
   }
 };
 
+const applyReaderLeading = (leading) => {
+  const clamped = Math.min(2, Math.max(1.1, Number(leading) || 1.45));
+  document.body.style.setProperty("--reader-leading", clamped);
+  localStorage.setItem("reader_leading", String(clamped));
+  if (readerLeading) {
+    readerLeading.value = String(clamped);
+  }
+};
+
+const applyReaderHyphenation = (mode) => {
+  const normalized = mode === "off" ? "off" : "on";
+  document.body.dataset.readerHyphenation = normalized;
+  localStorage.setItem("reader_hyphenation", normalized);
+  hyphenationOptions.forEach((option) => {
+    option.classList.toggle("active", option.dataset.hyphenation === normalized);
+  });
+};
+
+const applyReaderJustification = (mode) => {
+  const normalized = mode === "justify" ? "justify" : "left";
+  document.body.dataset.readerJustify = normalized;
+  localStorage.setItem("reader_justify", normalized);
+  justificationOptions.forEach((option) => {
+    option.classList.toggle("active", option.dataset.justify === normalized);
+  });
+};
+
 const applyStoryWordCount = (value) => {
   const clamped = Math.min(600, Math.max(50, Number(value) || 120));
   if (wordCountSlider) {
@@ -3855,16 +4029,40 @@ fontOptions.forEach((option) => {
   });
 });
 
+hyphenationOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyReaderHyphenation(option.dataset.hyphenation);
+  });
+});
+
+justificationOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyReaderJustification(option.dataset.justify);
+  });
+});
+
 if (readerSize) {
   readerSize.addEventListener("input", () => {
     applyReaderSize(readerSize.value);
   });
 }
 
+if (readerLeading) {
+  readerLeading.addEventListener("input", () => {
+    applyReaderLeading(readerLeading.value);
+  });
+}
+
 const storedFont = localStorage.getItem("reader_font") || "serif";
 const storedSize = localStorage.getItem("reader_size") || "20";
+const storedLeading = localStorage.getItem("reader_leading") || "1.45";
+const storedHyphenation = localStorage.getItem("reader_hyphenation") || "on";
+const storedJustify = localStorage.getItem("reader_justify") || "left";
 applyReaderFont(storedFont);
 applyReaderSize(storedSize);
+applyReaderLeading(storedLeading);
+applyReaderHyphenation(storedHyphenation);
+applyReaderJustification(storedJustify);
 const storedWordCount = localStorage.getItem(STORY_WORD_COUNT_KEY) || "120";
 const storedLevel = localStorage.getItem(STORY_LEVEL_KEY) || "A2";
 const storedStyle = localStorage.getItem(STORY_STYLE_KEY) || "casual";
