@@ -2106,6 +2106,21 @@ const setLemmaLearnedStatus = (lemma, isLearned) => {
   updateLemmaBadge();
 };
 
+const deleteLemmaEntry = (lemma) => {
+  const key = normalizeLemmaKey(lemma);
+  if (!key) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  if (!stats[key]) {
+    return;
+  }
+  delete stats[key];
+  saveLemmaStats(stats);
+  renderLemmaList();
+  updateLemmaBadge();
+};
+
 const buildStoryExcerpt = (text, maxLength = 180) => {
   const normalized = String(text || "").replace(/\s+/g, " ").trim();
   if (!normalized) {
@@ -2713,6 +2728,18 @@ const buildLemmaOriginals = (entry) => {
 
     details.appendChild(row);
   });
+  const actions = document.createElement("div");
+  actions.className = "lemma-original-actions";
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "ghost mini lemma-action lemma-delete";
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete lemma";
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    deleteLemmaEntry(entry?.lemma);
+  });
+  actions.appendChild(deleteButton);
+  details.appendChild(actions);
   return details;
 };
 
