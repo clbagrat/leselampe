@@ -78,8 +78,8 @@ const lemmaLearnedList = document.getElementById("lemmaLearnedList");
 const lemmaLearnedEmpty = document.getElementById("lemmaLearnedEmpty");
 const clearLemmasButton = document.getElementById("clearLemmas");
 const lemmaSearch = document.getElementById("lemmaSearch");
-const lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
-const lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
+let lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
+let lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
 const wordCountSlider = document.getElementById("wordCount");
 const wordCountValue = document.getElementById("wordCountValue");
 const levelButtons = document.querySelectorAll("[data-level]");
@@ -110,6 +110,7 @@ const readerAppearanceModal = document.getElementById("readerAppearanceModal");
 const closeReaderAppearance = document.getElementById("closeReaderAppearance");
 const bottomSheetHandle = document.querySelector("#bottomSheet .sheet-handle");
 const resetAllDataButton = document.getElementById("resetAllData");
+const uiLangButtons = document.querySelectorAll("[data-ui-lang]");
 
 const pageDotIcons = {
   library: "assets/icons/icon-library.svg",
@@ -117,6 +118,446 @@ const pageDotIcons = {
   reader: "assets/icons/icon-reader.svg",
   lemmas: "assets/icons/icon-lemmas.svg",
   settings: "assets/icons/icon-settings.svg",
+};
+
+const UI_LANG_KEY = "reader_ui_lang";
+const SUPPORTED_UI_LANGS = ["en", "ru"];
+const UI_COPY = {
+  en: {
+    "app.title": "Leselampe — German Reader",
+    "app.pages": "Pages",
+    "screen.library": "German reader",
+    "screen.reader": "Reader",
+    "screen.lemmas": "Lemmas",
+    "screen.settings": "Settings",
+    "library.hint.rss": "RSS feed",
+    "library.hint.stories": "Your stories",
+    "library.section.stories": "Your stories",
+    "library.section.rss": "RSS feed",
+    "library.title.stories": "Your stories",
+    "library.title.rss": "RSS feed",
+    "library.subtitle.stories": "Tap a text to open it in the reader.",
+    "library.empty.stories": "No texts yet. Add your first story to start reading.",
+    "library.action.add_story": "Add new story",
+    "rss.subtitle": "Unread posts from your subscribed feeds.",
+    "rss.empty": "Add a feed to start reading.",
+    "rss.action.add_feed": "Add a feed",
+    "reader.action.font": "Font",
+    "reader.action.finish": "I finish reading",
+    "reader.status.read": "Marked as read.",
+    "lemmas.section": "Translated lemmas",
+    "lemmas.title": "Translated lemmas",
+    "lemmas.helper":
+      "We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.",
+    "lemmas.search.placeholder": "Search lemmas...",
+    "lemmas.to_learn": "Lemmas to learn",
+    "lemmas.empty": "No lemmas yet. Translate a word to start tracking.",
+    "lemmas.learned": "Learned lemmas",
+    "lemmas.learned.empty": "No learned lemmas yet.",
+    "lemmas.action.clear": "Clear history",
+    "translation.tap_word": "Tap a word",
+    "translation.tap_word_sentence": "Tap a word or sentence",
+    "translation.placeholder": "Translation will appear here.",
+    "translation.legend.gender": "gender governor",
+    "translation.legend.case": "case governor",
+    "translation.grammar.placeholder": "Declension notes will appear here.",
+    "translation.meta.lemma": "Dictionary form",
+    "translation.meta.head": "Head word",
+    "translation.meta.article": "Article",
+    "translation.meta.gender": "Gender",
+    "translation.meta.case": "Case",
+    "translation.action.copy": "Copy word",
+    "translation.action.skip": "Do not add",
+    "settings.desktop_warning":
+      "This website is developed for mobile screens only for the best on-the-go experience. Thanks for visiting on desktop — some layout details may look off here.",
+    "settings.section.reader": "Reader settings",
+    "settings.section.rss": "RSS manager",
+    "settings.section.appearance": "Reader appearance",
+    "settings.title": "Settings",
+    "settings.api.label": "ChatGPT API key",
+    "settings.api.placeholder": "sk-...",
+    "settings.api.help":
+      "Get your API key from <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Platform</a>",
+    "settings.api.validating": "Validating...",
+    "settings.language.label": "Language",
+    "settings.language.en": "English",
+    "settings.language.ru": "Russian",
+    "settings.rss.title": "Manage feeds",
+    "settings.rss.placeholder": "https://example.com/feed.xml",
+    "settings.rss.search_placeholder": "Search by site or article URL",
+    "settings.rss.attribution": "powered by Feedsearch",
+    "settings.rss.storage": "We store your subscriptions locally in this browser.",
+    "settings.rss.empty": "No feeds yet.",
+    "settings.appearance.title": "Reader appearance",
+    "settings.appearance.reader_font": "Reader font",
+    "settings.appearance.font.serif": "Serif",
+    "settings.appearance.font.sans": "Sans",
+    "settings.appearance.reader_size": "Reader size",
+    "settings.appearance.line_spacing": "Line spacing",
+    "settings.appearance.spacing.tight": "Tight",
+    "settings.appearance.spacing.loose": "Loose",
+    "settings.appearance.hyphenation": "Hyphenation",
+    "settings.appearance.toggle.on": "On",
+    "settings.appearance.toggle.off": "Off",
+    "settings.appearance.justification": "Justification",
+    "settings.appearance.justify.left": "Left",
+    "settings.appearance.justify.justify": "Justify",
+    "modal.add_story.title": "Bring new stories",
+    "modal.add_story.mode.generate": "Generate story",
+    "modal.add_story.mode.paste": "Paste text",
+    "modal.add_story.word_amount": "Word amount",
+    "modal.add_story.level": "Level",
+    "modal.add_story.style": "Style",
+    "modal.add_story.style.casual": "Casual",
+    "modal.add_story.style.literary": "Literary",
+    "modal.add_story.prompt": "Story prompt",
+    "modal.add_story.prompt_placeholder": "A short story about a student on a rainy day, level A2.",
+    "modal.add_story.helper": "Uses your ChatGPT API key from above.",
+    "modal.paste.title": "Title",
+    "modal.paste.title_placeholder": "Your title",
+    "modal.paste.body_label": "German text",
+    "modal.paste.body_placeholder": "Paste German text here.",
+    "modal.paste.action.add": "Add to reader",
+    "modal.appearance.title": "Reader appearance",
+    "modal.appearance.font": "Font",
+    "modal.appearance.size": "Size",
+    "action.add": "Add",
+    "action.refresh": "Refresh",
+    "action.search": "Search",
+    "action.reload": "Reload",
+    "action.reset_all": "Reset all data",
+    "action.show": "Show",
+    "action.hide": "Hide",
+    "action.clear_key": "Clear key",
+    "action.save": "Save",
+    "action.close": "Close",
+    "action.suggest": "Suggest",
+    "action.generate": "Generate",
+    "rss.search.enter_url": "Enter a URL to search for feeds.",
+    "rss.search.searching": "Searching...",
+    "rss.search.empty": "No feeds found.",
+    "rss.search.unreachable": "Couldn't reach feedsearch.dev.",
+    "rss.search.add": "Add",
+    "rss.search.remove": "Remove",
+    "rss.search.feed": "Feed",
+    "rss.subscriptions.remove": "Remove",
+    "rss.feed.empty_items": "No items found yet.",
+    "rss.feed.untitled_post": "Untitled post",
+    "rss.feed.loading": "Loading...",
+    "rss.feed.abort": "Abort",
+    "rss.feed.mark_read": "Mark as read",
+    "rss.feed.mark_unread": "Mark as unread",
+    "rss.feed.source": "Feed",
+    "rss.reader.no_text": "No readable text found for this article.",
+    "rss.reader.loading_article": "Loading article...",
+    "rss.reader.loading_article_level": "Adapting for {level}...",
+    "rss.reader.no_text_available": "No readable text available.",
+    "rss.reader.add_key": "Add an API key to adapt RSS articles.",
+    "rss.reader.adapt_failed": "Couldn't adapt this article.",
+    "rss.reader.extract_failed": "Couldn't extract article text.",
+    "rss.reader.load_failed": "Couldn't load the article content.",
+    "rss.reader.canceled": "Canceled.",
+    "rss.load_errors": "Couldn't load {count} feed{plural}.",
+    "rss.list.empty": "Add a feed to start reading.",
+    "rss.list.loading": "Loading feeds...",
+    "rss.manager.paste": "Paste a feed URL to add it.",
+    "rss.manager.invalid_url": "Enter a valid URL.",
+    "reader.status.learned": "Learned: {lemmas}",
+    "story.no_preview": "No preview available.",
+    "story.untitled": "Untitled",
+    "story.mark_read": "Mark as read",
+    "story.mark_unread": "Mark as unread",
+    "story.delete": "Delete",
+    "story.add": "Add new story",
+    "lemma.delete": "Delete lemma",
+    "lemma.no_matches": "No matches.",
+    "lemma.mark_learned": "Mark as learned",
+    "lemma.mark_unlearned": "Mark as unlearned",
+    "translation.loading": "Translating...",
+    "translation.explaining": "Explaining...",
+    "translation.no_declension": "No declension explanation for this word.",
+    "translation.sentence_only":
+      "Declension notes are only available for individual words.",
+    "translation.placeholder_ru": "Translation will appear here.",
+    "translation.copy.word": "Copy word",
+    "translation.copy.sentence": "Copy sentence",
+    "settings.api.required": "API key is required",
+    "settings.api.invalid": "Invalid API key",
+    "settings.api.failed": "Failed to validate API key. Please check your connection.",
+    "settings.reset.confirm":
+      "Reset all stored data (stories, lemmas, RSS, and reader settings)? This will keep your API key.",
+    "prompt.suggesting": "Suggesting...",
+    "prompt.generating": "Generating...",
+    "prompt.generate": "Generate",
+    "paste.default_title": "Custom text",
+    "story.default_title": "Neue Geschichte",
+  },
+  ru: {
+    "app.title": "Leselampe — Читалка немецкого",
+    "app.pages": "Страницы",
+    "screen.library": "Чтение немецкого",
+    "screen.reader": "Читалка",
+    "screen.lemmas": "Леммы",
+    "screen.settings": "Настройки",
+    "library.hint.rss": "RSS‑лента",
+    "library.hint.stories": "Ваши тексты",
+    "library.section.stories": "Ваши тексты",
+    "library.section.rss": "RSS‑лента",
+    "library.title.stories": "Ваши тексты",
+    "library.title.rss": "RSS‑лента",
+    "library.subtitle.stories": "Нажмите на текст, чтобы открыть его в читалке.",
+    "library.empty.stories": "Пока нет текстов. Добавьте первую историю, чтобы начать читать.",
+    "library.action.add_story": "Добавить историю",
+    "rss.subtitle": "Непрочитанные посты из ваших подписок.",
+    "rss.empty": "Добавьте ленту, чтобы начать читать.",
+    "rss.action.add_feed": "Добавить ленту",
+    "reader.action.font": "Шрифт",
+    "reader.action.finish": "Я закончил чтение",
+    "reader.status.read": "Отмечено как прочитанное.",
+    "lemmas.section": "Переведенные леммы",
+    "lemmas.title": "Переведенные леммы",
+    "lemmas.helper":
+      "Мы отслеживаем леммы при переводе слов. Новые истории стараются включать частые леммы; такие леммы становятся изученными.",
+    "lemmas.search.placeholder": "Поиск лемм...",
+    "lemmas.to_learn": "Леммы для изучения",
+    "lemmas.empty": "Пока нет лемм. Переведите слово, чтобы начать отслеживание.",
+    "lemmas.learned": "Изученные леммы",
+    "lemmas.learned.empty": "Пока нет изученных лемм.",
+    "lemmas.action.clear": "Очистить историю",
+    "translation.tap_word": "Нажмите на слово",
+    "translation.tap_word_sentence": "Нажмите на слово или предложение",
+    "translation.placeholder": "Перевод появится здесь.",
+    "translation.legend.gender": "слово, определяющее род",
+    "translation.legend.case": "слово, задающее падеж",
+    "translation.grammar.placeholder": "Объяснение склонения появится здесь.",
+    "translation.meta.lemma": "Словарная форма",
+    "translation.meta.head": "Главное слово",
+    "translation.meta.article": "Артикль",
+    "translation.meta.gender": "Род",
+    "translation.meta.case": "Падеж",
+    "translation.action.copy": "Копировать слово",
+    "translation.action.skip": "Не добавлять",
+    "settings.desktop_warning":
+      "Сайт оптимизирован для мобильных экранов. На десктопе некоторые детали могут выглядеть иначе.",
+    "settings.section.reader": "Настройки чтения",
+    "settings.section.rss": "Управление RSS",
+    "settings.section.appearance": "Внешний вид",
+    "settings.title": "Настройки",
+    "settings.api.label": "ChatGPT API ключ",
+    "settings.api.placeholder": "sk-...",
+    "settings.api.help":
+      "Получите ключ на <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Platform</a>",
+    "settings.api.validating": "Проверяем...",
+    "settings.language.label": "Язык",
+    "settings.language.en": "Английский",
+    "settings.language.ru": "Русский",
+    "settings.rss.title": "Управление лентами",
+    "settings.rss.placeholder": "https://example.com/feed.xml",
+    "settings.rss.search_placeholder": "Поиск по сайту или URL статьи",
+    "settings.rss.attribution": "powered by Feedsearch",
+    "settings.rss.storage": "Мы храним подписки локально в этом браузере.",
+    "settings.rss.empty": "Пока нет лент.",
+    "settings.appearance.title": "Внешний вид читалки",
+    "settings.appearance.reader_font": "Шрифт читалки",
+    "settings.appearance.font.serif": "С засечками",
+    "settings.appearance.font.sans": "Без засечек",
+    "settings.appearance.reader_size": "Размер текста",
+    "settings.appearance.line_spacing": "Межстрочный интервал",
+    "settings.appearance.spacing.tight": "Плотно",
+    "settings.appearance.spacing.loose": "Свободно",
+    "settings.appearance.hyphenation": "Переносы",
+    "settings.appearance.toggle.on": "Вкл",
+    "settings.appearance.toggle.off": "Выкл",
+    "settings.appearance.justification": "Выравнивание",
+    "settings.appearance.justify.left": "По левому краю",
+    "settings.appearance.justify.justify": "По ширине",
+    "modal.add_story.title": "Добавить истории",
+    "modal.add_story.mode.generate": "Сгенерировать историю",
+    "modal.add_story.mode.paste": "Вставить текст",
+    "modal.add_story.word_amount": "Количество слов",
+    "modal.add_story.level": "Уровень",
+    "modal.add_story.style": "Стиль",
+    "modal.add_story.style.casual": "Разговорный",
+    "modal.add_story.style.literary": "Литературный",
+    "modal.add_story.prompt": "Сюжетный запрос",
+    "modal.add_story.prompt_placeholder": "Короткая история про студента в дождливый день, уровень A2.",
+    "modal.add_story.helper": "Используется ChatGPT API ключ из настроек.",
+    "modal.paste.title": "Заголовок",
+    "modal.paste.title_placeholder": "Ваш заголовок",
+    "modal.paste.body_label": "Немецкий текст",
+    "modal.paste.body_placeholder": "Вставьте немецкий текст здесь.",
+    "modal.paste.action.add": "Добавить в читалку",
+    "modal.appearance.title": "Внешний вид читалки",
+    "modal.appearance.font": "Шрифт",
+    "modal.appearance.size": "Размер",
+    "action.add": "Добавить",
+    "action.refresh": "Обновить",
+    "action.search": "Поиск",
+    "action.reload": "Перезагрузить",
+    "action.reset_all": "Сбросить все",
+    "action.show": "Показать",
+    "action.hide": "Скрыть",
+    "action.clear_key": "Очистить ключ",
+    "action.save": "Сохранить",
+    "action.close": "Закрыть",
+    "action.suggest": "Подсказать",
+    "action.generate": "Сгенерировать",
+    "rss.search.enter_url": "Введите URL для поиска ленты.",
+    "rss.search.searching": "Ищем...",
+    "rss.search.empty": "Ленты не найдены.",
+    "rss.search.unreachable": "Не удалось связаться с feedsearch.dev.",
+    "rss.search.add": "Добавить",
+    "rss.search.remove": "Удалить",
+    "rss.search.feed": "Лента",
+    "rss.subscriptions.remove": "Удалить",
+    "rss.feed.empty_items": "Пока нет элементов.",
+    "rss.feed.untitled_post": "Без названия",
+    "rss.feed.loading": "Загрузка...",
+    "rss.feed.abort": "Отмена",
+    "rss.feed.mark_read": "Отметить прочитанным",
+    "rss.feed.mark_unread": "Отметить непрочитанным",
+    "rss.feed.source": "Лента",
+    "rss.reader.no_text": "Не удалось найти читабельный текст статьи.",
+    "rss.reader.loading_article": "Загружаем статью...",
+    "rss.reader.loading_article_level": "Адаптируем для {level}...",
+    "rss.reader.no_text_available": "Читабельный текст недоступен.",
+    "rss.reader.add_key": "Добавьте API ключ, чтобы адаптировать RSS статьи.",
+    "rss.reader.adapt_failed": "Не удалось адаптировать статью.",
+    "rss.reader.extract_failed": "Не удалось извлечь текст статьи.",
+    "rss.reader.load_failed": "Не удалось загрузить содержимое статьи.",
+    "rss.reader.canceled": "Отменено.",
+    "rss.load_errors": "Не удалось загрузить {count} лент.",
+    "rss.list.empty": "Добавьте ленту, чтобы начать читать.",
+    "rss.list.loading": "Загрузка лент...",
+    "rss.manager.paste": "Вставьте URL ленты, чтобы добавить.",
+    "rss.manager.invalid_url": "Введите корректный URL.",
+    "reader.status.learned": "Выучено: {lemmas}",
+    "story.no_preview": "Предпросмотр недоступен.",
+    "story.untitled": "Без названия",
+    "story.mark_read": "Отметить прочитанным",
+    "story.mark_unread": "Отметить непрочитанным",
+    "story.delete": "Удалить",
+    "story.add": "Добавить историю",
+    "lemma.delete": "Удалить лемму",
+    "lemma.no_matches": "Ничего не найдено.",
+    "lemma.mark_learned": "Отметить как выученное",
+    "lemma.mark_unlearned": "На обучение",
+    "translation.loading": "Переводим...",
+    "translation.explaining": "Объясняем...",
+    "translation.no_declension": "Нет объяснения склонения для этого слова.",
+    "translation.sentence_only":
+      "Объяснение склонения доступно только для отдельных слов.",
+    "translation.placeholder_ru": "Перевод появится здесь.",
+    "translation.copy.word": "Копировать слово",
+    "translation.copy.sentence": "Копировать предложение",
+    "settings.api.required": "Требуется API ключ",
+    "settings.api.invalid": "Неверный API ключ",
+    "settings.api.failed": "Не удалось проверить ключ. Проверьте подключение.",
+    "settings.reset.confirm":
+      "Сбросить все данные (истории, леммы, RSS и настройки чтения)? API ключ будет сохранен.",
+    "prompt.suggesting": "Подбираем...",
+    "prompt.generating": "Генерируем...",
+    "prompt.generate": "Сгенерировать",
+    "paste.default_title": "Свой текст",
+    "story.default_title": "Новая история",
+  },
+};
+
+let currentUiLang = "en";
+const NATIVE_LANGUAGE_NAMES = {
+  en: "English",
+  ru: "Russian",
+};
+
+const getBrowserUiLang = () => {
+  const candidate =
+    (Array.isArray(navigator.languages) && navigator.languages[0]) ||
+    navigator.language ||
+    "en";
+  return candidate.toLowerCase().startsWith("ru") ? "ru" : "en";
+};
+
+const t = (key, vars = {}) => {
+  const dict = UI_COPY[currentUiLang] || UI_COPY.en;
+  let value = dict?.[key] ?? UI_COPY.en?.[key];
+  if (typeof value !== "string") {
+    return value ?? key;
+  }
+  Object.entries(vars).forEach(([name, replacement]) => {
+    value = value.replace(
+      new RegExp(`\\{${name}\\}`, "g"),
+      String(replacement)
+    );
+  });
+  return value;
+};
+
+const applyTranslations = (lang) => {
+  const nextLang = SUPPORTED_UI_LANGS.includes(lang) ? lang : "en";
+  currentUiLang = nextLang;
+  document.body.dataset.nativeLang = currentUiLang;
+  document.documentElement.lang = nextLang;
+  document.title = t("app.title");
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.dataset.i18n;
+    if (key) {
+      el.textContent = t(key);
+    }
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const key = el.dataset.i18nHtml;
+    if (key) {
+      el.innerHTML = t(key);
+    }
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    if (key) {
+      el.setAttribute("placeholder", t(key));
+    }
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+    const key = el.dataset.i18nAriaLabel;
+    if (key) {
+      el.setAttribute("aria-label", t(key));
+    }
+  });
+  if (toggleKeyVisibility && apiKeyInput) {
+    toggleKeyVisibility.textContent =
+      apiKeyInput.type === "text" ? t("action.hide") : t("action.show");
+  }
+  lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
+  lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
+  updateLanguageButtons();
+  refreshUiCollections();
+};
+
+const setUiLanguage = (lang, { persist = false } = {}) => {
+  const nextLang = SUPPORTED_UI_LANGS.includes(lang) ? lang : "en";
+  if (persist) {
+    localStorage.setItem(UI_LANG_KEY, nextLang);
+  }
+  applyTranslations(nextLang);
+};
+
+const updateLanguageButtons = () => {
+  uiLangButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.uiLang === currentUiLang);
+  });
+};
+
+
+const refreshUiCollections = () => {
+  renderHomeStories(loadStories());
+  renderLemmaList();
+  renderRssSubscriptions();
+  refreshRssFeedItems();
+  renderRssSearchResults(rssSearchItems);
+  syncPageDots();
+  const type = translationPanel?.classList.contains("is-sentence")
+    ? "sentence"
+    : "word";
+  updateCopyButtonLabel(type);
 };
 
 const updateStandaloneMode = () => {
@@ -372,7 +813,7 @@ const removeRssSubscriptionUrl = (rawUrl) => {
   try {
     url = new URL(normalized).toString();
   } catch (error) {
-    setRssModalStatus("Enter a valid URL.", { isError: true });
+    setRssModalStatus(t("rss.manager.invalid_url"), { isError: true });
     return false;
   }
   const urls = loadRssUrls().filter((item) => item !== url);
@@ -700,7 +1141,7 @@ const renderRssSearchResults = (items) => {
     meta.className = "rss-search-meta";
     const title = document.createElement("div");
     title.className = "rss-search-title";
-    title.textContent = item.title || "Feed";
+    title.textContent = item.title || t("rss.search.feed");
     const url = document.createElement("div");
     url.className = "rss-search-url";
     url.textContent = item.url || "";
@@ -727,7 +1168,9 @@ const renderRssSearchResults = (items) => {
     const actionButton = document.createElement("button");
     actionButton.type = "button";
     actionButton.className = "ghost mini";
-    actionButton.textContent = isSubscribed ? "Remove" : "Add";
+    actionButton.textContent = isSubscribed
+      ? t("rss.search.remove")
+      : t("rss.search.add");
     actionButton.dataset.url = canonicalUrl || item.url || "";
     actions.appendChild(actionButton);
     row.append(meta, levels, actions);
@@ -763,10 +1206,10 @@ const searchRssFeeds = async () => {
   }
   const query = rssSearchInput.value.trim();
   if (!query) {
-    setRssModalStatus("Enter a URL to search for feeds.", { isError: true });
+    setRssModalStatus(t("rss.search.enter_url"), { isError: true });
     return;
   }
-  setRssModalStatus("Searching...");
+  setRssModalStatus(t("rss.search.searching"));
   renderRssSearchResults([]);
   rssSearchItems = [];
   try {
@@ -777,7 +1220,7 @@ const searchRssFeeds = async () => {
       .filter(Boolean)
       .slice(0, 8);
     if (!items.length) {
-      setRssModalStatus("No feeds found.", {
+      setRssModalStatus(t("rss.search.empty"), {
         isError: true,
       });
       return;
@@ -786,7 +1229,7 @@ const searchRssFeeds = async () => {
     rssSearchItems = items;
     renderRssSearchResults(items);
   } catch (error) {
-    setRssModalStatus("Couldn't reach feedsearch.dev.", {
+    setRssModalStatus(t("rss.search.unreachable"), {
       isError: true,
     });
   }
@@ -823,7 +1266,7 @@ const renderRssSubscriptions = () => {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "ghost mini";
-    removeButton.textContent = "Remove";
+    removeButton.textContent = t("rss.subscriptions.remove");
     removeButton.dataset.url = url;
     const actions = document.createElement("div");
     actions.className = "rss-subscription-actions";
@@ -843,7 +1286,7 @@ const renderRssFeedItems = (items) => {
     rssFeedEmptyAction.classList.add("is-hidden");
   }
   if (!items.length) {
-    rssFeedEmpty.textContent = "No items found yet.";
+    rssFeedEmpty.textContent = t("rss.feed.empty_items");
     rssFeedEmpty.classList.remove("is-hidden");
     return;
   }
@@ -874,7 +1317,7 @@ const renderRssFeedItems = (items) => {
 
     const title = document.createElement("p");
     title.className = "home-item-title";
-    title.textContent = item.title || "Untitled post";
+    title.textContent = item.title || t("rss.feed.untitled_post");
 
     head.appendChild(title);
 
@@ -882,7 +1325,7 @@ const renderRssFeedItems = (items) => {
     meta.className = "rss-feed-meta";
     const source = document.createElement("span");
     source.className = "rss-feed-source";
-    source.textContent = item.source || "Feed";
+    source.textContent = item.source || t("rss.feed.source");
     meta.appendChild(source);
     if (isReady && !isLoading) {
       const ready = document.createElement("span");
@@ -910,11 +1353,11 @@ const renderRssFeedItems = (items) => {
       loadingRow.className = "rss-item-loading-row";
       const loading = document.createElement("p");
       loading.className = "rss-item-loading";
-      loading.textContent = rssLoadingMessage || "Loading...";
+      loading.textContent = rssLoadingMessage || t("rss.feed.loading");
       const abortButton = document.createElement("button");
       abortButton.type = "button";
       abortButton.className = "rss-item-abort";
-      abortButton.textContent = "Abort";
+      abortButton.textContent = t("rss.feed.abort");
       abortButton.dataset.abort = "true";
       loadingRow.append(loading, abortButton);
       content.appendChild(loadingRow);
@@ -928,7 +1371,7 @@ const renderRssFeedItems = (items) => {
       const toggleButton = document.createElement("button");
       toggleButton.className = "home-action toggle";
       toggleButton.type = "button";
-      toggleButton.textContent = "Mark as read";
+      toggleButton.textContent = t("rss.feed.mark_read");
       toggleButton.addEventListener("click", (event) => {
         event.stopPropagation();
         markStoryRead(item.id);
@@ -1127,7 +1570,7 @@ const renderRssStory = (title, blocks, itemId) => {
   if (!blocks || !blocks.length) {
     const empty = document.createElement("p");
     empty.className = "story";
-    empty.textContent = "No readable text found for this article.";
+    empty.textContent = t("rss.reader.no_text");
     reader.appendChild(empty);
     return;
   }
@@ -1176,7 +1619,7 @@ const openRssReaderScreen = (
   });
 };
 
-const showRssLoading = (title, message = "Loading article...") => {
+const showRssLoading = (title, message = t("rss.reader.loading_article")) => {
   currentStoryId = null;
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
@@ -1213,11 +1656,11 @@ const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {})
     markStoryUnread(item.id);
   }
   const loadingMessage = wantsAdaptation
-    ? `Adapting for ${selectedLevel}...`
-    : "Loading article...";
+    ? t("rss.reader.loading_article_level", { level: selectedLevel })
+    : t("rss.reader.loading_article");
   const requestId = setRssLoadingState(item.id, loadingMessage);
   if (wantsAdaptation && !canAdapt) {
-    setRssStatus("Add an API key to adapt RSS articles.", { isError: true });
+    setRssStatus(t("rss.reader.add_key"), { isError: true });
   }
   try {
     if (rssLoadController) {
@@ -1272,7 +1715,7 @@ const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {})
           );
           return;
         }
-        setRssStatus("Couldn't adapt this article.", { isError: true });
+        setRssStatus(t("rss.reader.adapt_failed"), { isError: true });
       }
       clearRssLoadingState();
       setRssAdaptation(item.id, "raw", {
@@ -1305,7 +1748,7 @@ const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {})
           );
           return;
         }
-        setRssStatus("Couldn't adapt this article.", { isError: true });
+        setRssStatus(t("rss.reader.adapt_failed"), { isError: true });
       }
       clearRssLoadingState();
       setRssAdaptation(item.id, "raw", {
@@ -1316,12 +1759,12 @@ const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {})
       openRssReaderScreen(item.title, fallbackBlocks, item.id, { usedLemmas: [] });
       return;
     }
-    setRssStatus("Couldn't extract article text.", { isError: true });
+    setRssStatus(t("rss.reader.extract_failed"), { isError: true });
     clearRssLoadingState();
     openRssReaderScreen(item.title, [], item.id, { usedLemmas: [] });
   } catch (error) {
     if (error?.name === "AbortError") {
-      setRssStatus("Canceled.", { isError: false });
+      setRssStatus(t("rss.reader.canceled"), { isError: false });
       return;
     }
     const fallbackBlocks = extractArticleBlocks(item.contentHtml || "");
@@ -1346,7 +1789,7 @@ const openRssItem = async (item, { markUnread = true, levelOverride = "" } = {})
         return;
       }
     }
-    setRssStatus("Couldn't load the article content.", { isError: true });
+    setRssStatus(t("rss.reader.load_failed"), { isError: true });
     clearRssLoadingState();
     if (fallbackBlocks.length) {
       setRssAdaptation(item.id, "raw", {
@@ -1375,14 +1818,14 @@ const loadRssItems = async () => {
   const urls = loadRssUrls();
   if (!urls.length) {
     rssFeedList.innerHTML = "";
-    rssFeedEmpty.textContent = "Add a feed to start reading.";
+    rssFeedEmpty.textContent = t("rss.list.empty");
     rssFeedEmpty.classList.remove("is-hidden");
     rssFeedEmptyAction?.classList.remove("is-hidden");
     setRssStatus("");
     return;
   }
   rssFeedList.innerHTML = "";
-  rssFeedEmpty.textContent = "Loading feeds...";
+  rssFeedEmpty.textContent = t("rss.list.loading");
   rssFeedEmpty.classList.remove("is-hidden");
   rssFeedEmptyAction?.classList.add("is-hidden");
   setRssStatus("");
@@ -1419,10 +1862,10 @@ const loadRssItems = async () => {
   });
   renderRssFeedItems(sliced);
   if (errors) {
-    setRssStatus(
-      `Couldn't load ${errors} feed${errors === 1 ? "" : "s"}.`,
-      { isError: true }
-    );
+    const plural = errors === 1 ? "" : "s";
+    setRssStatus(t("rss.load_errors", { count: errors, plural }), {
+      isError: true,
+    });
   }
 };
 
@@ -1488,7 +1931,8 @@ const updateCopyButtonLabel = (type) => {
   if (!copySelection) {
     return;
   }
-  const label = type === "sentence" ? "Copy sentence" : "Copy word";
+  const label =
+    type === "sentence" ? t("translation.copy.sentence") : t("translation.copy.word");
   copySelection.textContent = label;
 };
 
@@ -2200,15 +2644,17 @@ const setReaderStatusMessage = (lemmas = []) => {
   }
   const labelEl = readerStatus.querySelector(".reader-status-label");
   if (labelEl) {
-    labelEl.textContent = "Marked as read.";
+    labelEl.textContent = t("reader.status.read");
   } else {
-    readerStatus.textContent = "Marked as read.";
+    readerStatus.textContent = t("reader.status.read");
   }
   if (!readerStatusLemmas) {
     return;
   }
   if (Array.isArray(lemmas) && lemmas.length) {
-    readerStatusLemmas.textContent = `Learned: ${lemmas.join(", ")}`;
+    readerStatusLemmas.textContent = t("reader.status.learned", {
+      lemmas: lemmas.join(", "),
+    });
     readerStatusLemmas.classList.remove("is-hidden");
   } else {
     readerStatusLemmas.textContent = "";
@@ -2434,7 +2880,7 @@ const deleteLemmaEntry = (lemma) => {
 const buildStoryExcerpt = (text, maxLength = 180) => {
   const normalized = String(text || "").replace(/\s+/g, " ").trim();
   if (!normalized) {
-    return "No preview available.";
+    return t("story.no_preview");
   }
   if (normalized.length <= maxLength) {
     return normalized;
@@ -2599,7 +3045,7 @@ const renderHomeStories = (stories) => {
 
     const title = document.createElement("p");
     title.className = "home-item-title";
-    title.textContent = story.title || "Untitled";
+    title.textContent = story.title || t("story.untitled");
 
     head.appendChild(title);
 
@@ -2619,7 +3065,7 @@ const renderHomeStories = (stories) => {
     const toggleButton = document.createElement("button");
     toggleButton.className = "home-action toggle";
     toggleButton.type = "button";
-    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
+    toggleButton.textContent = isRead ? t("story.mark_unread") : t("story.mark_read");
     toggleButton.addEventListener("click", (event) => {
       event.stopPropagation();
       const nextValue = toggleReadStatus(story.id);
@@ -2631,7 +3077,7 @@ const renderHomeStories = (stories) => {
     const deleteButton = document.createElement("button");
     deleteButton.className = "home-action delete";
     deleteButton.type = "button";
-    deleteButton.textContent = "Delete";
+    deleteButton.textContent = t("story.delete");
     deleteButton.addEventListener("click", (event) => {
       event.stopPropagation();
       deleteStoryById(story.id);
@@ -2649,7 +3095,7 @@ const renderHomeStories = (stories) => {
   const addCta = document.createElement("button");
   addCta.className = "primary home-empty-action";
   addCta.type = "button";
-  addCta.textContent = "Add new story";
+  addCta.textContent = t("story.add");
   addCta.addEventListener("click", () => {
     showAddTextModal();
   });
@@ -2669,7 +3115,7 @@ const updateHomeReadStatus = (storyId, isRead) => {
   item.classList.toggle("is-read", isRead);
   const toggleButton = item.querySelector(".home-action.toggle");
   if (toggleButton) {
-    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
+    toggleButton.textContent = isRead ? t("story.mark_unread") : t("story.mark_read");
   }
 };
 
@@ -2684,7 +3130,7 @@ const updateRssReadStatus = (itemId, isRead) => {
   item.classList.toggle("is-read", isRead);
   const toggleButton = item.querySelector(".home-action.toggle");
   if (toggleButton) {
-    toggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
+    toggleButton.textContent = isRead ? t("rss.feed.mark_unread") : t("rss.feed.mark_read");
   }
 };
 
@@ -2907,7 +3353,7 @@ const buildLemmaOriginals = (entry) => {
   const deleteButton = document.createElement("button");
   deleteButton.className = "ghost mini lemma-action lemma-delete";
   deleteButton.type = "button";
-  deleteButton.textContent = "Delete lemma";
+  deleteButton.textContent = t("lemma.delete");
   deleteButton.addEventListener("click", (event) => {
     event.stopPropagation();
     deleteLemmaEntry(entry?.lemma);
@@ -2953,7 +3399,9 @@ const renderLemmaList = () => {
   lemmaList.innerHTML = "";
   if (!entries.length) {
     if (lemmaEmpty) {
-      lemmaEmpty.textContent = query ? "No matches." : lemmaEmptyDefaultText;
+      lemmaEmpty.textContent = query
+        ? t("lemma.no_matches")
+        : lemmaEmptyDefaultText;
     }
     lemmaEmpty?.classList.remove("is-hidden");
   } else {
@@ -2983,7 +3431,7 @@ const renderLemmaList = () => {
       const markLearned = document.createElement("button");
       markLearned.className = "ghost mini lemma-action";
       markLearned.type = "button";
-      markLearned.textContent = "Mark as learned";
+      markLearned.textContent = t("lemma.mark_learned");
       markLearned.addEventListener("click", (event) => {
         event.stopPropagation();
         setLemmaLearnedStatus(entry.lemma, true);
@@ -3024,11 +3472,11 @@ const renderLearnedLemmaList = () => {
     .filter((item) => item.match.matches);
   lemmaLearnedList.innerHTML = "";
   if (!entries.length) {
-    if (lemmaLearnedEmpty) {
-      lemmaLearnedEmpty.textContent = query
-        ? "No matches."
+      if (lemmaLearnedEmpty) {
+        lemmaLearnedEmpty.textContent = query
+        ? t("lemma.no_matches")
         : lemmaLearnedEmptyDefaultText;
-    }
+      }
     lemmaLearnedEmpty?.classList.remove("is-hidden");
     return;
   }
@@ -3056,7 +3504,7 @@ const renderLearnedLemmaList = () => {
     const markUnlearned = document.createElement("button");
     markUnlearned.className = "ghost mini lemma-action";
     markUnlearned.type = "button";
-    markUnlearned.textContent = "Mark as unlearned";
+    markUnlearned.textContent = t("lemma.mark_unlearned");
     markUnlearned.addEventListener("click", (event) => {
       event.stopPropagation();
       setLemmaLearnedStatus(entry.lemma, false);
@@ -3384,7 +3832,7 @@ const renderStory = (story) => {
   if (!blocks.length) {
     const empty = document.createElement("p");
     empty.className = "story";
-    empty.textContent = "No readable text available.";
+    empty.textContent = t("rss.reader.no_text_available");
     reader.appendChild(empty);
     return;
   }
@@ -3417,7 +3865,12 @@ const translateWithChatGPT = async (text, type, context) => {
     return null;
   }
 
-  const cacheKey = `${type}:${text.trim().toLowerCase()}:${context || ""}`;
+  const nativeLanguageName =
+    NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
+  const translationDirection = `German-to-${nativeLanguageName}`;
+  const cacheKey = `${type}:${currentUiLang}:${text
+    .trim()
+    .toLowerCase()}:${context || ""}`;
   if (translationCache.has(cacheKey)) {
     return translationCache.get(cacheKey);
   }
@@ -3434,11 +3887,11 @@ const translateWithChatGPT = async (text, type, context) => {
             {
               role: "system",
               content:
-                "You are a German-to-Russian translation and grammar assistant. " +
+                `You are a ${translationDirection} translation and grammar assistant. ` +
                 "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. " +
-                "LANGUAGE REQUIREMENTS: translation, declension_explanation, and form_explanation must be in Russian. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word) must be in GERMAN only - never translate these to Russian. " +
-                "The declension explanation must be in Russian, short, and if no declension applies, explain why. " +
-                "The form_explanation must be in Russian and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. " +
+                `LANGUAGE REQUIREMENTS: translation, declension_explanation, and form_explanation must be in ${nativeLanguageName}. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word) must be in GERMAN only - never translate these to ${nativeLanguageName}. ` +
+                `The declension explanation must be in ${nativeLanguageName}, short, and if no declension applies, explain why. ` +
+                `The form_explanation must be in ${nativeLanguageName} and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. ` +
                 "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
                 "The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). " +
                 "For separable verbs: CRITICAL - Check if the clicked word is part of a separable verb construction where the prefix is separated from the verb in the sentence. The prefix typically appears at the END of the clause. This applies to verbs in ANY tense/form (steigen, stieg, gestiegen, schauen, schaute, geschaut) AND separated prefixes. If found, set has_detached_prefix=true, provide the OTHER part in detached_prefix_word (exact text from sentence), and provide the combined infinitive in combined_word. Examples: (1) clicking 'steigen' in 'Sie steigen aus' → detached_prefix_word='aus', combined_word='aussteigen'. (2) clicking 'schauten' in 'Sie schauten sich an' → detached_prefix_word='an', combined_word='anschauen'. (3) clicking 'kommt' in 'Sie kommt an' → detached_prefix_word='an', combined_word='ankommen'. (4) clicking 'an' in 'Sie schauten sich an' → detached_prefix_word='schauten', combined_word='anschauen'. The translation should be for the combined word. " +
@@ -3446,14 +3899,14 @@ const translateWithChatGPT = async (text, type, context) => {
             },
             {
               role: "user",
-              content: `Translate the German word to Russian and explain its declension or case choice succinctly in Russian, referencing the specific sentence context. Also explain how the word form differs from its lemma (tense, case, number, or other change). CRITICAL: If the word is a VERB (in any tense), check very carefully if it's part of a separable verb where the prefix has been separated and appears elsewhere in the clause (typically at the END). Common separable prefixes include: ab, an, auf, aus, bei, ein, fest, fort, her, hin, los, mit, nach, vor, weg, zu, zurück, zusammen. If the word is one of these prefixes, check if there's a verb earlier in the clause. If found, identify the other part and provide the combined infinitive.\nWord: ${text}\nSentence: ${context || "N/A"}`,
+              content: `Translate the German word to ${nativeLanguageName} and explain its declension or case choice succinctly in ${nativeLanguageName}, referencing the specific sentence context. Also explain how the word form differs from its lemma (tense, case, number, or other change). CRITICAL: If the word is a VERB (in any tense), check very carefully if it's part of a separable verb where the prefix has been separated and appears elsewhere in the clause (typically at the END). Common separable prefixes include: ab, an, auf, aus, bei, ein, fest, fort, her, hin, los, mit, nach, vor, weg, zu, zurück, zusammen. If the word is one of these prefixes, check if there's a verb earlier in the clause. If found, identify the other part and provide the combined infinitive.\nWord: ${text}\nSentence: ${context || "N/A"}`,
             },
           ]
         : [
             {
               role: "system",
               content:
-                "You are a concise German-to-Russian translator. Return only the Russian translation, no extra text.",
+                `You are a concise ${translationDirection} translator. Return only the ${nativeLanguageName} translation, no extra text.`,
             },
             { role: "user", content: text },
           ];
@@ -3488,7 +3941,7 @@ const translateWithChatGPT = async (text, type, context) => {
         : {
             translation: raw,
             declension_explanation:
-              "Объяснение склонения доступно только для отдельных слов.",
+              t("translation.sentence_only"),
             lemma: "",
             article: "",
             gender: "",
@@ -3579,7 +4032,7 @@ const generateStoryFromPrompt = async (prompt, fallbackTitle, options = {}) => {
     }
 
     return {
-      title: parsed.title || fallbackTitle || "Neue Geschichte",
+      title: parsed.title || fallbackTitle || t("story.default_title"),
       text: parsed.text,
       usedLemmas: Array.isArray(parsed.used_lemmas) ? parsed.used_lemmas : [],
     };
@@ -3620,8 +4073,8 @@ const handleSentenceContainerClick = (event) => {
     updateTranslation(
       "word",
       german,
-      "Переводим...",
-      "Объясняем...",
+      t("translation.loading"),
+      t("translation.explaining"),
       null
     );
     const sentenceText = sentenceEl?.textContent.trim() || "";
@@ -3661,7 +4114,7 @@ const handleSentenceContainerClick = (event) => {
       const translation = result?.translation || fallback;
       const grammar =
         result?.declension_explanation ||
-        "Нет объяснения склонения для этого слова.";
+        t("translation.no_declension");
       const displayGerman = (result?.has_detached_prefix && result?.combined_word)
         ? result.combined_word
         : german;
@@ -3902,8 +4355,8 @@ const translateSentenceText = (
   updateTranslation(
     "sentence",
     german,
-    "Переводим...",
-    "Объяснение склонения доступно только для отдельных слов.",
+    t("translation.loading"),
+    t("translation.sentence_only"),
     null
   );
   translateWithChatGPT(german, "sentence").then((result) => {
@@ -3911,10 +4364,10 @@ const translateSentenceText = (
       return;
     }
     const translation =
-      result?.translation || fallbackTranslation || "Перевод на русский появится здесь.";
+      result?.translation || fallbackTranslation || t("translation.placeholder");
     const grammar =
       result?.declension_explanation ||
-      "Объяснение склонения доступно только для отдельных слов.";
+      t("translation.sentence_only");
     updateTranslation("sentence", german, translation, grammar, null);
   });
 };
@@ -3936,9 +4389,9 @@ const resetTranslation = ({ animate = true, commitLemma = true } = {}) => {
   const applyEmptyTranslation = () => {
     updateTranslation(
       "word",
-      "Tap a word",
-      "Перевод на русский появится здесь.",
-      "Объяснение склонения появится здесь.",
+      t("translation.tap_word"),
+      t("translation.placeholder"),
+      t("translation.grammar.placeholder"),
       null,
       { show: false }
     );
@@ -4123,6 +4576,16 @@ justificationOptions.forEach((option) => {
   });
 });
 
+uiLangButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const lang = button.dataset.uiLang;
+    if (lang) {
+      setUiLanguage(lang, { persist: true });
+    }
+  });
+});
+
+
 if (readerSize) {
   readerSize.addEventListener("input", () => {
     applyReaderSize(readerSize.value);
@@ -4162,6 +4625,12 @@ applyStoryWordCount(storedWordCount);
 applyStoryLevel(storedLevel);
 applyStoryStyle(storedStyle);
 
+const storedUiLang = localStorage.getItem(UI_LANG_KEY);
+const initialUiLang = SUPPORTED_UI_LANGS.includes(storedUiLang)
+  ? storedUiLang
+  : getBrowserUiLang();
+applyTranslations(initialUiLang);
+
 const setApiKeyRequirement = (required) => {
   document.body.classList.toggle("requires-key", required);
   updateScreenScrollLock();
@@ -4176,7 +4645,7 @@ const setApiKeyRequirement = (required) => {
 
 const setKeyVisibility = (shouldShow) => {
   apiKeyInput.type = shouldShow ? "text" : "password";
-  toggleKeyVisibility.textContent = shouldShow ? "Hide" : "Show";
+  toggleKeyVisibility.textContent = shouldShow ? t("action.hide") : t("action.show");
 };
 
 const openSettingsScreen = (forceRequired = false, behavior = "smooth") => {
@@ -4208,7 +4677,7 @@ const closeSettingsScreen = (behavior = "smooth", forceLibrary = false) => {
 
 const validateApiKey = async (apiKey) => {
   if (!apiKey || !apiKey.trim()) {
-    return { valid: false, error: "API key is required" };
+    return { valid: false, error: t("settings.api.required") };
   }
   
   try {
@@ -4223,10 +4692,13 @@ const validateApiKey = async (apiKey) => {
       return { valid: true };
     } else {
       const data = await response.json().catch(() => ({}));
-      return { valid: false, error: data.error?.message || "Invalid API key" };
+      return {
+        valid: false,
+        error: data.error?.message || t("settings.api.invalid"),
+      };
     }
   } catch (error) {
-    return { valid: false, error: "Failed to validate API key. Please check your connection." };
+    return { valid: false, error: t("settings.api.failed") };
   }
 };
 
@@ -4239,7 +4711,7 @@ saveKey.addEventListener("click", async () => {
   // Disable button and show loading state
   saveKey.disabled = true;
   const originalText = saveKey.textContent;
-  saveKey.textContent = "Validating...";
+  saveKey.textContent = t("settings.api.validating");
   
   // Validate the API key
   const validation = await validateApiKey(apiKey);
@@ -4357,14 +4829,14 @@ const addRssSubscription = () => {
   }
   const normalized = normalizeRssUrl(rssUrlInput.value);
   if (!normalized) {
-    setRssModalStatus("Paste a feed URL to add it.", { isError: true });
+    setRssModalStatus(t("rss.manager.paste"), { isError: true });
     return;
   }
   let url;
   try {
     url = new URL(normalized).toString();
   } catch (error) {
-    setRssModalStatus("Enter a valid URL.", { isError: true });
+    setRssModalStatus(t("rss.manager.invalid_url"), { isError: true });
     return;
   }
   const urls = loadRssUrls();
@@ -4399,7 +4871,7 @@ const addRssSubscriptionUrl = (rawUrl) => {
   try {
     url = new URL(normalized).toString();
   } catch (error) {
-    setRssModalStatus("Enter a valid URL.", { isError: true });
+    setRssModalStatus(t("rss.manager.invalid_url"), { isError: true });
     return false;
   }
   const urls = loadRssUrls();
@@ -4612,7 +5084,7 @@ if (readerAppearanceModal) {
 
 resetAllDataButton?.addEventListener("click", () => {
   const shouldReset = window.confirm(
-    "Reset all stored data (stories, lemmas, RSS, and reader settings)? This will keep your API key."
+    t("settings.reset.confirm")
   );
   if (!shouldReset) {
     return;
@@ -4758,16 +5230,28 @@ modeButtons.forEach((button) => {
   });
 });
 
-const promptIdeas = [
-  "A shy baker meets a curious crow at dawn, level A2.",
-  "Two friends get lost in a small museum and find a secret door.",
-  "A student misses the last tram and walks through a quiet city.",
-  "A rainy market day where someone forgets their umbrella.",
-  "A cat steals a sandwich during a picnic in the park.",
-  "A family prepares a surprise dinner for a neighbor.",
-  "A traveler asks for directions and learns a new word.",
-  "A musician practices in the courtyard and hears applause.",
-];
+const promptIdeas = {
+  en: [
+    "A shy baker meets a curious crow at dawn, level A2.",
+    "Two friends get lost in a small museum and find a secret door.",
+    "A student misses the last tram and walks through a quiet city.",
+    "A rainy market day where someone forgets their umbrella.",
+    "A cat steals a sandwich during a picnic in the park.",
+    "A family prepares a surprise dinner for a neighbor.",
+    "A traveler asks for directions and learns a new word.",
+    "A musician practices in the courtyard and hears applause.",
+  ],
+  ru: [
+    "Скромный пекарь встречает любопытную ворону на рассвете, уровень A2.",
+    "Двое друзей теряются в маленьком музее и находят тайную дверь.",
+    "Студент пропускает последний трамвай и идет через тихий город.",
+    "Дождливый день на рынке, где кто-то забывает зонт.",
+    "Кот крадет бутерброд во время пикника в парке.",
+    "Семья готовит сюрприз-ужин для соседа.",
+    "Путешественник спрашивает дорогу и узнает новое слово.",
+    "Музыкант репетирует во дворе и слышит аплодисменты.",
+  ],
+};
 
 const promptGenres = [
   "slice-of-life",
@@ -4797,7 +5281,8 @@ const getRandomItem = (items) => {
 };
 
 const getRandomPrompt = () => {
-  return promptIdeas[Math.floor(Math.random() * promptIdeas.length)];
+  const ideas = promptIdeas[currentUiLang] || promptIdeas.en;
+  return ideas[Math.floor(Math.random() * ideas.length)];
 };
 
 const suggestPromptFromChatGPT = async (options = {}) => {
@@ -4806,6 +5291,8 @@ const suggestPromptFromChatGPT = async (options = {}) => {
     return null;
   }
 
+  const nativeLanguageName =
+    NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
   if (suggestionController) {
     suggestionController.abort();
   }
@@ -4827,7 +5314,7 @@ const suggestPromptFromChatGPT = async (options = {}) => {
           {
             role: "system",
             content:
-              "Write one short story prompt in English for German learners. Return only the prompt text on one line, include a level tag like A2/B1/B2. Keep it concise (max 16 words). Use the given genre; aim for variety; do not refuse any theme.",
+              `Write one short story prompt in ${nativeLanguageName} for German learners. Return only the prompt text on one line, include a level tag like A2/B1/B2. Keep it concise (max 16 words). Use the given genre; aim for variety; do not refuse any theme.`,
           },
           {
             role: "user",
@@ -4864,7 +5351,7 @@ const fillPromptSuggestion = async () => {
   }
   suggestPrompt.disabled = true;
   const originalLabel = suggestPrompt.textContent;
-  suggestPrompt.textContent = "Suggesting...";
+  suggestPrompt.textContent = t("prompt.suggesting");
   const level = document.body.dataset.storyLevel || "A2";
   const wordCount = wordCountSlider?.value || "120";
   const suggestion =
@@ -4888,7 +5375,7 @@ suggestPrompt.addEventListener("click", () => {
 });
 
 savePaste.addEventListener("click", () => {
-  const title = pasteTitle.value.trim() || "Custom text";
+  const title = pasteTitle.value.trim() || t("paste.default_title");
   const text = pasteBody.value.trim();
   if (!text) {
     return;
@@ -4914,7 +5401,7 @@ generateStory.addEventListener("click", async () => {
     return;
   }
   generateStory.disabled = true;
-  generateStory.textContent = "Generating...";
+  generateStory.textContent = t("prompt.generating");
   const lemmas = getTopLemmaList(10);
   const story = await generateStoryFromPrompt(prompt, "", {
     wordCount: wordCountSlider?.value,
@@ -4923,7 +5410,7 @@ generateStory.addEventListener("click", async () => {
     lemmas,
   });
   generateStory.disabled = false;
-  generateStory.textContent = "Generate";
+  generateStory.textContent = t("action.generate");
   if (!story) {
     return;
   }

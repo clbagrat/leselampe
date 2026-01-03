@@ -26,13 +26,20 @@
             <p class="brand-title">Leselampe</p>
           </div>
         </div>
-        <div class="page-dots" id="pageDots" role="tablist" aria-label="Pages"></div>
+        <div
+          class="page-dots"
+          id="pageDots"
+          role="tablist"
+          aria-label="Pages"
+          data-i18n-aria-label="app.pages"
+        ></div>
       </header>
 
       <main class="layout">
         <section
           class="book-panel library-panel"
           aria-label="German reader"
+          data-i18n-aria-label="screen.library"
           data-screen="library"
           data-library-view="stories"
         >
@@ -40,20 +47,35 @@
             <div class="library-view" data-library-view="stories">
               <p class="library-hint">
                 <span class="library-hint-arrow">^^^^</span>
-                <span class="library-hint-label">RSS feed</span>
+                <span class="library-hint-label" data-i18n="library.hint.rss">RSS feed</span>
               </p>
-              <section class="home-library" aria-label="Your stories">
+              <section
+                class="home-library"
+                aria-label="Your stories"
+                data-i18n-aria-label="library.section.stories"
+              >
                 <div class="home-library-header">
                 <div>
-                  <h2 class="home-title">Your stories</h2>
+                  <h2 class="home-title" data-i18n="library.title.stories">Your stories</h2>
                 </div>
-                  <button class="ghost mini" type="button" id="homeAddText">Add</button>
+                  <button class="ghost mini" type="button" id="homeAddText" data-i18n="action.add">
+                    Add
+                  </button>
                 </div>
-                <p class="home-subtitle">Tap a text to open it in the reader.</p>
-                <p class="home-empty is-hidden" id="homeEmpty">
-                  No texts yet. Add your first story to start reading.
+                <p class="home-subtitle" data-i18n="library.subtitle.stories">
+                  Tap a text to open it in the reader.
                 </p>
-                <button class="primary is-hidden home-empty-action" type="button" id="homeEmptyAdd">
+                <p class="home-empty is-hidden" id="homeEmpty">
+                  <span data-i18n="library.empty.stories">
+                    No texts yet. Add your first story to start reading.
+                  </span>
+                </p>
+                <button
+                  class="primary is-hidden home-empty-action"
+                  type="button"
+                  id="homeEmptyAdd"
+                  data-i18n="library.action.add_story"
+                >
                   Add new story
                 </button>
                 <div class="home-list" id="homeList"></div>
@@ -63,21 +85,36 @@
             <div class="library-view" data-library-view="rss">
               <p class="library-hint">
                 <span class="library-hint-arrow">^^^^</span>
-                <span class="library-hint-label">Your stories</span>
+                <span class="library-hint-label" data-i18n="library.hint.stories">Your stories</span>
               </p>
-              <section class="home-library" aria-label="RSS feed">
+              <section
+                class="home-library"
+                aria-label="RSS feed"
+                data-i18n-aria-label="library.section.rss"
+              >
                 <div class="home-library-header">
                 <div>
-                  <h2 class="home-title">RSS feed</h2>
+                  <h2 class="home-title" data-i18n="library.title.rss">RSS feed</h2>
                 </div>
               <div class="home-library-actions">
-                <button class="ghost mini" type="button" id="rssRefresh">Refresh</button>
+                <button class="ghost mini" type="button" id="rssRefresh" data-i18n="action.refresh">
+                  Refresh
+                </button>
               </div>
             </div>
-            <p class="home-subtitle">Unread posts from your subscribed feeds.</p>
+            <p class="home-subtitle" data-i18n="rss.subtitle">
+              Unread posts from your subscribed feeds.
+            </p>
             <p class="helper-text rss-status is-hidden" id="rssFeedStatus"></p>
-            <p class="home-empty" id="rssFeedEmpty">Add a feed to start reading.</p>
-            <button class="primary is-hidden home-empty-action" type="button" id="rssFeedEmptyAction">
+            <p class="home-empty" id="rssFeedEmpty" data-i18n="rss.empty">
+              Add a feed to start reading.
+            </p>
+            <button
+              class="primary is-hidden home-empty-action"
+              type="button"
+              id="rssFeedEmptyAction"
+              data-i18n="rss.action.add_feed"
+            >
               Add a feed
             </button>
             <div class="home-list rss-feed-list" id="rssFeedList"></div>
@@ -86,82 +123,143 @@
           </div>
         </section>
 
-        <section class="book-panel reader-panel is-hidden" aria-label="Reader" data-screen="reader">
+        <section
+          class="book-panel reader-panel is-hidden"
+          aria-label="Reader"
+          data-screen="reader"
+          data-i18n-aria-label="screen.reader"
+        >
           <div class="reader-view" id="readerView">
             <div class="book-header">
               <div>
                 <h1></h1>
               </div>
-              <button class="ghost mini" type="button" id="openReaderAppearance">Font</button>
+              <button
+                class="ghost mini"
+                type="button"
+                id="openReaderAppearance"
+                data-i18n="reader.action.font"
+              >
+                Font
+              </button>
             </div>
 
             <article class="reader" id="reader" aria-live="polite" lang="de"></article>
             <div class="reader-end" id="readerEnd" aria-hidden="true"></div>
             <div class="reader-cta">
-              <button class="primary" type="button" id="readerFinish">I finish reading</button>
+              <button class="primary" type="button" id="readerFinish" data-i18n="reader.action.finish">
+                I finish reading
+              </button>
               <p class="reader-status is-hidden" id="readerStatus">
-                <span class="reader-status-label">Marked as read.</span>
+                <span class="reader-status-label" data-i18n="reader.status.read">
+                  Marked as read.
+                </span>
               </p>
               <p class="reader-status-lemmas is-hidden" id="readerStatusLemmas"></p>
             </div>
           </div>
         </section>
 
-        <section class="book-panel" aria-label="Lemmas" data-screen="lemmas">
-          <section class="home-library" aria-label="Translated lemmas">
+        <section
+          class="book-panel"
+          aria-label="Lemmas"
+          data-screen="lemmas"
+          data-i18n-aria-label="screen.lemmas"
+        >
+          <section
+            class="home-library"
+            aria-label="Translated lemmas"
+            data-i18n-aria-label="lemmas.section"
+          >
             <div class="home-library-header">
               <div>
-                <h2 class="home-title">Translated lemmas</h2>
+                <h2 class="home-title" data-i18n="lemmas.title">Translated lemmas</h2>
               </div>
             </div>
             <div class="saved-section">
-              <p class="helper-text">We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.</p>
+              <p class="helper-text" data-i18n="lemmas.helper">
+                We track lemmas when you translate a word. New stories try to include top lemmas;
+                included ones become learned.
+              </p>
               <div class="lemma-search">
-                <input type="search" id="lemmaSearch" placeholder="Search lemmas..." autocomplete="off" />
+                <input
+                  type="search"
+                  id="lemmaSearch"
+                  placeholder="Search lemmas..."
+                  autocomplete="off"
+                  data-i18n-placeholder="lemmas.search.placeholder"
+                />
               </div>
-              <p class="saved-title">Lemmas to learn</p>
-              <p class="empty-state is-hidden" id="lemmaEmpty">No lemmas yet. Translate a word to start tracking.</p>
+              <p class="saved-title" data-i18n="lemmas.to_learn">Lemmas to learn</p>
+              <p class="empty-state is-hidden" id="lemmaEmpty">
+                <span data-i18n="lemmas.empty">
+                  No lemmas yet. Translate a word to start tracking.
+                </span>
+              </p>
               <div class="lemma-list" id="lemmaList"></div>
-              <p class="saved-title learned-title">Learned lemmas</p>
-              <p class="empty-state is-hidden" id="lemmaLearnedEmpty">No learned lemmas yet.</p>
+              <p class="saved-title learned-title" data-i18n="lemmas.learned">
+                Learned lemmas
+              </p>
+              <p class="empty-state is-hidden" id="lemmaLearnedEmpty">
+                <span data-i18n="lemmas.learned.empty">No learned lemmas yet.</span>
+              </p>
               <div class="lemma-list" id="lemmaLearnedList"></div>
               <div class="saved-actions">
-                <button class="ghost" type="button" id="clearLemmas">Clear history</button>
+                <button class="ghost" type="button" id="clearLemmas" data-i18n="lemmas.action.clear">
+                  Clear history
+                </button>
               </div>
             </div>
           </section>
         </section>
 
-        <aside class="translation-panel is-hidden" id="translationPanel" aria-live="polite" data-screen="translation">
+        <aside
+          class="translation-panel is-hidden"
+          id="translationPanel"
+          aria-live="polite"
+          data-screen="translation"
+        >
           <div class="panel-body">
-            <p class="panel-german" id="selectionGerman">Tap a word</p>
+            <p class="panel-german" id="selectionGerman" data-i18n="translation.tap_word">
+              Tap a word
+            </p>
             <div class="panel-divider sentence-divider is-hidden" id="sentenceDivider" aria-hidden="true"></div>
-            <p class="panel-english" id="selectionEnglish">Перевод на русский появится здесь.</p>
+            <p class="panel-english" id="selectionEnglish" data-i18n="translation.placeholder">
+              Translation will appear here.
+            </p>
             <div class="panel-divider" id="translationDivider" aria-hidden="true"></div>
             <div class="governing-legend" id="panelGoverningLegend" aria-hidden="true">
-              <span class="legend-item"><span class="legend-swatch governing-gender" id="panelGenderWord">—</span> слово, определяющее род</span>
-              <span class="legend-item"><span class="legend-swatch governing-case" id="panelCaseWord">—</span> слово, задающее падеж</span>
+              <span class="legend-item">
+                <span class="legend-swatch governing-gender" id="panelGenderWord">—</span>
+                <span data-i18n="translation.legend.gender">gender governor</span>
+              </span>
+              <span class="legend-item">
+                <span class="legend-swatch governing-case" id="panelCaseWord">—</span>
+                <span data-i18n="translation.legend.case">case governor</span>
+              </span>
             </div>
-            <p class="panel-grammar" id="selectionGrammar">Объяснение склонения появится здесь.</p>
+            <p class="panel-grammar" id="selectionGrammar" data-i18n="translation.grammar.placeholder">
+              Declension notes will appear here.
+            </p>
             <div class="grammar-meta" id="grammarMeta">
               <div class="meta-pill" id="metaLemmaPill">
-                <span class="meta-label">Словарная форма</span>
+                <span class="meta-label" data-i18n="translation.meta.lemma">Dictionary form</span>
                 <span class="meta-value" id="metaLemma">—</span>
               </div>
               <div class="meta-pill" id="metaHeadPill">
-                <span class="meta-label">Главное слово</span>
+                <span class="meta-label" data-i18n="translation.meta.head">Head word</span>
                 <span class="meta-value" id="metaHead">—</span>
               </div>
               <div class="meta-pill" id="metaArticlePill">
-                <span class="meta-label">Артикль</span>
+                <span class="meta-label" data-i18n="translation.meta.article">Article</span>
                 <span class="meta-value" id="metaArticle">—</span>
               </div>
               <div class="meta-pill" id="metaGenderPill">
-                <span class="meta-label">Род</span>
+                <span class="meta-label" data-i18n="translation.meta.gender">Gender</span>
                 <span class="meta-value" id="metaGender">—</span>
               </div>
               <div class="meta-pill" id="metaCasePill">
-                <span class="meta-label">Падеж</span>
+                <span class="meta-label" data-i18n="translation.meta.case">Case</span>
                 <span class="meta-value" id="metaCase">—</span>
               </div>
             </div>
@@ -170,38 +268,81 @@
           </div>
         </aside>
 
-        <section class="book-panel settings-panel" aria-label="Settings" data-screen="settings">
+        <section
+          class="book-panel settings-panel"
+          aria-label="Settings"
+          data-screen="settings"
+          data-i18n-aria-label="screen.settings"
+        >
           <div class="settings-desktop-warning" role="note">
-            This website is developed for mobile screens only for the best on-the-go experience. Thanks for visiting on desktop — some layout details may look off here.
+            <span data-i18n="settings.desktop_warning">
+              This website is developed for mobile screens only for the best on-the-go experience.
+              Thanks for visiting on desktop — some layout details may look off here.
+            </span>
           </div>
-          <section class="home-library" aria-label="Reader settings">
+          <section
+            class="home-library"
+            aria-label="Reader settings"
+            data-i18n-aria-label="settings.section.reader"
+          >
             <div class="home-library-header">
               <div>
-                <h2 class="home-title">Settings</h2>
+                <h2 class="home-title" data-i18n="settings.title">Settings</h2>
               </div>
             </div>
             <div class="settings-body">
               <div class="api-modal-body">
-                <label class="api-label" for="apiKey">ChatGPT API key</label>
+                <label class="api-label" for="apiKey" data-i18n="settings.api.label">
+                  ChatGPT API key
+                </label>
                 <input
                   id="apiKey"
                   type="password"
                   placeholder="sk-..."
                   autocomplete="off"
+                  data-i18n-placeholder="settings.api.placeholder"
                 />
-                <p class="helper-text api-key-help">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI Platform</a></p>
+                <p class="helper-text api-key-help" data-i18n-html="settings.api.help">
+                  Get your API key from
+                  <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
+                    OpenAI Platform
+                  </a>
+                </p>
                 <div class="api-modal-actions">
-                  <button class="ghost" type="button" id="toggleKeyVisibility">Show</button>
-                  <button class="ghost" type="button" id="clearKey">Clear key</button>
-                  <button class="primary" type="button" id="saveKey">Save</button>
+                  <button class="ghost" type="button" id="toggleKeyVisibility" data-i18n="action.show">
+                    Show
+                  </button>
+                  <button class="ghost" type="button" id="clearKey" data-i18n="action.clear_key">
+                    Clear key
+                  </button>
+                  <button class="primary" type="button" id="saveKey" data-i18n="action.save">
+                    Save
+                  </button>
+                </div>
+              </div>
+              <div class="option-group">
+                <p class="form-label" id="uiLanguageLabel" data-i18n="settings.language.label">
+                  Language
+                </p>
+                <div class="option-row" role="group" data-i18n-aria-label="settings.language.label">
+                  <button class="option-button" type="button" data-ui-lang="en" data-i18n="settings.language.en">
+                    English
+                  </button>
+                  <button class="option-button" type="button" data-ui-lang="ru" data-i18n="settings.language.ru">
+                    Russian
+                  </button>
                 </div>
               </div>
             </div>
           </section>
-          <section class="home-library" aria-label="RSS manager">
+          <section
+            class="home-library"
+            aria-label="RSS manager"
+            data-i18n-aria-label="settings.section.rss"
+          >
             <div class="home-library-header">
               <div>
-                <h2 class="home-title">Manage feeds</h2>
+                <h2 class="home-title" data-i18n="settings.rss.title">Manage feeds</h2>
               </div>
             </div>
             <div class="settings-body">
@@ -211,8 +352,11 @@
                   type="url"
                   placeholder="https://example.com/feed.xml"
                   autocomplete="off"
+                  data-i18n-placeholder="settings.rss.placeholder"
                 />
-                <button class="primary" type="button" id="rssAdd">Add feed</button>
+                <button class="primary" type="button" id="rssAdd" data-i18n="rss.action.add_feed">
+                  Add feed
+                </button>
               </div>
               <div class="rss-search-row">
                 <input
@@ -220,35 +364,57 @@
                   type="url"
                   placeholder="Search by site or article URL"
                   autocomplete="off"
+                  data-i18n-placeholder="settings.rss.search_placeholder"
                 />
-                <button class="ghost" type="button" id="rssSearch">Search</button>
+                <button class="ghost" type="button" id="rssSearch" data-i18n="action.search">
+                  Search
+                </button>
               </div>
               <div class="rss-search-results is-hidden" id="rssSearchResults"></div>
               <p class="helper-text rss-attribution">
-                <a href="https://feedsearch.dev" target="_blank" rel="noopener noreferrer">powered by Feedsearch</a>
+                <a
+                  href="https://feedsearch.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="settings.rss.attribution"
+                >
+                  powered by Feedsearch
+                </a>
               </p>
               <p class="helper-text rss-status is-hidden" id="rssModalStatus"></p>
-              <p class="helper-text">We store your subscriptions locally in this browser.</p>
-              <p class="home-empty is-hidden" id="rssSubscriptionsEmpty">No feeds yet.</p>
+              <p class="helper-text" data-i18n="settings.rss.storage">
+                We store your subscriptions locally in this browser.
+              </p>
+              <p class="home-empty is-hidden" id="rssSubscriptionsEmpty" data-i18n="settings.rss.empty">
+                No feeds yet.
+              </p>
               <div class="rss-subscription-list" id="rssSubscriptions"></div>
             </div>
           </section>
-          <section class="home-library" aria-label="Reader appearance">
+          <section
+            class="home-library"
+            aria-label="Reader appearance"
+            data-i18n-aria-label="settings.section.appearance"
+          >
             <div class="home-library-header">
               <div>
-                <h2 class="home-title">Reader appearance</h2>
+                <h2 class="home-title" data-i18n="settings.appearance.title">Reader appearance</h2>
               </div>
             </div>
             <div class="settings-body">
               <div class="option-group">
-                <p class="form-label">Reader font</p>
+                <p class="form-label" data-i18n="settings.appearance.reader_font">Reader font</p>
                 <div class="option-row">
-                  <button class="option-button" type="button" data-font="serif">Serif</button>
-                  <button class="option-button" type="button" data-font="sans">Sans</button>
+                  <button class="option-button" type="button" data-font="serif" data-i18n="settings.appearance.font.serif">
+                    Serif
+                  </button>
+                  <button class="option-button" type="button" data-font="sans" data-i18n="settings.appearance.font.sans">
+                    Sans
+                  </button>
                 </div>
               </div>
               <div class="option-group">
-                <p class="form-label">Reader size</p>
+                <p class="form-label" data-i18n="settings.appearance.reader_size">Reader size</p>
                 <div class="slider-row">
                   <span class="slider-label">A</span>
                   <input
@@ -263,9 +429,9 @@
                 </div>
               </div>
               <div class="option-group">
-                <p class="form-label">Line spacing</p>
+                <p class="form-label" data-i18n="settings.appearance.line_spacing">Line spacing</p>
                 <div class="slider-row">
-                  <span class="slider-label">Tight</span>
+                  <span class="slider-label" data-i18n="settings.appearance.spacing.tight">Tight</span>
                   <input
                     class="size-slider"
                     id="readerLeadingSettings"
@@ -274,78 +440,98 @@
                     max="2"
                     step="0.05"
                   />
-                  <span class="slider-label">Loose</span>
+                  <span class="slider-label" data-i18n="settings.appearance.spacing.loose">Loose</span>
                 </div>
               </div>
               <div class="option-group">
-                <p class="form-label">Hyphenation</p>
+                <p class="form-label" data-i18n="settings.appearance.hyphenation">Hyphenation</p>
                 <div class="option-row">
                   <button class="option-button" type="button" data-hyphenation="on">
-                    On
+                    <span data-i18n="settings.appearance.toggle.on">On</span>
                   </button>
                   <button class="option-button" type="button" data-hyphenation="off">
-                    Off
+                    <span data-i18n="settings.appearance.toggle.off">Off</span>
                   </button>
                 </div>
               </div>
               <div class="option-group">
-                <p class="form-label">Justification</p>
+                <p class="form-label" data-i18n="settings.appearance.justification">Justification</p>
                 <div class="option-row">
                   <button class="option-button" type="button" data-justify="left">
-                    Left
+                    <span data-i18n="settings.appearance.justify.left">Left</span>
                   </button>
                   <button class="option-button" type="button" data-justify="justify">
-                    Justify
+                    <span data-i18n="settings.appearance.justify.justify">Justify</span>
                   </button>
                 </div>
               </div>
             </div>
           </section>
           <div class="settings-footer">
-            <button class="ghost mini" type="button" id="reloadApp">Reload</button>
-            <button class="danger mini" type="button" id="resetAllData">Reset all data</button>
+            <button class="ghost mini" type="button" id="reloadApp" data-i18n="action.reload">
+              Reload
+            </button>
+            <button class="danger mini" type="button" id="resetAllData" data-i18n="action.reset_all">
+              Reset all data
+            </button>
           </div>
         </section>
       </main>
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
         <div class="sheet-handle" aria-hidden="true"></div>
-        <p class="sheet-german" id="sheetGerman">Tap a word or sentence</p>
+        <p class="sheet-german" id="sheetGerman" data-i18n="translation.tap_word_sentence">
+          Tap a word or sentence
+        </p>
         <div class="panel-divider sheet-divider sentence-divider is-hidden" id="sheetSentenceDivider" aria-hidden="true"></div>
-        <p class="sheet-english" id="sheetEnglish">Перевод на русский появится здесь.</p>
+        <p class="sheet-english" id="sheetEnglish" data-i18n="translation.placeholder">
+          Translation will appear here.
+        </p>
         <div class="panel-divider sheet-divider" id="sheetDivider" aria-hidden="true"></div>
         <div class="sheet-grammar-stack">
           <div class="governing-legend" id="sheetGoverningLegend" aria-hidden="true">
-            <span class="legend-item"><span class="legend-swatch governing-gender" id="sheetGenderWord">—</span> слово, определяющее род</span>
-            <span class="legend-item"><span class="legend-swatch governing-case" id="sheetCaseWord">—</span> слово, задающее падеж</span>
+            <span class="legend-item">
+              <span class="legend-swatch governing-gender" id="sheetGenderWord">—</span>
+              <span data-i18n="translation.legend.gender">gender governor</span>
+            </span>
+            <span class="legend-item">
+              <span class="legend-swatch governing-case" id="sheetCaseWord">—</span>
+              <span data-i18n="translation.legend.case">case governor</span>
+            </span>
           </div>
           <div class="grammar-meta" id="sheetGrammarMeta">
             <div class="meta-pill" id="sheetMetaLemmaPill">
-              <span class="meta-label">Словарная форма</span>
+              <span class="meta-label" data-i18n="translation.meta.lemma">Dictionary form</span>
               <span class="meta-value" id="sheetMetaLemma">—</span>
             </div>
             <div class="meta-pill" id="sheetMetaHeadPill">
-              <span class="meta-label">Главное слово</span>
+              <span class="meta-label" data-i18n="translation.meta.head">Head word</span>
               <span class="meta-value" id="sheetMetaHead">—</span>
             </div>
             <div class="meta-pill" id="sheetMetaArticlePill">
-              <span class="meta-label">Артикль</span>
+              <span class="meta-label" data-i18n="translation.meta.article">Article</span>
               <span class="meta-value" id="sheetMetaArticle">—</span>
             </div>
             <div class="meta-pill" id="sheetMetaGenderPill">
-              <span class="meta-label">Род</span>
+              <span class="meta-label" data-i18n="translation.meta.gender">Gender</span>
               <span class="meta-value" id="sheetMetaGender">—</span>
             </div>
             <div class="meta-pill" id="sheetMetaCasePill">
-              <span class="meta-label">Падеж</span>
+              <span class="meta-label" data-i18n="translation.meta.case">Case</span>
               <span class="meta-value" id="sheetMetaCase">—</span>
             </div>
           </div>
-          <p class="sheet-grammar" id="sheetGrammar">Объяснение склонения появится здесь.</p>
+          <p class="sheet-grammar" id="sheetGrammar" data-i18n="translation.grammar.placeholder">
+            Declension notes will appear here.
+          </p>
         </div>
         <div class="sheet-actions">
-          <button class="ghost mini" id="copySelection">Copy word</button>
-          <button class="ghost mini" id="skipLemma">Do not add</button>
+          <button class="ghost mini" id="copySelection" data-i18n="translation.action.copy">
+            Copy word
+          </button>
+          <button class="ghost mini" id="skipLemma" data-i18n="translation.action.skip">
+            Do not add
+          </button>
         </div>
       </section>
 
@@ -353,19 +539,34 @@
         <div class="modal-content">
           <div class="modal-header">
             <div>
-              <h2>Bring new stories</h2>
+              <h2 data-i18n="modal.add_story.title">Bring new stories</h2>
             </div>
-            <button class="ghost circle" type="button" id="closeAddText" data-close-modal aria-label="Close">×</button>
+            <button
+              class="ghost circle"
+              type="button"
+              id="closeAddText"
+              data-close-modal
+              aria-label="Close"
+              data-i18n-aria-label="action.close"
+            >
+              ×
+            </button>
           </div>
           <div class="mode-switch">
-            <button class="mode-button active" type="button" data-mode="generate">Generate story</button>
-            <button class="mode-button" type="button" data-mode="paste">Paste text</button>
+            <button class="mode-button active" type="button" data-mode="generate" data-i18n="modal.add_story.mode.generate">
+              Generate story
+            </button>
+            <button class="mode-button" type="button" data-mode="paste" data-i18n="modal.add_story.mode.paste">
+              Paste text
+            </button>
           </div>
 
           <div class="mode-panel" id="modeGenerate">
             <div class="form-grid">
               <div class="form-field">
-                <label class="form-label" for="wordCount">Word amount</label>
+                <label class="form-label" for="wordCount" data-i18n="modal.add_story.word_amount">
+                  Word amount
+                </label>
                 <div class="slider-row">
                   <span class="slider-label">50</span>
                   <input
@@ -381,7 +582,9 @@
                 </div>
               </div>
               <div class="form-field">
-                <label class="form-label" id="levelLabel">Level</label>
+                <label class="form-label" id="levelLabel" data-i18n="modal.add_story.level">
+                  Level
+                </label>
                 <div class="option-row level-row" role="group" aria-labelledby="levelLabel">
                   <button class="option-button" type="button" data-level="A1">A1</button>
                   <button class="option-button" type="button" data-level="A2">A2</button>
@@ -392,34 +595,65 @@
                 </div>
               </div>
               <div class="form-field">
-                <label class="form-label" id="styleLabel">Style</label>
+                <label class="form-label" id="styleLabel" data-i18n="modal.add_story.style">
+                  Style
+                </label>
                 <div class="option-row style-row" role="group" aria-labelledby="styleLabel">
-                  <button class="option-button" type="button" data-style="casual">Casual</button>
-                  <button class="option-button" type="button" data-style="literary">Literary</button>
+                  <button class="option-button" type="button" data-style="casual" data-i18n="modal.add_story.style.casual">
+                    Casual
+                  </button>
+                  <button class="option-button" type="button" data-style="literary" data-i18n="modal.add_story.style.literary">
+                    Literary
+                  </button>
                 </div>
               </div>
             </div>
             <div class="form-row prompt-row">
-              <label class="form-label" for="promptBody">Story prompt</label>
+              <label class="form-label" for="promptBody" data-i18n="modal.add_story.prompt">
+                Story prompt
+              </label>
             </div>
             <textarea
               id="promptBody"
               rows="4"
               placeholder="A short story about a student on a rainy day, level A2."
+              data-i18n-placeholder="modal.add_story.prompt_placeholder"
             ></textarea>
             <div class="form-row">
-              <button class="ghost" type="button" id="suggestPrompt">Suggest</button>
-              <button class="primary" type="button" id="generateStory">Generate</button>
+              <button class="ghost" type="button" id="suggestPrompt" data-i18n="action.suggest">
+                Suggest
+              </button>
+              <button class="primary" type="button" id="generateStory" data-i18n="action.generate">
+                Generate
+              </button>
             </div>
-            <p class="helper-text">Uses your ChatGPT API key from above.</p>
+            <p class="helper-text" data-i18n="modal.add_story.helper">
+              Uses your ChatGPT API key from above.
+            </p>
           </div>
 
           <div class="mode-panel is-hidden" id="modePaste">
-            <label class="form-label" for="pasteTitle">Title</label>
-            <input id="pasteTitle" type="text" placeholder="Your title" />
-            <label class="form-label" for="pasteBody">German text</label>
-            <textarea id="pasteBody" rows="6" placeholder="Paste German text here."></textarea>
-            <button class="primary" type="button" id="savePaste">Add to reader</button>
+            <label class="form-label" for="pasteTitle" data-i18n="modal.paste.title">
+              Title
+            </label>
+            <input
+              id="pasteTitle"
+              type="text"
+              placeholder="Your title"
+              data-i18n-placeholder="modal.paste.title_placeholder"
+            />
+            <label class="form-label" for="pasteBody" data-i18n="modal.paste.body_label">
+              German text
+            </label>
+            <textarea
+              id="pasteBody"
+              rows="6"
+              placeholder="Paste German text here."
+              data-i18n-placeholder="modal.paste.body_placeholder"
+            ></textarea>
+            <button class="primary" type="button" id="savePaste" data-i18n="modal.paste.action.add">
+              Add to reader
+            </button>
           </div>
 
         </div>
@@ -435,7 +669,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <div>
-              <h2 id="readerAppearanceTitle">Reader appearance</h2>
+              <h2 id="readerAppearanceTitle" data-i18n="modal.appearance.title">Reader appearance</h2>
             </div>
             <button
               class="ghost circle"
@@ -443,20 +677,25 @@
               id="closeReaderAppearance"
               data-close-modal
               aria-label="Close"
+              data-i18n-aria-label="action.close"
             >
               ×
             </button>
           </div>
           <div class="theme-modal-body">
             <div class="option-group">
-              <p class="form-label">Font</p>
+              <p class="form-label" data-i18n="modal.appearance.font">Font</p>
               <div class="option-row">
-                <button class="option-button" type="button" data-font="serif">Serif</button>
-                <button class="option-button" type="button" data-font="sans">Sans</button>
+                <button class="option-button" type="button" data-font="serif" data-i18n="settings.appearance.font.serif">
+                  Serif
+                </button>
+                <button class="option-button" type="button" data-font="sans" data-i18n="settings.appearance.font.sans">
+                  Sans
+                </button>
               </div>
             </div>
             <div class="option-group">
-              <p class="form-label">Size</p>
+              <p class="form-label" data-i18n="modal.appearance.size">Size</p>
               <div class="slider-row">
                 <span class="slider-label">A</span>
                 <input
@@ -471,9 +710,9 @@
               </div>
             </div>
             <div class="option-group">
-              <p class="form-label">Line spacing</p>
+              <p class="form-label" data-i18n="settings.appearance.line_spacing">Line spacing</p>
               <div class="slider-row">
-                <span class="slider-label">Tight</span>
+                <span class="slider-label" data-i18n="settings.appearance.spacing.tight">Tight</span>
                 <input
                   class="size-slider"
                   id="readerLeading"
@@ -482,28 +721,28 @@
                   max="2"
                   step="0.05"
                 />
-                <span class="slider-label">Loose</span>
+                <span class="slider-label" data-i18n="settings.appearance.spacing.loose">Loose</span>
               </div>
             </div>
             <div class="option-group">
-              <p class="form-label">Hyphenation</p>
+              <p class="form-label" data-i18n="settings.appearance.hyphenation">Hyphenation</p>
               <div class="option-row">
                 <button class="option-button" type="button" data-hyphenation="on">
-                  On
+                  <span data-i18n="settings.appearance.toggle.on">On</span>
                 </button>
                 <button class="option-button" type="button" data-hyphenation="off">
-                  Off
+                  <span data-i18n="settings.appearance.toggle.off">Off</span>
                 </button>
               </div>
             </div>
             <div class="option-group">
-              <p class="form-label">Justification</p>
+              <p class="form-label" data-i18n="settings.appearance.justification">Justification</p>
               <div class="option-row">
                 <button class="option-button" type="button" data-justify="left">
-                  Left
+                  <span data-i18n="settings.appearance.justify.left">Left</span>
                 </button>
                 <button class="option-button" type="button" data-justify="justify">
-                  Justify
+                  <span data-i18n="settings.appearance.justify.justify">Justify</span>
                 </button>
               </div>
             </div>
