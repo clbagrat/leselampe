@@ -1647,6 +1647,12 @@ h2 {
 .saved-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.saved-actions .ghost.is-feedback {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 #openLemmas {

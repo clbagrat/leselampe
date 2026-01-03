@@ -47,6 +47,7 @@ const toggleApi = document.getElementById("toggleApi");
 const settingsScreen = document.querySelector('[data-screen="settings"]');
 const fontOptions = document.querySelectorAll("[data-font]");
 const hyphenationOptions = document.querySelectorAll("[data-hyphenation]");
+const sentencePerLineOptions = document.querySelectorAll("[data-sentence-per-line]");
 const justificationOptions = document.querySelectorAll("[data-justify]");
 const readerSize = document.getElementById("readerSize");
 const readerSizeSettings = document.getElementById("readerSizeSettings");
@@ -76,6 +77,7 @@ const lemmaList = document.getElementById("lemmaList");
 const lemmaEmpty = document.getElementById("lemmaEmpty");
 const lemmaLearnedList = document.getElementById("lemmaLearnedList");
 const lemmaLearnedEmpty = document.getElementById("lemmaLearnedEmpty");
+const exportLemmasButton = document.getElementById("exportLemmas");
 const clearLemmasButton = document.getElementById("clearLemmas");
 const lemmaSearch = document.getElementById("lemmaSearch");
 let lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
@@ -145,8 +147,8 @@ const UI_COPY = {
     "reader.action.font": "Font",
     "reader.action.finish": "I finish reading",
     "reader.status.read": "Marked as read.",
-    "lemmas.section": "Translated lemmas",
-    "lemmas.title": "Translated lemmas",
+    "lemmas.section": "Lemmas",
+    "lemmas.title": "Lemmas",
     "lemmas.helper":
       "We track lemmas when you translate a word. New stories try to include top lemmas; included ones become learned.",
     "lemmas.search.placeholder": "Search lemmas...",
@@ -154,6 +156,8 @@ const UI_COPY = {
     "lemmas.empty": "No lemmas yet. Translate a word to start tracking.",
     "lemmas.learned": "Learned lemmas",
     "lemmas.learned.empty": "No learned lemmas yet.",
+    "lemmas.action.export": "Export",
+    "lemmas.action.export.copied": "Copied",
     "lemmas.action.clear": "Clear history",
     "translation.tap_word": "Tap a word",
     "translation.tap_word_sentence": "Tap a word or sentence",
@@ -197,6 +201,7 @@ const UI_COPY = {
     "settings.appearance.spacing.tight": "Tight",
     "settings.appearance.spacing.loose": "Loose",
     "settings.appearance.hyphenation": "Hyphenation",
+    "settings.appearance.sentence_per_line": "One sentence per line",
     "settings.appearance.toggle.on": "On",
     "settings.appearance.toggle.off": "Off",
     "settings.appearance.justification": "Justification",
@@ -314,8 +319,8 @@ const UI_COPY = {
     "reader.action.font": "Шрифт",
     "reader.action.finish": "Я закончил чтение",
     "reader.status.read": "Отмечено как прочитанное.",
-    "lemmas.section": "Переведенные леммы",
-    "lemmas.title": "Переведенные леммы",
+    "lemmas.section": "Леммы",
+    "lemmas.title": "Леммы",
     "lemmas.helper":
       "Мы отслеживаем леммы при переводе слов. Новые истории стараются включать частые леммы; такие леммы становятся изученными.",
     "lemmas.search.placeholder": "Поиск лемм...",
@@ -323,6 +328,8 @@ const UI_COPY = {
     "lemmas.empty": "Пока нет лемм. Переведите слово, чтобы начать отслеживание.",
     "lemmas.learned": "Изученные леммы",
     "lemmas.learned.empty": "Пока нет изученных лемм.",
+    "lemmas.action.export": "Экспорт",
+    "lemmas.action.export.copied": "Скопировано",
     "lemmas.action.clear": "Очистить историю",
     "translation.tap_word": "Нажмите на слово",
     "translation.tap_word_sentence": "Нажмите на слово или предложение",
@@ -366,6 +373,7 @@ const UI_COPY = {
     "settings.appearance.spacing.tight": "Плотно",
     "settings.appearance.spacing.loose": "Свободно",
     "settings.appearance.hyphenation": "Переносы",
+    "settings.appearance.sentence_per_line": "Одна фраза в строке",
     "settings.appearance.toggle.on": "Вкл",
     "settings.appearance.toggle.off": "Выкл",
     "settings.appearance.justification": "Выравнивание",
@@ -440,7 +448,7 @@ const UI_COPY = {
     "story.add": "Добавить историю",
     "lemma.delete": "Удалить лемму",
     "lemma.no_matches": "Ничего не найдено.",
-    "lemma.mark_learned": "Отметить как выученное",
+    "lemma.mark_learned": "В изученное",
     "lemma.mark_unlearned": "На обучение",
     "translation.loading": "Переводим...",
     "translation.explaining": "Объясняем...",
@@ -580,6 +588,7 @@ let longPressTimer = null;
 let longPressTriggered = false;
 let sentenceTranslationEl = null;
 let currentStoryId = null;
+let currentRenderedStory = null;
 let currentRssItem = null;
 let readObserver = null;
 let lastSettingsReturnScreen = null;
@@ -1561,12 +1570,18 @@ const extractArticleBlocks = (html) => {
 
 const renderRssStory = (title, blocks, itemId) => {
   currentStoryId = itemId || null;
+  currentRenderedStory = {
+    type: "rss",
+    data: { title, blocks, itemId },
+  };
   storyTitle.innerHTML = "";
   if (title) {
     storyTitle.appendChild(buildSentenceSpan(title));
   }
   reader.innerHTML = "";
   resetTranslation();
+  const isSentencePerLine =
+    document.body.dataset.readerSentencePerLine === "on";
   if (!blocks || !blocks.length) {
     const empty = document.createElement("p");
     empty.className = "story";
@@ -1589,7 +1604,11 @@ const renderRssStory = (title, blocks, itemId) => {
       const sentenceSpan = buildSentenceSpan(sentence);
       paragraph.appendChild(sentenceSpan);
       if (index < sentences.length - 1) {
-        paragraph.appendChild(document.createTextNode(" "));
+        if (isSentencePerLine) {
+          paragraph.appendChild(document.createElement("br"));
+        } else {
+          paragraph.appendChild(document.createTextNode(" "));
+        }
       }
     });
     reader.appendChild(paragraph);
@@ -1621,6 +1640,7 @@ const openRssReaderScreen = (
 
 const showRssLoading = (title, message = t("rss.reader.loading_article")) => {
   currentStoryId = null;
+  currentRenderedStory = null;
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
   storyTitle.innerHTML = "";
@@ -3278,6 +3298,53 @@ const getLemmaEntries = (options = {}) => {
     });
 };
 
+const actionFeedbackTimers = new WeakMap();
+
+const flashActionButton = (button, defaultKey, feedbackKey) => {
+  if (!button) {
+    return;
+  }
+  const defaultLabel = t(defaultKey);
+  const feedbackLabel = t(feedbackKey);
+  button.textContent = feedbackLabel;
+  button.classList.add("is-feedback");
+  const existing = actionFeedbackTimers.get(button);
+  if (existing) {
+    window.clearTimeout(existing);
+  }
+  const timer = window.setTimeout(() => {
+    button.textContent = defaultLabel;
+    button.classList.remove("is-feedback");
+    actionFeedbackTimers.delete(button);
+  }, 1400);
+  actionFeedbackTimers.set(button, timer);
+};
+
+const collectLemmaExportValues = (entries = []) => {
+  const seen = new Set();
+  const values = [];
+  entries.forEach((entry) => {
+    const lemma = String(entry?.lemma || "").trim();
+    const key = normalizeLemmaKey(lemma);
+    if (!key || seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    values.push(lemma);
+  });
+  return values;
+};
+
+const exportLemmaEntriesToClipboard = (options = {}) => {
+  const entries = getLemmaEntries(options);
+  const values = collectLemmaExportValues(entries);
+  if (!values.length) {
+    return false;
+  }
+  copyTextToClipboard(values.join(", "));
+  return true;
+};
+
 const getTopLemmaList = (limit = 10) => {
   const entries = getLemmaEntries();
   const total = entries.length;
@@ -3821,6 +3888,7 @@ const buildSentenceSpan = (sentence) => {
 const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
   currentStoryId = String(story.id);
+  currentRenderedStory = { type: "story", data: story };
   storyTitle.innerHTML = "";
   if (story.title) {
     storyTitle.appendChild(buildSentenceSpan(story.title));
@@ -3829,6 +3897,8 @@ const renderStory = (story) => {
   resetTranslation();
 
   const blocks = buildStoryBlocks(story.text);
+  const isSentencePerLine =
+    document.body.dataset.readerSentencePerLine === "on";
   if (!blocks.length) {
     const empty = document.createElement("p");
     empty.className = "story";
@@ -3844,7 +3914,11 @@ const renderStory = (story) => {
       const sentenceSpan = buildSentenceSpan(sentence);
       paragraph.appendChild(sentenceSpan);
       if (index < sentences.length - 1) {
-        paragraph.appendChild(document.createTextNode(" "));
+        if (isSentencePerLine) {
+          paragraph.appendChild(document.createElement("br"));
+        } else {
+          paragraph.appendChild(document.createTextNode(" "));
+        }
       }
     });
     reader.appendChild(paragraph);
@@ -4525,6 +4599,27 @@ const applyReaderJustification = (mode) => {
   });
 };
 
+const applyReaderSentencePerLine = (mode) => {
+  const normalized = mode === "on" ? "on" : "off";
+  document.body.dataset.readerSentencePerLine = normalized;
+  localStorage.setItem("reader_sentence_per_line", normalized);
+  sentencePerLineOptions.forEach((option) => {
+    option.classList.toggle(
+      "active",
+      option.dataset.sentencePerLine === normalized
+    );
+  });
+  if (!currentRenderedStory) {
+    return;
+  }
+  if (currentRenderedStory.type === "rss") {
+    const { title, blocks, itemId } = currentRenderedStory.data || {};
+    renderRssStory(title, blocks, itemId);
+    return;
+  }
+  renderStory(currentRenderedStory.data);
+};
+
 const applyStoryWordCount = (value) => {
   const clamped = Math.min(600, Math.max(50, Number(value) || 120));
   if (wordCountSlider) {
@@ -4570,6 +4665,12 @@ hyphenationOptions.forEach((option) => {
   });
 });
 
+sentencePerLineOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyReaderSentencePerLine(option.dataset.sentencePerLine);
+  });
+});
+
 justificationOptions.forEach((option) => {
   option.addEventListener("click", () => {
     applyReaderJustification(option.dataset.justify);
@@ -4612,11 +4713,14 @@ const storedFont = localStorage.getItem("reader_font") || "serif";
 const storedSize = localStorage.getItem("reader_size") || "20";
 const storedLeading = localStorage.getItem("reader_leading") || "1.45";
 const storedHyphenation = localStorage.getItem("reader_hyphenation") || "on";
+const storedSentencePerLine =
+  localStorage.getItem("reader_sentence_per_line") || "off";
 const storedJustify = localStorage.getItem("reader_justify") || "left";
 applyReaderFont(storedFont);
 applyReaderSize(storedSize);
 applyReaderLeading(storedLeading);
 applyReaderHyphenation(storedHyphenation);
+applyReaderSentencePerLine(storedSentencePerLine);
 applyReaderJustification(storedJustify);
 const storedWordCount = localStorage.getItem(STORY_WORD_COUNT_KEY) || "120";
 const storedLevel = localStorage.getItem(STORY_LEVEL_KEY) || "A2";
@@ -5033,6 +5137,18 @@ if (clearLemmasButton) {
   clearLemmasButton.addEventListener("click", () => {
     localStorage.removeItem(LEMMA_STATS_KEY);
     renderLemmaList();
+  });
+}
+if (exportLemmasButton) {
+  exportLemmasButton.addEventListener("click", () => {
+    const didCopy = exportLemmaEntriesToClipboard();
+    if (didCopy) {
+      flashActionButton(
+        exportLemmasButton,
+        "lemmas.action.export",
+        "lemmas.action.export.copied"
+      );
+    }
   });
 }
 if (lemmaSearch) {
