@@ -25,6 +25,9 @@
 - Commit messages in history use short, imperative summaries (e.g., “Add …”, “Update …”, “Introduce …”). Follow that style.
 - PRs should include a concise description of the change, mention any user-facing behavior changes, and add screenshots or a short screen recording for UI updates.
 
+## Notifications
+- After finishing any command, send a short notification using: `curl -d "Done" ntfy.sh/bagrat_codex_done`.
+
 ## Configuration & Deployment Notes
 - GitHub Pages deploys from `main` via GitHub Actions (see `README.md`).
 - RSS requires a server-side proxy to avoid CORS; configure and deploy the Worker as described above.
