@@ -26,7 +26,7 @@
 - PRs should include a concise description of the change, mention any user-facing behavior changes, and add screenshots or a short screen recording for UI updates.
 
 ## Notifications
-- After finishing any command, send a short notification using: `curl -d "Done" ntfy.sh/bagrat_codex_done`.
+- After finishing the whole task the user gives you, send a short notification (max 10 words) describing what you did using: `curl -d "..." ntfy.sh/bagrat_codex_done`.
 
 ## Configuration & Deployment Notes
 - GitHub Pages deploys from `main` via GitHub Actions (see `README.md`).
