@@ -55,6 +55,7 @@ const readerLeading = document.getElementById("readerLeading");
 const readerLeadingSettings = document.getElementById("readerLeadingSettings");
 const toggleKeyVisibility = document.getElementById("toggleKeyVisibility");
 const clearKey = document.getElementById("clearKey");
+const uiLanguageGroup = document.getElementById("uiLanguageGroup");
 const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
 const readerStatus = document.getElementById("readerStatus");
@@ -183,7 +184,7 @@ const UI_COPY = {
     "settings.api.help":
       "Get your API key from <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Platform</a>",
     "settings.api.validating": "Validating...",
-    "settings.language.label": "Language",
+    "settings.language.label": "Your language",
     "settings.language.en": "English",
     "settings.language.ru": "Russian",
     "settings.rss.title": "Manage feeds",
@@ -355,7 +356,7 @@ const UI_COPY = {
     "settings.api.help":
       "Получите ключ на <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Platform</a>",
     "settings.api.validating": "Проверяем...",
-    "settings.language.label": "Язык",
+    "settings.language.label": "Ваш язык",
     "settings.language.en": "Английский",
     "settings.language.ru": "Русский",
     "settings.rss.title": "Управление лентами",
@@ -549,9 +550,27 @@ const setUiLanguage = (lang, { persist = false } = {}) => {
 };
 
 const updateLanguageButtons = () => {
+  const hasSelection = !(document.body.classList.contains("requires-language") && !hasStoredUiLang());
   uiLangButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.uiLang === currentUiLang);
+    button.classList.toggle(
+      "active",
+      hasSelection && button.dataset.uiLang === currentUiLang
+    );
   });
+};
+
+const hasStoredUiLang = () => Boolean(localStorage.getItem(UI_LANG_KEY));
+
+const needsLanguageSetup = () => {
+  const storedKey = localStorage.getItem("chatgpt_api_key");
+  return !storedKey && !hasStoredUiLang();
+};
+
+const focusLanguagePicker = (behavior = "smooth") => {
+  if (!uiLanguageGroup) {
+    return;
+  }
+  uiLanguageGroup.scrollIntoView({ behavior, block: "center" });
 };
 
 
@@ -646,10 +665,15 @@ const updateScreenScrollLock = () => {
   const hasActiveWord = Boolean(document.querySelector(".word.active"));
   const hasActiveSentence = Boolean(document.querySelector(".sentence.active"));
   const requiresKey = document.body.classList.contains("requires-key");
+  const requiresLanguage = document.body.classList.contains("requires-language");
   const isRssLoading = Boolean(rssLoadingItemId);
   screenLayout.classList.toggle(
     "is-locked",
-    hasActiveWord || hasActiveSentence || requiresKey || isRssLoading
+    hasActiveWord ||
+      hasActiveSentence ||
+      requiresKey ||
+      requiresLanguage ||
+      isRssLoading
   );
 };
 
@@ -4682,6 +4706,15 @@ uiLangButtons.forEach((button) => {
     const lang = button.dataset.uiLang;
     if (lang) {
       setUiLanguage(lang, { persist: true });
+      if (document.body.classList.contains("requires-language")) {
+        setLanguageRequirement(false);
+        if (!localStorage.getItem("chatgpt_api_key")) {
+          setApiKeyRequirement(true);
+          requestAnimationFrame(() => {
+            apiKeyInput?.focus();
+          });
+        }
+      }
     }
   });
 });
@@ -4736,6 +4769,11 @@ const initialUiLang = SUPPORTED_UI_LANGS.includes(storedUiLang)
 applyTranslations(initialUiLang);
 
 const setApiKeyRequirement = (required) => {
+  if (document.body.classList.contains("requires-language")) {
+    document.body.classList.remove("requires-key");
+    updateScreenScrollLock();
+    return;
+  }
   document.body.classList.toggle("requires-key", required);
   updateScreenScrollLock();
   if (required && settingsScreen) {
@@ -4744,6 +4782,25 @@ const setApiKeyRequirement = (required) => {
       lastSettingsReturnScreen = currentScreen;
     }
     scrollToScreen(settingsScreen, "auto");
+  }
+};
+
+const setLanguageRequirement = (required) => {
+  document.body.classList.toggle("requires-language", required);
+  if (required) {
+    document.body.classList.remove("requires-key");
+  }
+  updateScreenScrollLock();
+  updateLanguageButtons();
+  if (required && settingsScreen) {
+    const currentScreen = getCurrentScreen();
+    if (currentScreen && currentScreen.dataset.screen !== "settings") {
+      lastSettingsReturnScreen = currentScreen;
+    }
+    scrollToScreen(settingsScreen, "auto");
+    requestAnimationFrame(() => {
+      focusLanguagePicker("auto");
+    });
   }
 };
 
@@ -4767,7 +4824,10 @@ const openSettingsScreen = (forceRequired = false, behavior = "smooth") => {
 };
 
 const closeSettingsScreen = (behavior = "smooth", forceLibrary = false) => {
-  if (document.body.classList.contains("requires-key")) {
+  if (
+    document.body.classList.contains("requires-key") ||
+    document.body.classList.contains("requires-language")
+  ) {
     return;
   }
   if (forceLibrary) {
@@ -4776,6 +4836,22 @@ const closeSettingsScreen = (behavior = "smooth", forceLibrary = false) => {
     scrollToScreen(lastSettingsReturnScreen, behavior);
   } else {
     showLibraryScreen(behavior);
+  }
+};
+
+const startWelcomeFlow = (behavior = "auto") => {
+  if (needsLanguageSetup()) {
+    setLanguageRequirement(true);
+    openSettingsScreen(false, behavior);
+    return;
+  }
+  setLanguageRequirement(false);
+  const storedKey = localStorage.getItem("chatgpt_api_key");
+  if (!storedKey) {
+    openSettingsScreen(true, behavior);
+    requestAnimationFrame(() => {
+      apiKeyInput?.focus();
+    });
   }
 };
 
@@ -4849,15 +4925,12 @@ clearKey.addEventListener("click", () => {
   localStorage.removeItem("chatgpt_api_key");
   apiKeyInput.value = "";
   setKeyVisibility(false);
-  setApiKeyRequirement(true);
-  openSettingsScreen(true);
+  startWelcomeFlow("auto");
 });
 
 const storedKey = localStorage.getItem("chatgpt_api_key");
 if (storedKey) {
   apiKeyInput.value = storedKey;
-} else {
-  openSettingsScreen(true, "auto");
 }
 updateLemmaBadge();
 
@@ -4906,7 +4979,7 @@ const setMode = (mode) => {
 const showAddTextModal = () => {
   const storedKey = localStorage.getItem("chatgpt_api_key");
   if (!storedKey) {
-    openSettingsScreen(true);
+    startWelcomeFlow("smooth");
     return;
   }
   addTextModal.classList.remove("is-hidden");
@@ -4993,7 +5066,6 @@ const addRssSubscriptionUrl = (rawUrl) => {
 };
 
 const initializeStories = () => {
-  const storedKey = localStorage.getItem("chatgpt_api_key");
   const stories = loadStories();
   renderHomeStories(stories);
   renderLemmaList();
@@ -5005,9 +5077,7 @@ const initializeStories = () => {
     translationPanel.classList.add("is-hidden");
   }
   handleRoute();
-  if (!storedKey) {
-    openSettingsScreen(true, "auto");
-  }
+  startWelcomeFlow("auto");
   setInitialScreen();
   syncPageDots();
 };
@@ -5018,10 +5088,14 @@ const setInitialScreen = () => {
     return;
   }
   const requiresKey = document.body.classList.contains("requires-key");
-  const targetScreen = requiresKey ? settingsScreen : libraryScreen;
+  const requiresLanguage = document.body.classList.contains("requires-language");
+  const targetScreen =
+    requiresKey || requiresLanguage ? settingsScreen : libraryScreen;
   if (
     !targetScreen ||
-    (!requiresKey && document.body.classList.contains("view-reader"))
+    (!requiresKey &&
+      !requiresLanguage &&
+      document.body.classList.contains("view-reader"))
   ) {
     return;
   }

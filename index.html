@@ -289,6 +289,7 @@
             class="home-library"
             aria-label="Reader settings"
             data-i18n-aria-label="settings.section.reader"
+            data-settings-section="core"
           >
             <div class="home-library-header">
               <div>
@@ -296,7 +297,7 @@
               </div>
             </div>
             <div class="settings-body">
-              <div class="api-modal-body">
+              <div class="api-modal-body settings-api-block" id="apiKeyGroup">
                 <label class="api-label" for="apiKey" data-i18n="settings.api.label">
                   ChatGPT API key
                 </label>
@@ -325,7 +326,7 @@
                   </button>
                 </div>
               </div>
-              <div class="option-group">
+              <div class="option-group settings-language-block" id="uiLanguageGroup">
                 <p class="form-label" id="uiLanguageLabel" data-i18n="settings.language.label">
                   Language
                 </p>
@@ -344,6 +345,7 @@
             class="home-library"
             aria-label="RSS manager"
             data-i18n-aria-label="settings.section.rss"
+            data-settings-section="rss"
           >
             <div class="home-library-header">
               <div>
@@ -400,6 +402,7 @@
             class="home-library"
             aria-label="Reader appearance"
             data-i18n-aria-label="settings.section.appearance"
+            data-settings-section="appearance"
           >
             <div class="home-library-header">
               <div>

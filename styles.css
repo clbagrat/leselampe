@@ -993,6 +993,35 @@ h1 {
   opacity: 0.35;
 }
 
+.requires-key .settings-panel [data-settings-section]:not([data-settings-section="core"]),
+.requires-key .settings-footer {
+  display: none;
+}
+
+.requires-key .settings-panel .settings-language-block {
+  display: none;
+}
+
+.requires-language .top-bar,
+.requires-language .page-dots {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.requires-language .layout > :not([data-screen="settings"]) {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.requires-language .settings-panel [data-settings-section]:not([data-settings-section="core"]),
+.requires-language .settings-footer {
+  display: none;
+}
+
+.requires-language .settings-panel .settings-api-block {
+  display: none;
+}
+
 .reader {
   margin-top: 28px;
   font-family: var(--serif);
