@@ -95,6 +95,8 @@ const openReaderAppearance = document.getElementById("openReaderAppearance");
 const readerFinish = document.getElementById("readerFinish");
 const readerEnd = document.getElementById("readerEnd");
 const readerView = document.getElementById("readerView");
+const readerProgress = document.querySelector(".reader-progress");
+const readerProgressBar = document.getElementById("readerProgressBar");
 const pageDots = document.getElementById("pageDots");
 const rssRefresh = document.getElementById("rssRefresh");
 const rssUrlInput = document.getElementById("rssUrlInput");
@@ -675,6 +677,19 @@ const updateScreenScrollLock = () => {
       requiresLanguage ||
       isRssLoading
   );
+};
+
+let readerProgressFrame = null;
+const updateReaderProgress = () => {
+  if (!readerProgressBar || !readerPanel || !readerProgress) {
+    return;
+  }
+  const maxScroll = readerPanel.scrollHeight - readerPanel.clientHeight;
+  const progress = maxScroll > 0 ? readerPanel.scrollTop / maxScroll : 0;
+  const percent = Math.min(100, Math.max(0, Math.round(progress * 100)));
+  readerProgressBar.style.width = `${percent}%`;
+  const fade = Math.min(1, Math.max(0, progress / 0.05));
+  readerProgress.style.opacity = String(fade);
 };
 
 const clearGoverningHighlight = () => {
@@ -1611,6 +1626,7 @@ const renderRssStory = (title, blocks, itemId) => {
     empty.className = "story";
     empty.textContent = t("rss.reader.no_text");
     reader.appendChild(empty);
+    updateReaderProgress();
     return;
   }
   blocks.forEach((block) => {
@@ -1637,6 +1653,7 @@ const renderRssStory = (title, blocks, itemId) => {
     });
     reader.appendChild(paragraph);
   });
+  updateReaderProgress();
 };
 
 const openRssReaderScreen = (
@@ -1676,6 +1693,7 @@ const showRssLoading = (title, message = t("rss.reader.loading_article")) => {
   paragraph.className = "story";
   paragraph.textContent = message;
   reader.appendChild(paragraph);
+  updateReaderProgress();
 };
 
 const requestRssItemOpen = (item, options = {}) => {
@@ -3928,6 +3946,7 @@ const renderStory = (story) => {
     empty.className = "story";
     empty.textContent = t("rss.reader.no_text_available");
     reader.appendChild(empty);
+    updateReaderProgress();
     return;
   }
   blocks.forEach((block) => {
@@ -3947,6 +3966,7 @@ const renderStory = (story) => {
     });
     reader.appendChild(paragraph);
   });
+  updateReaderProgress();
 };
 
 const getApiKey = () => {
@@ -5153,6 +5173,18 @@ if (readerFinish) {
         readerEnd?.scrollIntoView({ behavior: "smooth", block: "end" });
       }, 500);
     }
+  });
+}
+
+if (readerPanel) {
+  readerPanel.addEventListener("scroll", () => {
+    if (readerProgressFrame) {
+      return;
+    }
+    readerProgressFrame = requestAnimationFrame(() => {
+      readerProgressFrame = null;
+      updateReaderProgress();
+    });
   });
 }
 if (homeList) {

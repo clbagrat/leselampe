@@ -750,6 +750,38 @@ body {
   z-index: 1;
 }
 
+.reader-progress {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  transform: translate(-26px, -20px);
+  width: calc(100% + 46px);
+  height: 3px;
+  margin: 0;
+  background: transparent;
+  border-radius: 999px;
+  overflow: hidden;
+  z-index: 6;
+  opacity: 0;
+}
+
+.reader-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.05s linear;
+}
+
+.reader-panel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.reader-panel::-webkit-scrollbar {
+  display: none;
+}
+
 .reader-end {
   height: 1px;
 }
