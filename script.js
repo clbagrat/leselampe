@@ -49,6 +49,7 @@ const copySelection = document.getElementById("copySelection");
 const skipLemma = document.getElementById("skipLemma");
 const reportTranslationSheet = document.getElementById("reportTranslationSheet");
 const apiKeyInput = document.getElementById("apiKey");
+const apiKeyError = document.getElementById("apiKeyError");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
 const settingsScreen = document.querySelector('[data-screen="settings"]');
@@ -5076,6 +5077,14 @@ const validateApiKey = async (apiKey) => {
   }
 };
 
+const setApiKeyError = (message) => {
+  if (!apiKeyError) {
+    return;
+  }
+  apiKeyError.textContent = message || "";
+  apiKeyError.classList.toggle("is-visible", Boolean(message));
+};
+
 saveKey.addEventListener("click", async () => {
   const apiKey = apiKeyInput.value.trim();
   if (!apiKey) {
@@ -5094,12 +5103,13 @@ saveKey.addEventListener("click", async () => {
     localStorage.setItem("chatgpt_api_key", apiKey);
     apiKeyInput.value = apiKey;
     setApiKeyRequirement(false);
+    setApiKeyError("");
     saveKey.textContent = originalText;
     saveKey.disabled = false;
     closeSettingsScreen("smooth", true);
   } else {
     // Show error message
-    alert(validation.error);
+    setApiKeyError(validation.error);
     saveKey.textContent = originalText;
     saveKey.disabled = false;
   }
@@ -5118,6 +5128,7 @@ toggleKeyVisibility.addEventListener("click", () => {
 clearKey.addEventListener("click", () => {
   localStorage.removeItem("chatgpt_api_key");
   apiKeyInput.value = "";
+  setApiKeyError("");
   setKeyVisibility(false);
   startWelcomeFlow("auto");
 });
@@ -5127,6 +5138,10 @@ if (storedKey) {
   apiKeyInput.value = storedKey;
 }
 updateLemmaBadge();
+
+apiKeyInput.addEventListener("input", () => {
+  setApiKeyError("");
+});
 
 if (wordCountSlider) {
   wordCountSlider.addEventListener("input", () => {

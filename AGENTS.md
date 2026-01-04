@@ -20,6 +20,8 @@
 ## Testing Guidelines
 - No automated test framework is present. Validate changes manually in the browser.
 - For UI updates, verify core flows: reading a story, translating a word, lemma list, and settings.
+- Always test in an iPhone 14 Pro Max viewport (430x932).
+- When running tests, use the Chrome DevTools MCP browser.
 
 ## Commit & Pull Request Guidelines
 - Commit messages in history use short, imperative summaries (e.g., “Add …”, “Update …”, “Introduce …”). Follow that style.

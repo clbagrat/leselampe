@@ -882,6 +882,16 @@ h1 {
   margin: 0;
 }
 
+.api-key-error {
+  color: #b04636;
+  display: none;
+  opacity: 1;
+}
+
+.api-key-error.is-visible {
+  display: block;
+}
+
 .api-key-help a {
   color: var(--accent);
   text-decoration: none;
