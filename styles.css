@@ -1631,6 +1631,8 @@ h2 {
 .lemma-name {
   font-weight: 600;
   font-family: var(--serif);
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 
 .lemma-count {

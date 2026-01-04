@@ -3599,11 +3599,6 @@ const renderLemmaList = () => {
       const metrics = document.createElement("div");
       metrics.className = "lemma-metrics";
 
-      const count = document.createElement("span");
-      count.className = "lemma-count";
-      count.textContent = `×${countValue}`;
-
-      metrics.appendChild(count);
       const markLearned = document.createElement("button");
       markLearned.className = "ghost mini lemma-action";
       markLearned.type = "button";
@@ -3671,12 +3666,6 @@ const renderLearnedLemmaList = () => {
 
     const metrics = document.createElement("div");
     metrics.className = "lemma-metrics";
-
-    const count = document.createElement("span");
-    count.className = "lemma-count";
-    count.textContent = `×${Number(entry.count) || 1}`;
-
-    metrics.appendChild(count);
     const markUnlearned = document.createElement("button");
     markUnlearned.className = "ghost mini lemma-action";
     markUnlearned.type = "button";
