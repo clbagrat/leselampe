@@ -21,6 +21,8 @@ const sheetSentenceDivider = document.getElementById("sheetSentenceDivider");
 const sheetDivider = document.getElementById("sheetDivider");
 const sheetGerman = document.getElementById("sheetGerman");
 const sheetEnglish = document.getElementById("sheetEnglish");
+const sheetCompound = document.getElementById("sheetCompound");
+const sheetCompoundList = document.getElementById("sheetCompoundList");
 const sheetGrammar = document.getElementById("sheetGrammar");
 const sheetGrammarMeta = document.getElementById("sheetGrammarMeta");
 const sheetMetaLemma = document.getElementById("sheetMetaLemma");
@@ -37,6 +39,10 @@ const panelGenderWord = document.getElementById("panelGenderWord");
 const panelCaseWord = document.getElementById("panelCaseWord");
 const sheetGenderWord = document.getElementById("sheetGenderWord");
 const sheetCaseWord = document.getElementById("sheetCaseWord");
+const panelGenderLegendItem = document.getElementById("panelGenderLegendItem");
+const panelCaseLegendItem = document.getElementById("panelCaseLegendItem");
+const sheetGenderLegendItem = document.getElementById("sheetGenderLegendItem");
+const sheetCaseLegendItem = document.getElementById("sheetCaseLegendItem");
 const panelGoverningLegend = document.getElementById("panelGoverningLegend");
 const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const copySelection = document.getElementById("copySelection");
@@ -2090,6 +2096,44 @@ const createRssItemId = (item) => {
   return `rss:${hashString(signature)}`;
 };
 
+const setSheetCompoundParts = (parts, isWord, isCompound) => {
+  if (!sheetCompound || !sheetCompoundList) {
+    return;
+  }
+  const cleanedParts = Array.isArray(parts)
+    ? parts.filter(
+        (part) =>
+          part &&
+          typeof part.word === "string" &&
+          typeof part.translation === "string" &&
+          part.word.trim() &&
+          part.translation.trim()
+      )
+    : [];
+  if (!isWord || !isCompound || cleanedParts.length < 2) {
+    sheetCompoundList.textContent = "";
+    sheetCompound.classList.add("is-hidden");
+    return;
+  }
+  sheetCompoundList.textContent = "";
+  cleanedParts.forEach((part) => {
+    const row = document.createElement("div");
+    row.className = "sheet-compound-item";
+    const word = document.createElement("span");
+    word.className = "sheet-compound-word";
+    word.textContent = part.word.trim();
+    const sep = document.createElement("span");
+    sep.className = "sheet-compound-sep";
+    sep.textContent = " - ";
+    const translation = document.createElement("span");
+    translation.className = "sheet-compound-translation";
+    translation.textContent = part.translation.trim();
+    row.append(word, sep, translation);
+    sheetCompoundList.appendChild(row);
+  });
+  sheetCompound.classList.remove("is-hidden");
+};
+
 const updateTranslation = (type, german, translation, grammar, meta, options = {}) => {
   lastGerman = german;
   lastTranslation = translation;
@@ -2112,12 +2156,35 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   sheetGerman.textContent = german;
   sheetEnglish.textContent = translation;
   sheetGrammar.innerHTML = sheetGrammarHtml;
+  setSheetCompoundParts(
+    meta?.compoundParts,
+    isWord,
+    isWord && meta?.isCompound
+  );
   panelGenderWord.textContent = meta?.genderWord || "—";
   panelCaseWord.textContent = meta?.caseWord || "—";
   sheetGenderWord.textContent = meta?.genderWord || "—";
   sheetCaseWord.textContent = meta?.caseWord || "—";
-  const hasLegend =
-    isWord && !!(meta?.genderWord || meta?.caseWord);
+  const normalizedGerman = String(german || "").trim().toLowerCase();
+  const normalizedGender = String(meta?.genderWord || "").trim().toLowerCase();
+  const normalizedCase = String(meta?.caseWord || "").trim().toLowerCase();
+  const showGenderLegend =
+    isWord && !!normalizedGender && normalizedGender !== normalizedGerman;
+  const showCaseLegend =
+    isWord && !!normalizedCase && normalizedCase !== normalizedGerman;
+  if (panelGenderLegendItem) {
+    panelGenderLegendItem.classList.toggle("is-hidden", !showGenderLegend);
+  }
+  if (panelCaseLegendItem) {
+    panelCaseLegendItem.classList.toggle("is-hidden", !showCaseLegend);
+  }
+  if (sheetGenderLegendItem) {
+    sheetGenderLegendItem.classList.toggle("is-hidden", !showGenderLegend);
+  }
+  if (sheetCaseLegendItem) {
+    sheetCaseLegendItem.classList.toggle("is-hidden", !showCaseLegend);
+  }
+  const hasLegend = showGenderLegend || showCaseLegend;
   panelGoverningLegend.classList.toggle("is-hidden", !hasLegend);
   sheetGoverningLegend.classList.toggle("is-hidden", !hasLegend);
   if (skipLemma) {
@@ -4006,12 +4073,13 @@ const translateWithChatGPT = async (text, type, context) => {
               role: "system",
               content:
                 `You are a ${translationDirection} translation and grammar assistant. ` +
-                "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\"}. " +
-                `LANGUAGE REQUIREMENTS: translation, declension_explanation, and form_explanation must be in ${nativeLanguageName}. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word) must be in GERMAN only - never translate these to ${nativeLanguageName}. ` +
+                "Respond with strict JSON: {\"translation\":\"...\",\"declension_explanation\":\"...\",\"form_explanation\":\"...\",\"lemma\":\"...\",\"article\":\"...\",\"gender\":\"...\",\"case\":\"...\",\"case_governing_word\":\"...\",\"gender_governing_word\":\"...\",\"has_detached_prefix\":false,\"detached_prefix_word\":\"...\",\"combined_word\":\"...\",\"is_compound\":false,\"compound_parts\":[{\"word\":\"...\",\"translation\":\"...\"}]}. " +
+                `LANGUAGE REQUIREMENTS: translation, declension_explanation, form_explanation, and compound_parts[].translation must be in ${nativeLanguageName}. ALL OTHER FIELDS (lemma, article, gender, case, case_governing_word, gender_governing_word, detached_prefix_word, combined_word, compound_parts[].word) must be in GERMAN only - never translate these to ${nativeLanguageName}. ` +
                 `The declension explanation must be in ${nativeLanguageName}, short, and if no declension applies, explain why. ` +
                 `The form_explanation must be in ${nativeLanguageName} and explain how the word form differs from its lemma (tense, case, number, or other change); if the form matches the lemma, return an empty string. ` +
                 "The case_governing_word must be the exact German word from the sentence that triggers the case (empty if none). " +
                 "The gender_governing_word must be the exact German word that determines gender (typically the noun lemma or head noun). " +
+                "If the word is a compound (two or more meaningful components, common for nouns), set is_compound=true and list the components in order in compound_parts. Use dictionary-form components (remove linking letters like -s-/-en- when appropriate). Only set is_compound=true if you're confident and can list at least two components; otherwise set is_compound=false and compound_parts=[]. " +
                 "For separable verbs: CRITICAL - Check if the clicked word is part of a separable verb construction where the prefix is separated from the verb in the sentence. The prefix typically appears at the END of the clause. This applies to verbs in ANY tense/form (steigen, stieg, gestiegen, schauen, schaute, geschaut) AND separated prefixes. If found, set has_detached_prefix=true, provide the OTHER part in detached_prefix_word (exact text from sentence), and provide the combined infinitive in combined_word. Examples: (1) clicking 'steigen' in 'Sie steigen aus' → detached_prefix_word='aus', combined_word='aussteigen'. (2) clicking 'schauten' in 'Sie schauten sich an' → detached_prefix_word='an', combined_word='anschauen'. (3) clicking 'kommt' in 'Sie kommt an' → detached_prefix_word='an', combined_word='ankommen'. (4) clicking 'an' in 'Sie schauten sich an' → detached_prefix_word='schauten', combined_word='anschauen'. The translation should be for the combined word. " +
                 "Use empty strings when lemma/article/gender/case cannot be determined.",
             },
@@ -4060,12 +4128,15 @@ const translateWithChatGPT = async (text, type, context) => {
             translation: raw,
             declension_explanation:
               t("translation.sentence_only"),
+            form_explanation: "",
             lemma: "",
             article: "",
             gender: "",
             case: "",
             case_governing_word: "",
             gender_governing_word: "",
+            is_compound: false,
+            compound_parts: [],
           };
 
     if (!parsed.translation) {
@@ -4073,6 +4144,15 @@ const translateWithChatGPT = async (text, type, context) => {
     }
     if (typeof parsed.declension_explanation !== "string") {
       parsed.declension_explanation = "";
+    }
+    if (typeof parsed.form_explanation !== "string") {
+      parsed.form_explanation = "";
+    }
+    if (typeof parsed.is_compound !== "boolean") {
+      parsed.is_compound = false;
+    }
+    if (!Array.isArray(parsed.compound_parts)) {
+      parsed.compound_parts = [];
     }
 
     translationCache.set(cacheKey, parsed);
@@ -4186,6 +4266,7 @@ const handleSentenceContainerClick = (event) => {
     setActiveSentence(sentenceEl);
     word.classList.add("active");
     setWordLoading(word, true);
+    setSheetCompoundParts([], false, false);
     const german = getCleanWordText(word);
     const requestId = ++translationRequestId;
     updateTranslation(
@@ -4236,6 +4317,9 @@ const handleSentenceContainerClick = (event) => {
       const displayGerman = (result?.has_detached_prefix && result?.combined_word)
         ? result.combined_word
         : german;
+      const compoundParts = Array.isArray(result?.compound_parts)
+        ? result.compound_parts
+        : [];
       const meta = {
         lemma: (result?.has_detached_prefix && result?.combined_word) ? result.combined_word : (result?.lemma || ""),
         head: "",
@@ -4245,6 +4329,8 @@ const handleSentenceContainerClick = (event) => {
         caseWord: result?.case_governing_word || "",
         genderWord: result?.gender_governing_word || "",
         formExplanation: result?.form_explanation || "",
+        isCompound: !!result?.is_compound,
+        compoundParts,
       };
 
       if (word.dataset.pos === "article") {

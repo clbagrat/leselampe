@@ -237,11 +237,11 @@
             </p>
             <div class="panel-divider" id="translationDivider" aria-hidden="true"></div>
             <div class="governing-legend" id="panelGoverningLegend" aria-hidden="true">
-              <span class="legend-item">
+              <span class="legend-item" id="panelGenderLegendItem">
                 <span class="legend-swatch governing-gender" id="panelGenderWord">—</span>
                 <span data-i18n="translation.legend.gender">gender governor</span>
               </span>
-              <span class="legend-item">
+              <span class="legend-item" id="panelCaseLegendItem">
                 <span class="legend-swatch governing-case" id="panelCaseWord">—</span>
                 <span data-i18n="translation.legend.case">case governor</span>
               </span>
@@ -511,14 +511,17 @@
         <p class="sheet-english" id="sheetEnglish" data-i18n="translation.placeholder">
           Translation will appear here.
         </p>
+        <div class="sheet-compound is-hidden" id="sheetCompound">
+          <div class="sheet-compound-list" id="sheetCompoundList"></div>
+        </div>
         <div class="panel-divider sheet-divider" id="sheetDivider" aria-hidden="true"></div>
         <div class="sheet-grammar-stack">
           <div class="governing-legend" id="sheetGoverningLegend" aria-hidden="true">
-            <span class="legend-item">
+            <span class="legend-item" id="sheetGenderLegendItem">
               <span class="legend-swatch governing-gender" id="sheetGenderWord">—</span>
               <span data-i18n="translation.legend.gender">gender governor</span>
             </span>
-            <span class="legend-item">
+            <span class="legend-item" id="sheetCaseLegendItem">
               <span class="legend-swatch governing-case" id="sheetCaseWord">—</span>
               <span data-i18n="translation.legend.case">case governor</span>
             </span>
