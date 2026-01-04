@@ -47,6 +47,7 @@ const panelGoverningLegend = document.getElementById("panelGoverningLegend");
 const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const copySelection = document.getElementById("copySelection");
 const skipLemma = document.getElementById("skipLemma");
+const reportTranslationSheet = document.getElementById("reportTranslationSheet");
 const apiKeyInput = document.getElementById("apiKey");
 const saveKey = document.getElementById("saveKey");
 const toggleApi = document.getElementById("toggleApi");
@@ -181,6 +182,13 @@ const UI_COPY = {
     "translation.meta.case": "Case",
     "translation.action.copy": "Copy word",
     "translation.action.skip": "Do not add",
+    "translation.report.action": "Report issue",
+    "translation.report.sending": "Sending...",
+    "translation.report.sent": "Reported",
+    "translation.report.failed": "Failed",
+    "translation.report.prompt": "What should be improved? (optional)",
+    "translation.report.no_data": "Select a translated word or sentence first.",
+    "translation.report.missing_endpoint": "Report endpoint is not configured yet.",
     "settings.desktop_warning":
       "This website is developed for mobile screens only for the best on-the-go experience. Thanks for visiting on desktop — some layout details may look off here.",
     "settings.section.reader": "Reader settings",
@@ -353,6 +361,13 @@ const UI_COPY = {
     "translation.meta.case": "Падеж",
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
+    "translation.report.action": "Сообщить об ошибке",
+    "translation.report.sending": "Отправка...",
+    "translation.report.sent": "Отправлено",
+    "translation.report.failed": "Не удалось",
+    "translation.report.prompt": "Что нужно улучшить? (необязательно)",
+    "translation.report.no_data": "Сначала выберите слово или предложение с переводом.",
+    "translation.report.missing_endpoint": "Сервер для отчетов еще не настроен.",
     "settings.desktop_warning":
       "Сайт оптимизирован для мобильных экранов. На десктопе некоторые детали могут выглядеть иначе.",
     "settings.section.reader": "Настройки чтения",
@@ -606,6 +621,9 @@ const updateStandaloneMode = () => {
 let lastGerman = "";
 let lastTranslation = "";
 let lastGrammar = "";
+let lastSentence = "";
+let lastTranslationType = "word";
+let lastMeta = null;
 const translationCache = new Map();
 let pendingController = null;
 let generationController = null;
@@ -654,6 +672,7 @@ const RSS_ITEM_LEVELS_KEY = "reader_rss_item_levels_v1";
 const RSS_ADAPT_STORAGE_KEY = "reader_rss_adapt_v1";
 const LIBRARY_VIEW_KEY = "reader_library_view_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
+const REPORT_ISSUE_ENDPOINT = "https://leselampe-report.gobedashvilibagrat.workers.dev";
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
@@ -2004,6 +2023,74 @@ const updateCopyButtonLabel = (type) => {
   copySelection.textContent = label;
 };
 
+const getReportButtons = () =>
+  [reportTranslationSheet].filter(Boolean);
+
+const setReportButtonsState = (label, disabled) => {
+  getReportButtons().forEach((button) => {
+    button.textContent = label;
+    button.disabled = disabled;
+  });
+};
+
+const resetReportButtons = () => {
+  setReportButtonsState(t("translation.report.action"), false);
+};
+
+const submitTranslationReport = async () => {
+  if (!REPORT_ISSUE_ENDPOINT) {
+    window.alert(t("translation.report.missing_endpoint"));
+    return;
+  }
+  if (
+    !lastGerman ||
+    !lastTranslation ||
+    lastTranslation === t("translation.placeholder") ||
+    lastGerman === t("translation.tap_word") ||
+    lastGerman === t("translation.tap_word_sentence")
+  ) {
+    window.alert(t("translation.report.no_data"));
+    return;
+  }
+  const note = window.prompt(t("translation.report.prompt"), "");
+  if (note === null) {
+    return;
+  }
+  setReportButtonsState(t("translation.report.sending"), true);
+  try {
+    const payload = {
+      type: lastTranslationType,
+      german: lastGerman,
+      translation: lastTranslation,
+      grammar: lastGrammar,
+      sentence: lastSentence,
+      meta: lastMeta,
+      note: note.trim(),
+      uiLanguage: currentUiLang,
+      storyId: currentStoryId,
+      storyTitle: currentRenderedStory?.title || "",
+      rssItemTitle: currentRssItem?.title || "",
+      rssItemLink: currentRssItem?.link || "",
+      reportedAt: new Date().toISOString(),
+    };
+    const response = await fetch(REPORT_ISSUE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error("Report failed");
+    }
+    setReportButtonsState(t("translation.report.sent"), false);
+    window.setTimeout(resetReportButtons, 2200);
+  } catch (error) {
+    setReportButtonsState(t("translation.report.failed"), false);
+    window.setTimeout(resetReportButtons, 2200);
+  }
+};
+
 const syncReaderBottomPadding = () => {
   if (!readerPanel) {
     return;
@@ -2138,6 +2225,14 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   lastGerman = german;
   lastTranslation = translation;
   lastGrammar = grammar;
+  lastTranslationType = type;
+  lastMeta = meta || null;
+  const isLoading = translation === t("translation.loading");
+  translationPanel?.classList.toggle("is-loading", isLoading);
+  bottomSheet?.classList.toggle("is-loading", isLoading);
+  if (!getReportButtons().some((button) => button.disabled)) {
+    resetReportButtons();
+  }
   selectionGerman.textContent = german;
   selectionEnglish.textContent = translation;
   const isWord = type === "word";
@@ -4266,6 +4361,7 @@ const handleSentenceContainerClick = (event) => {
       null
     );
     const sentenceText = sentenceEl?.textContent.trim() || "";
+    lastSentence = sentenceText;
     translateWithChatGPT(german, "word", sentenceText).then((result) => {
       if (requestId !== translationRequestId) {
         setWordLoading(word, false);
@@ -4537,6 +4633,7 @@ const translateSentenceText = (
   if (!german) {
     return;
   }
+  lastSentence = german;
   clearActiveWord();
   clearGoverningHighlight();
   clearSentenceTranslationHighlight();
@@ -4660,6 +4757,8 @@ copySelection?.addEventListener("click", () => {
   const text = type === "sentence" ? lastGerman : lastGerman;
   copyTextToClipboard(text);
 });
+
+reportTranslationSheet?.addEventListener("click", submitTranslationReport);
 
 skipLemma?.addEventListener("click", () => {
   resetTranslation({ commitLemma: false });

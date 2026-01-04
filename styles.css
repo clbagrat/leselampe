@@ -1891,9 +1891,16 @@ button {
 
 .sheet-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   margin-top: 7px;
 }
+
+.bottom-sheet.is-loading .sheet-actions {
+  display: none;
+}
+
 
 .sheet-grammar-stack {
   display: grid;
