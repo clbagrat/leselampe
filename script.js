@@ -106,6 +106,7 @@ const readerView = document.getElementById("readerView");
 const readerProgress = document.querySelector(".reader-progress");
 const readerProgressBar = document.getElementById("readerProgressBar");
 const pageDots = document.getElementById("pageDots");
+const libraryHintButtons = document.querySelectorAll(".library-hint[data-library-target]");
 const rssRefresh = document.getElementById("rssRefresh");
 const rssUrlInput = document.getElementById("rssUrlInput");
 const rssAdd = document.getElementById("rssAdd");
@@ -2184,6 +2185,14 @@ const createRssItemId = (item) => {
   return `rss:${hashString(signature)}`;
 };
 
+const normalizeGoverningWord = (value) => {
+  const text = String(value || "").trim();
+  if (!text || text === "-" || text === "—" || text === "–") {
+    return "";
+  }
+  return text;
+};
+
 const setSheetCompoundParts = (parts, isWord, isCompound) => {
   if (!sheetCompound || !sheetCompoundList) {
     return;
@@ -2261,9 +2270,15 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   panelCaseWord.textContent = meta?.caseWord || "—";
   sheetGenderWord.textContent = meta?.genderWord || "—";
   sheetCaseWord.textContent = meta?.caseWord || "—";
-  const normalizedGerman = String(german || "").trim().toLowerCase();
-  const normalizedGender = String(meta?.genderWord || "").trim().toLowerCase();
-  const normalizedCase = String(meta?.caseWord || "").trim().toLowerCase();
+  const normalizedGerman = stripTokenPunctuation(String(german || ""))
+    .trim()
+    .toLowerCase();
+  const normalizedGender = stripTokenPunctuation(String(meta?.genderWord || ""))
+    .trim()
+    .toLowerCase();
+  const normalizedCase = stripTokenPunctuation(String(meta?.caseWord || ""))
+    .trim()
+    .toLowerCase();
   const showGenderLegend =
     isWord && !!normalizedGender && normalizedGender !== normalizedGerman;
   const showCaseLegend =
@@ -2607,6 +2622,24 @@ const setLibraryView = (index) => {
   });
 };
 
+const jumpToLibraryView = (viewName) => {
+  if (!viewName) {
+    return;
+  }
+  refreshLibraryViews();
+  if (!libraryViews.length) {
+    return;
+  }
+  const nextIndex = libraryViews.findIndex(
+    (view) => view.dataset.libraryView === viewName
+  );
+  if (nextIndex < 0 || nextIndex === libraryActiveIndex) {
+    return;
+  }
+  resetLibraryPull();
+  setLibraryView(nextIndex);
+};
+
 const setLibraryPull = (value) => {
   if (!libraryPanel) {
     return;
@@ -2725,6 +2758,14 @@ const initializeLibraryViews = () => {
     view.addEventListener("touchend", handleLibraryTouchEnd, { passive: true });
     view.addEventListener("touchcancel", handleLibraryTouchEnd, { passive: true });
   });
+};
+
+const handleLibraryHintClick = (event) => {
+  const target = event.currentTarget?.dataset?.libraryTarget;
+  if (!target) {
+    return;
+  }
+  jumpToLibraryView(target);
 };
 
 const handleRoute = () => {
@@ -4406,14 +4447,16 @@ const handleSentenceContainerClick = (event) => {
       const compoundParts = Array.isArray(result?.compound_parts)
         ? result.compound_parts
         : [];
+      const caseWord = normalizeGoverningWord(result?.case_governing_word);
+      const genderWord = normalizeGoverningWord(result?.gender_governing_word);
       const meta = {
         lemma: (result?.has_detached_prefix && result?.combined_word) ? result.combined_word : (result?.lemma || ""),
         head: "",
         article: result?.article || "",
         gender: result?.gender || "",
         case: result?.case || "",
-        caseWord: result?.case_governing_word || "",
-        genderWord: result?.gender_governing_word || "",
+        caseWord,
+        genderWord,
         formExplanation: result?.form_explanation || "",
         isCompound: !!result?.is_compound,
         compoundParts,
@@ -4446,13 +4489,13 @@ const handleSentenceContainerClick = (event) => {
         }
       } else {
         highlightGoverningWord(
-          result?.case_governing_word || "",
+          caseWord,
           sentenceEl,
           word,
           "governing-case"
         );
         highlightGoverningWord(
-          result?.gender_governing_word || "",
+          genderWord,
           sentenceEl,
           word,
           "governing-gender"
@@ -5329,6 +5372,11 @@ if (homeAddText) {
 }
 if (homeEmptyAdd) {
   homeEmptyAdd.addEventListener("click", showAddTextModal);
+}
+if (libraryHintButtons.length) {
+  libraryHintButtons.forEach((button) => {
+    button.addEventListener("click", handleLibraryHintClick);
+  });
 }
 if (rssRefresh) {
   rssRefresh.addEventListener("click", () => {

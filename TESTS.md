@@ -29,3 +29,14 @@
 5. Enter a valid API key into the API key input field.
 6. Tap "Save".
 7. Confirm you are redirected to the library screen.
+
+# Guarding words hidden for empty parts
+
+1. Open app.
+2. Tap "Add new story".
+3. Choose "Paste text".
+4. Set title to "Kinderschutzorganisationen test".
+5. Paste German text: "Was denkst du über Kinderschutzorganisationen?"
+6. Tap "Add to reader".
+7. Tap the word "Kinderschutzorganisationen".
+8. Confirm there is no guarding word line showing "-" in the translation panel.
