@@ -660,6 +660,20 @@ body {
   gap: 12px;
 }
 
+.home-item-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.home-item-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 0.2s ease;
+}
+
 .home-item-title {
   margin: 0;
   font-size: 18px;

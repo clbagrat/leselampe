@@ -667,6 +667,7 @@ const STORY_WORD_COUNT_KEY = "reader_story_word_count";
 const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const READ_STATUS_KEY = "reader_story_read_v1";
+const STORY_PROGRESS_KEY = "reader_story_progress_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
@@ -707,6 +708,7 @@ const updateScreenScrollLock = () => {
 };
 
 let readerProgressFrame = null;
+let readerProgressSaveTimer = null;
 const updateReaderProgress = () => {
   if (!readerProgressBar || !readerPanel || !readerProgress) {
     return;
@@ -717,6 +719,155 @@ const updateReaderProgress = () => {
   readerProgressBar.style.width = `${percent}%`;
   const fade = Math.min(1, Math.max(0, progress / 0.05));
   readerProgress.style.opacity = String(fade);
+};
+
+let storyProgressCache = null;
+const loadStoryProgress = () => {
+  if (storyProgressCache) {
+    return storyProgressCache;
+  }
+  try {
+    const raw = localStorage.getItem(STORY_PROGRESS_KEY);
+    if (!raw) {
+      storyProgressCache = {};
+      return storyProgressCache;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      storyProgressCache = {};
+      return storyProgressCache;
+    }
+    storyProgressCache = parsed;
+    return storyProgressCache;
+  } catch (error) {
+    storyProgressCache = {};
+    return storyProgressCache;
+  }
+};
+
+const saveStoryProgress = (progressMap) => {
+  storyProgressCache = progressMap;
+  localStorage.setItem(STORY_PROGRESS_KEY, JSON.stringify(progressMap));
+};
+
+const updateStoryProgressIndicator = (storyId, percent, isRead) => {
+  if (!storyId) {
+    return;
+  }
+  const updateItem = (item) => {
+    if (!item) {
+      return;
+    }
+    const content = item.querySelector(".home-item-content");
+    if (!content) {
+      return;
+    }
+    const existing = content.querySelector(".home-item-progress");
+    if (!percent || percent <= 0 || isRead) {
+      existing?.remove();
+      return;
+    }
+    if (existing) {
+      const bar = existing.querySelector(".home-item-progress-bar");
+      existing.dataset.progress = String(percent);
+      if (bar) {
+        bar.style.width = `${percent}%`;
+      }
+      return;
+    }
+    const progress = document.createElement("div");
+    progress.className = "home-item-progress";
+    progress.dataset.progress = String(percent);
+    const bar = document.createElement("div");
+    bar.className = "home-item-progress-bar";
+    bar.style.width = `${percent}%`;
+    progress.appendChild(bar);
+    const excerpt = content.querySelector(".home-item-excerpt");
+    if (excerpt) {
+      content.insertBefore(progress, excerpt);
+    } else {
+      content.appendChild(progress);
+    }
+  };
+
+  if (homeList) {
+    updateItem(homeList.querySelector(`.home-item[data-story-id="${storyId}"]`));
+  }
+  if (rssFeedList) {
+    updateItem(rssFeedList.querySelector(`.home-item[data-id="${storyId}"]`));
+  }
+};
+
+const getStoryProgressPercent = (storyId) => {
+  const key = String(storyId || "");
+  if (!key) {
+    return 0;
+  }
+  const entry = loadStoryProgress()[key];
+  if (!entry || !Number.isFinite(entry.progress)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, Math.round(entry.progress * 100)));
+};
+
+const saveReaderProgress = () => {
+  if (!readerPanel || !currentStoryId) {
+    return;
+  }
+  const maxScroll = readerPanel.scrollHeight - readerPanel.clientHeight;
+  if (maxScroll <= 0) {
+    return;
+  }
+  const progress = Math.min(
+    1,
+    Math.max(0, readerPanel.scrollTop / maxScroll)
+  );
+  const map = loadStoryProgress();
+  map[String(currentStoryId)] = {
+    progress,
+    top: readerPanel.scrollTop,
+    updatedAt: Date.now(),
+  };
+  saveStoryProgress(map);
+  updateStoryProgressIndicator(
+    currentStoryId,
+    Math.round(progress * 100),
+    Boolean(loadReadStatus()[String(currentStoryId)]?.isRead)
+  );
+};
+
+const scheduleReaderProgressSave = () => {
+  if (readerProgressSaveTimer) {
+    return;
+  }
+  readerProgressSaveTimer = window.setTimeout(() => {
+    readerProgressSaveTimer = null;
+    saveReaderProgress();
+  }, 250);
+};
+
+const restoreReaderProgress = (storyId) => {
+  if (!readerPanel) {
+    return;
+  }
+  const key = String(storyId || "");
+  if (!key) {
+    readerPanel.scrollTop = 0;
+    updateReaderProgress();
+    return;
+  }
+  const entry = loadStoryProgress()[key];
+  const maxScroll = readerPanel.scrollHeight - readerPanel.clientHeight;
+  if (entry && Number.isFinite(entry.progress) && maxScroll > 0) {
+    const nextTop = Math.max(
+      0,
+      Math.min(maxScroll, Math.round(entry.progress * maxScroll))
+    );
+    readerPanel.scrollTop = nextTop;
+  } else {
+    readerPanel.scrollTop = 0;
+  }
+  updateReaderProgress();
 };
 
 const clearGoverningHighlight = () => {
@@ -1371,7 +1522,8 @@ const renderRssFeedItems = (items) => {
     const card = document.createElement("article");
     card.className = "home-item";
     card.dataset.id = item.id;
-    if (readStatus[item.id]?.isRead) {
+    const isRead = Boolean(readStatus[item.id]?.isRead);
+    if (isRead) {
       card.classList.add("is-read");
     }
     const isLoading = rssLoadingItemId && String(item.id) === String(rssLoadingItemId);
@@ -1423,6 +1575,17 @@ const renderRssFeedItems = (items) => {
 
     content.appendChild(head);
     content.appendChild(meta);
+    const progressPercent = getStoryProgressPercent(item.id);
+    if (progressPercent > 0 && !isRead) {
+      const progress = document.createElement("div");
+      progress.className = "home-item-progress";
+      progress.dataset.progress = String(progressPercent);
+      const bar = document.createElement("div");
+      bar.className = "home-item-progress-bar";
+      bar.style.width = `${progressPercent}%`;
+      progress.appendChild(bar);
+      content.appendChild(progress);
+    }
     if (isLoading) {
       const loadingRow = document.createElement("div");
       loadingRow.className = "rss-item-loading-row";
@@ -1702,6 +1865,7 @@ const openRssReaderScreen = (
   renderRssStory(title, blocks, itemId);
   setView("reader");
   requestAnimationFrame(() => {
+    restoreReaderProgress(itemId);
     scrollToScreen(readerScreen, behavior);
   });
 };
@@ -2555,6 +2719,7 @@ const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   renderStory(story);
   setView("reader");
   requestAnimationFrame(() => {
+    restoreReaderProgress(story.id);
     scrollToScreen(readerScreen, behavior);
   });
 };
@@ -2850,6 +3015,11 @@ const deleteStoryById = (storyId) => {
   if (status[String(storyId)]) {
     delete status[String(storyId)];
     saveReadStatus(status);
+  }
+  const progressMap = loadStoryProgress();
+  if (progressMap[String(storyId)]) {
+    delete progressMap[String(storyId)];
+    saveStoryProgress(progressMap);
   }
   const lastStoryId = localStorage.getItem(LAST_STORY_KEY);
   if (String(storyId) === lastStoryId) {
@@ -3320,6 +3490,17 @@ const renderHomeStories = (stories) => {
     excerpt.textContent = buildStoryExcerpt(story.text);
 
     content.appendChild(head);
+    const progressPercent = getStoryProgressPercent(story.id);
+    if (progressPercent > 0 && !isRead) {
+      const progress = document.createElement("div");
+      progress.className = "home-item-progress";
+      progress.dataset.progress = String(progressPercent);
+      const bar = document.createElement("div");
+      bar.className = "home-item-progress-bar";
+      bar.style.width = `${progressPercent}%`;
+      progress.appendChild(bar);
+      content.appendChild(progress);
+    }
     content.appendChild(excerpt);
     content.addEventListener("click", () => {
       closeAllHomeMenus(undefined, homeList);
@@ -4874,12 +5055,15 @@ const applyReaderSentencePerLine = (mode) => {
   if (!currentRenderedStory) {
     return;
   }
+  saveReaderProgress();
   if (currentRenderedStory.type === "rss") {
     const { title, blocks, itemId } = currentRenderedStory.data || {};
     renderRssStory(title, blocks, itemId);
+    restoreReaderProgress(itemId);
     return;
   }
   renderStory(currentRenderedStory.data);
+  restoreReaderProgress(currentStoryId);
 };
 
 const applyStoryWordCount = (value) => {
@@ -5421,6 +5605,7 @@ if (readerPanel) {
     readerProgressFrame = requestAnimationFrame(() => {
       readerProgressFrame = null;
       updateReaderProgress();
+      scheduleReaderProgressSave();
     });
   });
 }
