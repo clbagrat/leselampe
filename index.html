@@ -520,6 +520,14 @@
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
         <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-swipe-overlay" id="sheetSwipeOverlay" aria-hidden="true">
+          <span class="sheet-swipe-label sheet-swipe-add" id="sheetSwipeAdd" data-i18n="translation.swipe.add">
+            Add to lemmas
+          </span>
+          <span class="sheet-swipe-label sheet-swipe-ignore is-hidden" id="sheetSwipeIgnore" data-i18n="translation.swipe.ignore">
+            Ignore
+          </span>
+        </div>
         <p class="sheet-german" id="sheetGerman" data-i18n="translation.tap_word_sentence">
           Tap a word or sentence
         </p>
@@ -569,11 +577,11 @@
           </p>
         </div>
         <div class="sheet-actions">
+          <p class="sheet-swipe-hint is-hidden" id="sheetSwipeHint" data-i18n="translation.swipe.hint">
+            Swipe right to add
+          </p>
           <button class="ghost mini" id="reportTranslationSheet" data-i18n="translation.report.action">
             Report issue
-          </button>
-          <button class="ghost mini" id="skipLemma" data-i18n="translation.action.skip">
-            Do not add
           </button>
         </div>
       </section>

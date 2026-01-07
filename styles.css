@@ -1926,6 +1926,7 @@ button:disabled {
   animation: rise 0.4s ease;
   transition: transform 0.2s ease;
   touch-action: pan-y;
+  overflow: hidden;
 }
 
 .bottom-sheet.is-dragging {
@@ -1963,8 +1964,22 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: 7px;
+  position: relative;
+}
+
+.sheet-actions button {
+  transition: opacity 0.3s ease;
+}
+
+.sheet-actions.is-swapping button {
+  transition: opacity 0.3s ease, transform 0.35s ease;
+}
+
+.sheet-actions.is-hinting button {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .bottom-sheet.is-loading .sheet-actions {
@@ -1986,6 +2001,41 @@ button:disabled {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 999px;
   margin: 0 auto 6px;
+}
+
+.sheet-swipe-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  transform-origin: center;
+  z-index: 2;
+}
+
+.sheet-swipe-overlay.is-accept {
+  background: rgba(52, 168, 83, 0.22);
+  color: #0f3d1f;
+}
+
+.sheet-swipe-overlay.is-ignore {
+  background: rgba(219, 72, 61, 0.22);
+  color: #4a120e;
+}
+
+.sheet-swipe-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
 }
 
 .sheet-label {
@@ -2011,6 +2061,29 @@ button:disabled {
   margin: 0;
   font-size: 13px;
   opacity: 0.8;
+}
+
+.sheet-swipe-hint {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: rgba(39, 123, 59, 0.9);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sheet-swipe-hint.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .sheet-compound {

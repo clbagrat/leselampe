@@ -35,6 +35,9 @@ const sheetMetaHeadPill = document.getElementById("sheetMetaHeadPill");
 const sheetMetaArticlePill = document.getElementById("sheetMetaArticlePill");
 const sheetMetaGenderPill = document.getElementById("sheetMetaGenderPill");
 const sheetMetaCasePill = document.getElementById("sheetMetaCasePill");
+const sheetSwipeOverlay = document.getElementById("sheetSwipeOverlay");
+const sheetSwipeAdd = document.getElementById("sheetSwipeAdd");
+const sheetSwipeIgnore = document.getElementById("sheetSwipeIgnore");
 const panelGenderWord = document.getElementById("panelGenderWord");
 const panelCaseWord = document.getElementById("panelCaseWord");
 const sheetGenderWord = document.getElementById("sheetGenderWord");
@@ -66,6 +69,8 @@ const clearKey = document.getElementById("clearKey");
 const uiLanguageGroup = document.getElementById("uiLanguageGroup");
 const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
+const sheetActions = bottomSheet?.querySelector(".sheet-actions");
+const sheetSwipeHint = document.getElementById("sheetSwipeHint");
 const readerStatus = document.getElementById("readerStatus");
 const readerStatusLemmas = document.getElementById("readerStatusLemmas");
 const reloadApp = document.getElementById("reloadApp");
@@ -187,6 +192,9 @@ const UI_COPY = {
     "translation.meta.article": "Article",
     "translation.meta.gender": "Gender",
     "translation.meta.case": "Case",
+    "translation.swipe.add": "Add to lemmas",
+    "translation.swipe.ignore": "Ignore",
+    "translation.swipe.hint": "Swipe right to add",
     "translation.action.copy": "Copy word",
     "translation.action.skip": "Do not add",
     "translation.report.action": "Report issue",
@@ -369,6 +377,9 @@ const UI_COPY = {
     "translation.meta.article": "Артикль",
     "translation.meta.gender": "Род",
     "translation.meta.case": "Падеж",
+    "translation.swipe.add": "Добавить в леммы",
+    "translation.swipe.ignore": "Пропустить",
+    "translation.swipe.hint": "Свайп вправо — добавить",
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
     "translation.report.action": "Сообщить об ошибке",
@@ -882,9 +893,14 @@ let libraryTouchStartX = 0;
 let libraryTouchAxis = "";
 let libraryTouchActive = false;
 let sheetDragPointerId = null;
+let sheetDragStartX = 0;
 let sheetDragStartY = 0;
+let sheetDragDeltaX = 0;
 let sheetDragDeltaY = 0;
 let sheetDragActive = false;
+let sheetDragMode = null;
+let sheetSwipeHintTimer = null;
+let sheetSwipeHintHideTimer = null;
 let resetTranslationTimer = null;
 let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
@@ -2714,6 +2730,13 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   sheetSentenceDivider?.classList.toggle("is-hidden", !isSentence);
   translationDivider?.classList.toggle("is-hidden", !isWord);
   sheetDivider?.classList.toggle("is-hidden", !isWord);
+  if (shouldShowSheet && isWord) {
+    resetSheetActionOrder();
+    scheduleSheetSwipeHint();
+  } else {
+    clearSheetSwipeHintTimers();
+    resetSheetActionOrder();
+  }
   updateCopyButtonLabel(type);
   syncPageDots();
   syncReaderBottomPadding();
@@ -3408,14 +3431,14 @@ const commitPendingLemmaEntry = () => {
   pendingLemmaEntry = null;
 };
 
-const commitPendingLemmaIfNeeded = (nextWordEl) => {
+const clearPendingLemmaIfNeeded = (nextWordEl) => {
   if (!pendingLemmaEntry) {
     return;
   }
   if (nextWordEl && pendingLemmaEntry.sourceEl === nextWordEl) {
     return;
   }
-  commitPendingLemmaEntry();
+  pendingLemmaEntry = null;
 };
 
 const updateLemmaBadge = () => {
@@ -4788,7 +4811,7 @@ const handleSentenceContainerClick = (event) => {
   const activeSentence = document.querySelector(".sentence.active");
   const word = event.target.closest(".word");
   const sentence = event.target.closest(".sentence");
-  commitPendingLemmaIfNeeded(word);
+  clearPendingLemmaIfNeeded(word);
   if (activeSentence && !word) {
     resetTranslation();
     return;
@@ -4942,7 +4965,7 @@ const handleSentencePointerDown = (event) => {
       return;
     }
     longPressTriggered = true;
-    commitPendingLemmaIfNeeded(null);
+    clearPendingLemmaIfNeeded(null);
     clearActiveWord();
     clearGoverningHighlight();
     setActiveSentence(sentenceEl);
@@ -4962,8 +4985,132 @@ const handleSentenceContextMenu = (event) => {
   event.preventDefault();
 };
 
+const setSwipeOverlay = (direction, progress = 0) => {
+  if (!sheetSwipeOverlay) {
+    return;
+  }
+  const clamped = Math.max(0, Math.min(1, progress));
+  if (!direction || clamped === 0) {
+    sheetSwipeOverlay.style.opacity = "0";
+    sheetSwipeOverlay.classList.remove("is-accept", "is-ignore");
+    sheetSwipeAdd?.classList.add("is-hidden");
+    sheetSwipeIgnore?.classList.add("is-hidden");
+    return;
+  }
+  sheetSwipeOverlay.style.opacity = String(Math.min(0.9, clamped));
+  if (direction === "accept") {
+    sheetSwipeOverlay.classList.add("is-accept");
+    sheetSwipeOverlay.classList.remove("is-ignore");
+    sheetSwipeAdd?.classList.remove("is-hidden");
+    sheetSwipeIgnore?.classList.add("is-hidden");
+  } else {
+    sheetSwipeOverlay.classList.add("is-ignore");
+    sheetSwipeOverlay.classList.remove("is-accept");
+    sheetSwipeAdd?.classList.add("is-hidden");
+    sheetSwipeIgnore?.classList.remove("is-hidden");
+  }
+};
+
+const resetSheetActionOrder = () => {
+  if (!sheetActions || !reportTranslationSheet || !skipLemma) {
+    return;
+  }
+  if (sheetActions.firstElementChild !== reportTranslationSheet) {
+    sheetActions.insertBefore(reportTranslationSheet, skipLemma);
+  }
+  sheetActions.classList.remove("is-swapping");
+  reportTranslationSheet.style.transform = "";
+  skipLemma.style.transform = "";
+};
+
+const showSheetSwipeHint = () => {
+  if (!sheetSwipeHint) {
+    return;
+  }
+  sheetSwipeHint.classList.remove("is-hidden");
+  requestAnimationFrame(() => {
+    sheetSwipeHint.classList.add("is-visible");
+  });
+};
+
+const hideSheetSwipeHint = () => {
+  if (!sheetSwipeHint) {
+    return;
+  }
+  sheetSwipeHint.classList.remove("is-visible");
+  window.setTimeout(() => {
+    sheetSwipeHint.classList.add("is-hidden");
+  }, 240);
+};
+
+const animateSheetActionSwap = () => {
+  if (!sheetActions || !reportTranslationSheet || !skipLemma) {
+    return;
+  }
+  if (sheetActions.firstElementChild === skipLemma) {
+    return;
+  }
+  const reportRect = reportTranslationSheet.getBoundingClientRect();
+  const skipRect = skipLemma.getBoundingClientRect();
+  sheetActions.insertBefore(skipLemma, reportTranslationSheet);
+  const nextReportRect = reportTranslationSheet.getBoundingClientRect();
+  const nextSkipRect = skipLemma.getBoundingClientRect();
+  const reportDelta = reportRect.left - nextReportRect.left;
+  const skipDelta = skipRect.left - nextSkipRect.left;
+  reportTranslationSheet.style.transform = `translateX(${reportDelta}px)`;
+  skipLemma.style.transform = `translateX(${skipDelta}px)`;
+  sheetActions.classList.add("is-swapping");
+  requestAnimationFrame(() => {
+    reportTranslationSheet.style.transform = "";
+    skipLemma.style.transform = "";
+  });
+  window.setTimeout(() => {
+    sheetActions.classList.remove("is-swapping");
+  }, 380);
+};
+
+const clearSheetSwipeHintTimers = () => {
+  if (sheetSwipeHintTimer) {
+    window.clearTimeout(sheetSwipeHintTimer);
+    sheetSwipeHintTimer = null;
+  }
+  if (sheetSwipeHintHideTimer) {
+    window.clearTimeout(sheetSwipeHintHideTimer);
+    sheetSwipeHintHideTimer = null;
+  }
+  hideSheetSwipeHint();
+  sheetActions?.classList.remove("is-hinting");
+};
+
+const scheduleSheetSwipeHint = () => {
+  clearSheetSwipeHintTimers();
+  if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  sheetSwipeHintTimer = window.setTimeout(() => {
+    if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+      return;
+    }
+    sheetActions?.classList.add("is-hinting");
+    window.setTimeout(() => {
+      animateSheetActionSwap();
+      showSheetSwipeHint();
+    }, 320);
+    sheetSwipeHintHideTimer = window.setTimeout(() => {
+      hideSheetSwipeHint();
+      sheetActions?.classList.remove("is-hinting");
+    }, 2200);
+  }, 5000);
+};
+
 const startBottomSheetDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  if (bottomSheet.classList.contains("is-sentence")) {
+    return;
+  }
+  if (bottomSheet.classList.contains("is-loading")) {
     return;
   }
   if (event.button && event.button !== 0) {
@@ -4972,10 +5119,15 @@ const startBottomSheetDrag = (event) => {
   if (event.target.closest("button, a, input, textarea, select")) {
     return;
   }
+  clearSheetSwipeHintTimers();
   sheetDragPointerId = event.pointerId;
+  sheetDragStartX = event.clientX;
   sheetDragStartY = event.clientY;
+  sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
   sheetDragActive = true;
+  sheetDragMode = null;
+  setSwipeOverlay(null, 0);
   bottomSheet.classList.add("is-dragging");
   bottomSheet.setPointerCapture?.(event.pointerId);
 };
@@ -4984,9 +5136,30 @@ const moveBottomSheetDrag = (event) => {
   if (!sheetDragActive || event.pointerId !== sheetDragPointerId) {
     return;
   }
-  const delta = Math.max(0, event.clientY - sheetDragStartY);
+  const deltaX = event.clientX - sheetDragStartX;
+  const deltaY = event.clientY - sheetDragStartY;
+  if (!sheetDragMode) {
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    if (absX < 6 && absY < 6) {
+      return;
+    }
+    sheetDragMode = absX > absY ? "horizontal" : "vertical";
+  }
+  if (sheetDragMode === "horizontal") {
+    sheetDragDeltaX = deltaX;
+    const sheetRect = bottomSheet.getBoundingClientRect();
+    const angle = Math.max(-12, Math.min(12, (deltaX / sheetRect.width) * 18));
+    bottomSheet.style.transform = `translateX(${deltaX}px) rotate(${angle}deg)`;
+    const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+    const progress = Math.abs(deltaX) / horizontalThreshold;
+    setSwipeOverlay(deltaX >= 0 ? "accept" : "ignore", progress);
+    return;
+  }
+  const delta = Math.max(0, deltaY);
   sheetDragDeltaY = delta;
   bottomSheet.style.transform = `translateY(${delta}px)`;
+  setSwipeOverlay(null, 0);
 };
 
 const endBottomSheetDrag = (event) => {
@@ -4995,20 +5168,43 @@ const endBottomSheetDrag = (event) => {
   }
   bottomSheet.releasePointerCapture?.(event.pointerId);
   bottomSheet.classList.remove("is-dragging");
-  const threshold = Math.max(80, bottomSheet.getBoundingClientRect().height * 0.25);
-  const shouldClose = sheetDragDeltaY > threshold;
+  const sheetRect = bottomSheet.getBoundingClientRect();
+  const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
+  const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+  const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
+  const shouldAccept = sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
+  const shouldIgnore = sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
   sheetDragPointerId = null;
+  sheetDragMode = null;
+  sheetDragStartX = 0;
   sheetDragStartY = 0;
+  sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
   bottomSheet.style.transform = "";
+  setSwipeOverlay(null, 0);
+  if (shouldAccept) {
+    commitPendingLemmaEntry();
+    resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
+  if (shouldIgnore) {
+    resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
   if (shouldClose) {
-    resetTranslation({ animate: false });
+    resetTranslation({ animate: false, commitLemma: false });
   }
 };
 
 const startBottomSheetTouchDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  if (bottomSheet.classList.contains("is-sentence")) {
+    return;
+  }
+  if (bottomSheet.classList.contains("is-loading")) {
     return;
   }
   const touch = event.touches?.[0];
@@ -5018,10 +5214,15 @@ const startBottomSheetTouchDrag = (event) => {
   if (event.target.closest("button, a, input, textarea, select")) {
     return;
   }
+  clearSheetSwipeHintTimers();
   sheetDragPointerId = "touch";
+  sheetDragStartX = touch.clientX;
   sheetDragStartY = touch.clientY;
+  sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
   sheetDragActive = true;
+  sheetDragMode = null;
+  setSwipeOverlay(null, 0);
   bottomSheet.classList.add("is-dragging");
 };
 
@@ -5033,9 +5234,31 @@ const moveBottomSheetTouchDrag = (event) => {
   if (!touch) {
     return;
   }
-  const delta = Math.max(0, touch.clientY - sheetDragStartY);
+  const deltaX = touch.clientX - sheetDragStartX;
+  const deltaY = touch.clientY - sheetDragStartY;
+  if (!sheetDragMode) {
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    if (absX < 6 && absY < 6) {
+      return;
+    }
+    sheetDragMode = absX > absY ? "horizontal" : "vertical";
+  }
+  if (sheetDragMode === "horizontal") {
+    sheetDragDeltaX = deltaX;
+    const sheetRect = bottomSheet.getBoundingClientRect();
+    const angle = Math.max(-12, Math.min(12, (deltaX / sheetRect.width) * 18));
+    bottomSheet.style.transform = `translateX(${deltaX}px) rotate(${angle}deg)`;
+    const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+    const progress = Math.abs(deltaX) / horizontalThreshold;
+    setSwipeOverlay(deltaX >= 0 ? "accept" : "ignore", progress);
+    event.preventDefault();
+    return;
+  }
+  const delta = Math.max(0, deltaY);
   sheetDragDeltaY = delta;
   bottomSheet.style.transform = `translateY(${delta}px)`;
+  setSwipeOverlay(null, 0);
   if (delta > 0) {
     event.preventDefault();
   }
@@ -5046,15 +5269,32 @@ const endBottomSheetTouchDrag = () => {
     return;
   }
   bottomSheet.classList.remove("is-dragging");
-  const threshold = Math.max(80, bottomSheet.getBoundingClientRect().height * 0.25);
-  const shouldClose = sheetDragDeltaY > threshold;
+  const sheetRect = bottomSheet.getBoundingClientRect();
+  const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
+  const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+  const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
+  const shouldAccept = sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
+  const shouldIgnore = sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
   sheetDragPointerId = null;
+  sheetDragMode = null;
+  sheetDragStartX = 0;
   sheetDragStartY = 0;
+  sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
   bottomSheet.style.transform = "";
+  setSwipeOverlay(null, 0);
+  if (shouldAccept) {
+    commitPendingLemmaEntry();
+    resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
+  if (shouldIgnore) {
+    resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
   if (shouldClose) {
-    resetTranslation({ animate: false });
+    resetTranslation({ animate: false, commitLemma: false });
   }
 };
 
@@ -5118,7 +5358,7 @@ const translateSentenceText = (
   });
 };
 
-const resetTranslation = ({ animate = true, commitLemma = true } = {}) => {
+const resetTranslation = ({ animate = true, commitLemma = false } = {}) => {
   if (pendingController) {
     pendingController.abort();
   }
@@ -5177,6 +5417,9 @@ const resetTranslation = ({ animate = true, commitLemma = true } = {}) => {
   } else {
     applyEmptyTranslation();
   }
+  setSwipeOverlay(null, 0);
+  clearSheetSwipeHintTimers();
+  resetSheetActionOrder();
   syncReaderBottomPadding();
   updateCopyButtonLabel("word");
   syncPageDots();
