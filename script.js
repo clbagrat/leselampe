@@ -539,6 +539,8 @@ const readerTtsState = {
   utterance: null,
   wordOffsets: [],
   wordIndex: -1,
+  queue: [],
+  queueIndex: 0,
 };
 
 const isTtsSupported = () =>
@@ -586,6 +588,26 @@ const buildReaderSpeechPayload = () => {
     appendSection(reader);
   }
   return payload;
+};
+
+const buildReaderSpeechQueue = () => {
+  const payloads = [];
+  const collectPayloads = (root) => {
+    if (!root) {
+      return;
+    }
+    const sentences = Array.from(root.querySelectorAll(".sentence"));
+    sentences.forEach((sentence) => {
+      const payload = { text: "", words: [] };
+      appendSpeechFromNode(sentence, payload);
+      if (payload.text.trim()) {
+        payloads.push(payload);
+      }
+    });
+  };
+  collectPayloads(storyTitle);
+  collectPayloads(reader);
+  return payloads;
 };
 
 const getGermanVoice = () => {
@@ -659,22 +681,16 @@ const stopReaderTts = () => {
   readerTtsState.isSpeaking = false;
   readerTtsState.utterance = null;
   readerTtsState.wordOffsets = [];
+  readerTtsState.queue = [];
+  readerTtsState.queueIndex = 0;
   clearReaderTtsHighlight();
   updateReaderTtsLabel();
 };
 
-const startReaderTts = () => {
-  if (!isTtsSupported()) {
+const speakReaderQueueItem = (payload) => {
+  if (!payload) {
     return;
   }
-  const payload = buildReaderSpeechPayload();
-  if (!payload.text.trim()) {
-    return;
-  }
-  stopReaderTts();
-  readerTtsState.wordOffsets = payload.words;
-  readerTtsState.wordIndex = -1;
-  clearReaderTtsHighlight();
   const utterance = new SpeechSynthesisUtterance(payload.text);
   utterance.lang = "de-DE";
   const voice = getGermanVoice();
@@ -682,14 +698,26 @@ const startReaderTts = () => {
     utterance.voice = voice;
   }
   utterance.onend = () => {
+    if (!readerTtsState.isSpeaking) {
+      return;
+    }
+    clearReaderTtsHighlight();
+    const nextIndex = readerTtsState.queueIndex + 1;
+    if (nextIndex < readerTtsState.queue.length) {
+      readerTtsState.queueIndex = nextIndex;
+      speakReaderQueueItem(readerTtsState.queue[nextIndex]);
+      return;
+    }
     readerTtsState.isSpeaking = false;
     readerTtsState.utterance = null;
+    readerTtsState.wordOffsets = [];
     clearReaderTtsHighlight();
     updateReaderTtsLabel();
   };
   utterance.onerror = () => {
     readerTtsState.isSpeaking = false;
     readerTtsState.utterance = null;
+    readerTtsState.wordOffsets = [];
     clearReaderTtsHighlight();
     updateReaderTtsLabel();
   };
@@ -702,10 +730,27 @@ const startReaderTts = () => {
       setReaderTtsActiveWord(index);
     }
   };
-  readerTtsState.isSpeaking = true;
   readerTtsState.utterance = utterance;
-  updateReaderTtsLabel();
+  readerTtsState.wordOffsets = payload.words;
+  readerTtsState.wordIndex = -1;
+  clearReaderTtsHighlight();
   window.speechSynthesis.speak(utterance);
+};
+
+const startReaderTts = () => {
+  if (!isTtsSupported()) {
+    return;
+  }
+  const queue = buildReaderSpeechQueue();
+  if (!queue.length) {
+    return;
+  }
+  stopReaderTts();
+  readerTtsState.isSpeaking = true;
+  readerTtsState.queue = queue;
+  readerTtsState.queueIndex = 0;
+  updateReaderTtsLabel();
+  speakReaderQueueItem(queue[0]);
 };
 
 const applyTranslations = (lang) => {
