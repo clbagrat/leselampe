@@ -1587,6 +1587,10 @@ h2 {
   align-items: center;
 }
 
+.scan-row {
+  align-items: stretch;
+}
+
 .prompt-row {
   justify-content: space-between;
   align-items: center;
@@ -1605,6 +1609,10 @@ h2 {
   font-size: 12px;
   opacity: 0.6;
   margin: 0;
+}
+
+.scan-status.is-error {
+  color: #b04636;
 }
 
 .saved-section {

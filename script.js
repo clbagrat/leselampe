@@ -87,6 +87,8 @@ const savePaste = document.getElementById("savePaste");
 const promptBody = document.getElementById("promptBody");
 const generateStory = document.getElementById("generateStory");
 const suggestPrompt = document.getElementById("suggestPrompt");
+const scanInput = document.getElementById("scanInput");
+const scanStatus = document.getElementById("scanStatus");
 const lemmaList = document.getElementById("lemmaList");
 const lemmaEmpty = document.getElementById("lemmaEmpty");
 const lemmaLearnedList = document.getElementById("lemmaLearnedList");
@@ -255,6 +257,13 @@ const UI_COPY = {
     "modal.paste.body_label": "German text",
     "modal.paste.body_placeholder": "Paste German text here.",
     "modal.paste.action.add": "Add to reader",
+    "modal.scan.input_label": "Photo",
+    "modal.scan.action.scan": "Scan text",
+    "modal.scan.status.scanning": "Scanning...",
+    "modal.scan.status.done": "Text ready.",
+    "modal.scan.status.no_text": "No text found in this photo.",
+    "modal.scan.status.failed": "Couldn't scan this photo.",
+    "scan.default_title": "Scanned text",
     "modal.appearance.title": "Reader appearance",
     "modal.appearance.font": "Font",
     "modal.appearance.size": "Size",
@@ -440,6 +449,13 @@ const UI_COPY = {
     "modal.paste.body_label": "Немецкий текст",
     "modal.paste.body_placeholder": "Вставьте немецкий текст здесь.",
     "modal.paste.action.add": "Добавить в читалку",
+    "modal.scan.input_label": "Фото",
+    "modal.scan.action.scan": "Сканировать текст",
+    "modal.scan.status.scanning": "Сканируем...",
+    "modal.scan.status.done": "Текст готов.",
+    "modal.scan.status.no_text": "На фото нет текста.",
+    "modal.scan.status.failed": "Не удалось распознать текст.",
+    "scan.default_title": "Сканированный текст",
     "modal.appearance.title": "Внешний вид читалки",
     "modal.appearance.font": "Шрифт",
     "modal.appearance.size": "Размер",
@@ -5862,6 +5878,35 @@ styleButtons.forEach((button) => {
   });
 });
 
+const setScanStatus = (message, { isError = false } = {}) => {
+  if (!scanStatus) {
+    return;
+  }
+  scanStatus.textContent = message || "";
+  scanStatus.classList.toggle("is-hidden", !message);
+  scanStatus.classList.toggle("is-error", isError);
+};
+
+const updateScanControls = () => {
+  if (!scanInput) {
+    return;
+  }
+  const hasFile = Boolean(scanInput.files?.length);
+  const isPasteMode = modePaste && !modePaste.classList.contains("is-hidden");
+  scanInput.disabled = !isPasteMode;
+  if (!hasFile) {
+    setScanStatus("");
+  }
+};
+
+const resetScanPanel = () => {
+  if (scanInput) {
+    scanInput.value = "";
+  }
+  setScanStatus("");
+  updateScanControls();
+};
+
 const setMode = (mode) => {
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
@@ -5884,6 +5929,7 @@ const setMode = (mode) => {
   styleButtons.forEach((button) => {
     button.disabled = mode !== "generate";
   });
+  updateScanControls();
 };
 
 const showAddTextModal = () => {
@@ -6193,6 +6239,7 @@ if (lemmaSearch) {
 
 const closeAddTextModal = () => {
   addTextModal.classList.add("is-hidden");
+  resetScanPanel();
 };
 
 closeAddText.addEventListener("click", closeAddTextModal);
@@ -6510,15 +6557,13 @@ suggestPrompt.addEventListener("click", () => {
   fillPromptSuggestion();
 });
 
-savePaste.addEventListener("click", () => {
-  const title = pasteTitle.value.trim() || t("paste.default_title");
-  const text = pasteBody.value.trim();
+const addStoryFromText = (title, text, fallbackTitle) => {
   if (!text) {
-    return;
+    return false;
   }
   const newStory = {
     id: Date.now(),
-    title,
+    title: title || fallbackTitle,
     text,
   };
   const current = loadStories();
@@ -6526,10 +6571,129 @@ savePaste.addEventListener("click", () => {
   saveStories(next);
   renderHomeStories(next);
   openReaderScreen(newStory);
+  return true;
+};
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("File read failed"));
+    reader.readAsDataURL(file);
+  });
+
+const extractTextFromImage = async (dataUrl) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an OCR assistant. Return strict JSON: {\"title\":\"...\",\"text\":\"...\"}. " +
+            "Infer a short title (3-6 words) from the extracted text. Preserve line breaks in text. " +
+            "If there is no readable text, respond with NO_TEXT.",
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract readable text from this image." },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Scan failed");
+  }
+  const raw = data.choices?.[0]?.message?.content?.trim();
+  if (!raw) {
+    return null;
+  }
+  if (raw.trim().toUpperCase() === "NO_TEXT") {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+  if (!parsed?.text) {
+    return null;
+  }
+  return {
+    title: String(parsed.title || "").trim(),
+    text: String(parsed.text || "").trim(),
+  };
+};
+
+savePaste.addEventListener("click", () => {
+  const title = pasteTitle.value.trim() || t("paste.default_title");
+  const text = pasteBody.value.trim();
+  if (!addStoryFromText(title, text, t("paste.default_title"))) {
+    return;
+  }
   pasteBody.value = "";
   pasteTitle.value = "";
   addTextModal.classList.add("is-hidden");
 });
+
+if (scanInput) {
+  scanInput.addEventListener("change", async () => {
+    const file = scanInput.files?.[0];
+    if (!file) {
+      resetScanPanel();
+      return;
+    }
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      startWelcomeFlow("smooth");
+      return;
+    }
+    setScanStatus(t("modal.scan.status.scanning"));
+    if (pasteBody) {
+      pasteBody.value = "";
+    }
+    if (pasteTitle) {
+      pasteTitle.value = "";
+    }
+    updateScanControls();
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const extracted = await extractTextFromImage(dataUrl);
+      if (!extracted?.text) {
+        setScanStatus(t("modal.scan.status.no_text"), { isError: true });
+        updateScanControls();
+        return;
+      }
+      if (pasteBody) {
+        pasteBody.value = extracted.text;
+      }
+      if (pasteTitle) {
+        pasteTitle.value = extracted.title || t("scan.default_title");
+      }
+      setScanStatus(t("modal.scan.status.done"));
+      updateScanControls();
+    } catch (error) {
+      setScanStatus(t("modal.scan.status.failed"), { isError: true });
+      updateScanControls();
+    }
+  });
+}
 
 generateStory.addEventListener("click", async () => {
   const prompt = promptBody.value.trim();
