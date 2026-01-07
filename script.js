@@ -106,6 +106,7 @@ const readerEnd = document.getElementById("readerEnd");
 const readerView = document.getElementById("readerView");
 const readerProgress = document.querySelector(".reader-progress");
 const readerProgressBar = document.getElementById("readerProgressBar");
+const brandButton = document.getElementById("brandButton");
 const pageDots = document.getElementById("pageDots");
 const libraryHintButtons = document.querySelectorAll(".library-hint[data-library-target]");
 const rssRefresh = document.getElementById("rssRefresh");
@@ -141,6 +142,7 @@ const UI_COPY = {
   en: {
     "app.title": "Leselampe — German Reader",
     "app.pages": "Pages",
+    "app.action.home": "Go to library",
     "screen.library": "German reader",
     "screen.reader": "Reader",
     "screen.lemmas": "Lemmas",
@@ -322,6 +324,7 @@ const UI_COPY = {
   ru: {
     "app.title": "Leselampe — Читалка немецкого",
     "app.pages": "Страницы",
+    "app.action.home": "К библиотеке",
     "screen.library": "Чтение немецкого",
     "screen.reader": "Читалка",
     "screen.lemmas": "Леммы",
@@ -5757,6 +5760,11 @@ if (rssFeedEmptyAction) {
 if (openReaderAppearance) {
   openReaderAppearance.addEventListener("click", () => {
     openReaderAppearanceModal();
+  });
+}
+if (brandButton) {
+  brandButton.addEventListener("click", () => {
+    showLibraryScreen("smooth");
   });
 }
 if (readerTtsButton) {

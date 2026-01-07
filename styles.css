@@ -116,6 +116,20 @@ body {
   gap: 10px;
 }
 
+.brand-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.brand-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(240, 112, 79, 0.4);
+  border-radius: 12px;
+}
+
 .brand-mark {
   width: 30px;
   height: 30px;
@@ -1931,7 +1945,7 @@ button:disabled {
 }
 .is-standalone .bottom-sheet {
   corner-shape: squircle;
-  border-radius: 58px;
+  border-radius: 55px;
   padding: 24px;
   padding-top: 18px;
   border-top-left-radius: 24px;
