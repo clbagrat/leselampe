@@ -100,6 +100,7 @@ const homeEmpty = document.getElementById("homeEmpty");
 const homeEmptyAdd = document.getElementById("homeEmptyAdd");
 const homeAddText = document.getElementById("homeAddText");
 const openReaderAppearance = document.getElementById("openReaderAppearance");
+const readerTtsButton = document.getElementById("readerTts");
 const readerFinish = document.getElementById("readerFinish");
 const readerEnd = document.getElementById("readerEnd");
 const readerView = document.getElementById("readerView");
@@ -157,6 +158,8 @@ const UI_COPY = {
     "rss.empty": "Add a feed to start reading.",
     "rss.action.add_feed": "Add a feed",
     "reader.action.font": "Font",
+    "reader.action.listen": "Listen",
+    "reader.action.stop": "Stop",
     "reader.action.finish": "I finish reading",
     "reader.status.read": "Marked as read.",
     "lemmas.section": "Lemmas",
@@ -336,6 +339,8 @@ const UI_COPY = {
     "rss.empty": "Добавьте ленту, чтобы начать читать.",
     "rss.action.add_feed": "Добавить ленту",
     "reader.action.font": "Шрифт",
+    "reader.action.listen": "Слушать",
+    "reader.action.stop": "Остановить",
     "reader.action.finish": "Я закончил чтение",
     "reader.status.read": "Отмечено как прочитанное.",
     "lemmas.section": "Леммы",
@@ -526,6 +531,180 @@ const t = (key, vars = {}) => {
   return value;
 };
 
+const readerTtsState = {
+  isSpeaking: false,
+  utterance: null,
+  wordOffsets: [],
+  wordIndex: -1,
+};
+
+const isTtsSupported = () =>
+  "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+
+const appendSpeechFromNode = (node, payload) => {
+  if (!node) {
+    return;
+  }
+  if (node.nodeType === Node.TEXT_NODE) {
+    payload.text += node.textContent || "";
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return;
+  }
+  const element = node;
+  if (element.classList?.contains("word")) {
+    const start = payload.text.length;
+    payload.text += element.textContent || "";
+    const end = payload.text.length;
+    payload.words.push({ start, end, el: element });
+    return;
+  }
+  Array.from(element.childNodes).forEach((child) => {
+    appendSpeechFromNode(child, payload);
+  });
+};
+
+const buildReaderSpeechPayload = () => {
+  const payload = { text: "", words: [] };
+  const appendSection = (element) => {
+    if (!element) {
+      return;
+    }
+    if (payload.text.length) {
+      payload.text += "\n";
+    }
+    appendSpeechFromNode(element, payload);
+  };
+  if (storyTitle?.textContent?.trim()) {
+    appendSection(storyTitle);
+  }
+  if (reader?.textContent?.trim()) {
+    appendSection(reader);
+  }
+  return payload;
+};
+
+const getGermanVoice = () => {
+  if (!isTtsSupported()) {
+    return null;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  return (
+    voices.find((voice) => voice.lang?.toLowerCase().startsWith("de")) || null
+  );
+};
+
+const updateReaderTtsLabel = () => {
+  if (!readerTtsButton) {
+    return;
+  }
+  const key = readerTtsState.isSpeaking
+    ? "reader.action.stop"
+    : "reader.action.listen";
+  readerTtsButton.textContent = t(key);
+};
+
+const setReaderTtsActiveWord = (index) => {
+  const words = readerTtsState.wordOffsets;
+  if (!words.length || index < 0 || index >= words.length) {
+    return;
+  }
+  const next = words[index].el;
+  const prev = words[readerTtsState.wordIndex]?.el;
+  if (prev && prev !== next) {
+    prev.classList.remove("tts-active");
+  }
+  next.classList.add("tts-active");
+  readerTtsState.wordIndex = index;
+};
+
+const clearReaderTtsHighlight = () => {
+  const prev = readerTtsState.wordOffsets[readerTtsState.wordIndex]?.el;
+  if (prev) {
+    prev.classList.remove("tts-active");
+  }
+  readerTtsState.wordIndex = -1;
+};
+
+const findReaderTtsWordIndex = (charIndex) => {
+  const words = readerTtsState.wordOffsets;
+  if (!words.length) {
+    return -1;
+  }
+  let index = readerTtsState.wordIndex;
+  if (index < 0 || charIndex < words[index]?.start) {
+    index = 0;
+  }
+  while (index < words.length && words[index].end <= charIndex) {
+    index += 1;
+  }
+  if (index < words.length) {
+    const word = words[index];
+    if (word.start <= charIndex && charIndex < word.end) {
+      return index;
+    }
+  }
+  return -1;
+};
+
+const stopReaderTts = () => {
+  if (!isTtsSupported()) {
+    return;
+  }
+  window.speechSynthesis.cancel();
+  readerTtsState.isSpeaking = false;
+  readerTtsState.utterance = null;
+  readerTtsState.wordOffsets = [];
+  clearReaderTtsHighlight();
+  updateReaderTtsLabel();
+};
+
+const startReaderTts = () => {
+  if (!isTtsSupported()) {
+    return;
+  }
+  const payload = buildReaderSpeechPayload();
+  if (!payload.text.trim()) {
+    return;
+  }
+  stopReaderTts();
+  readerTtsState.wordOffsets = payload.words;
+  readerTtsState.wordIndex = -1;
+  clearReaderTtsHighlight();
+  const utterance = new SpeechSynthesisUtterance(payload.text);
+  utterance.lang = "de-DE";
+  const voice = getGermanVoice();
+  if (voice) {
+    utterance.voice = voice;
+  }
+  utterance.onend = () => {
+    readerTtsState.isSpeaking = false;
+    readerTtsState.utterance = null;
+    clearReaderTtsHighlight();
+    updateReaderTtsLabel();
+  };
+  utterance.onerror = () => {
+    readerTtsState.isSpeaking = false;
+    readerTtsState.utterance = null;
+    clearReaderTtsHighlight();
+    updateReaderTtsLabel();
+  };
+  utterance.onboundary = (event) => {
+    if (!event || typeof event.charIndex !== "number") {
+      return;
+    }
+    const index = findReaderTtsWordIndex(event.charIndex);
+    if (index !== -1 && index !== readerTtsState.wordIndex) {
+      setReaderTtsActiveWord(index);
+    }
+  };
+  readerTtsState.isSpeaking = true;
+  readerTtsState.utterance = utterance;
+  updateReaderTtsLabel();
+  window.speechSynthesis.speak(utterance);
+};
+
 const applyTranslations = (lang) => {
   const nextLang = SUPPORTED_UI_LANGS.includes(lang) ? lang : "en";
   currentUiLang = nextLang;
@@ -562,6 +741,7 @@ const applyTranslations = (lang) => {
   }
   lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
   lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
+  updateReaderTtsLabel();
   updateLanguageButtons();
   refreshUiCollections();
 };
@@ -2569,6 +2749,9 @@ const clearLongPress = () => {
 };
 
 const setView = (view) => {
+  if (view !== "reader") {
+    stopReaderTts();
+  }
   document.body.classList.toggle("view-reader", view === "reader");
   document.body.classList.toggle("view-home", view === "home");
 };
@@ -2705,6 +2888,7 @@ const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   if (!story) {
     return;
   }
+  stopReaderTts();
   markStoryUnread(story.id);
   startReadSession(story.id, story.usedLemmas || []);
   if (readerFinish) {
@@ -5575,8 +5759,21 @@ if (openReaderAppearance) {
     openReaderAppearanceModal();
   });
 }
+if (readerTtsButton) {
+  if (!isTtsSupported()) {
+    readerTtsButton.disabled = true;
+  }
+  readerTtsButton.addEventListener("click", () => {
+    if (readerTtsState.isSpeaking) {
+      stopReaderTts();
+      return;
+    }
+    startReaderTts();
+  });
+}
 if (readerFinish) {
   readerFinish.addEventListener("click", () => {
+    stopReaderTts();
     if (currentStoryId) {
       markStoryRead(currentStoryId);
       setTimeout(() => {

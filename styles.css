@@ -825,6 +825,13 @@ body {
   font-family: var(--serif);
 }
 
+.book-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 h1 {
   margin: 0;
   font-family: var(--serif);
@@ -1266,6 +1273,11 @@ body[data-reader-justify="justify"] .reader {
 .word.active {
   background: rgba(240, 112, 79, 0.2);
   box-shadow: 0 0 0 1px rgba(240, 112, 79, 0.4);
+}
+
+.word.tts-active {
+  background: rgba(255, 199, 74, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 199, 74, 0.6);
 }
 
 .word.loading {
@@ -1820,6 +1832,11 @@ button {
   cursor: pointer;
   color: var(--ink);
   background: transparent;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .mini {
