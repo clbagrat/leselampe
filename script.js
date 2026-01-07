@@ -645,10 +645,9 @@ const setReaderTtsActiveWord = (index) => {
 };
 
 const clearReaderTtsHighlight = () => {
-  const prev = readerTtsState.wordOffsets[readerTtsState.wordIndex]?.el;
-  if (prev) {
-    prev.classList.remove("tts-active");
-  }
+  document.querySelectorAll(".word.tts-active").forEach((word) => {
+    word.classList.remove("tts-active");
+  });
   readerTtsState.wordIndex = -1;
 };
 
