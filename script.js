@@ -140,6 +140,7 @@ const pageDotIcons = {
   rss: "assets/icons/icon-rss.svg",
   reader: "assets/icons/icon-reader.svg",
   lemmas: "assets/icons/icon-lemmas.svg",
+  trainings: "assets/icons/icon-archive.svg",
   settings: "assets/icons/icon-settings.svg",
 };
 
@@ -153,6 +154,7 @@ const UI_COPY = {
     "screen.library": "German reader",
     "screen.reader": "Reader",
     "screen.lemmas": "Lemmas",
+    "screen.trainings": "Trainings",
     "screen.settings": "Settings",
     "library.hint.rss": "RSS feed",
     "library.hint.stories": "Your stories",
@@ -183,6 +185,42 @@ const UI_COPY = {
     "lemmas.action.export": "Export",
     "lemmas.action.export.copied": "Copied",
     "lemmas.action.clear": "Clear history",
+    "trainings.section": "Training sessions",
+    "trainings.title": "Trainings",
+    "trainings.subtitle": "Short drills for cases and articles.",
+    "trainings.action.generate": "Generate",
+    "trainings.action.back": "Back",
+    "trainings.action.next": "Next",
+    "trainings.action.skip": "Skip",
+    "trainings.status.loading": "Generating new sentences...",
+    "trainings.status.ready": "New set is ready.",
+    "trainings.status.failed": "Could not generate new sentences.",
+    "trainings.status.api_required": "Add your API key in settings to generate.",
+    "trainings.status.completed": "All sentences learned. Generate a new set.",
+    "trainings.status.session_complete": "Training completed.",
+    "trainings.count.label": "{count} sentences",
+    "trainings.status.need_generate": "Generating more sentences...",
+    "trainings.summary.title": "Training completed",
+    "trainings.summary.score": "Correct: {percent}%",
+    "trainings.summary.note": "Sentences with mistakes will return in future trainings.",
+    "trainings.action.close": "Close",
+    "trainings.item.label": "Training",
+    "training.dativ_akk.title": "Dativ oder Akkusativ",
+    "training.dativ_akk.description": "Choose the case, then the article.",
+    "training.dativ_akk.prompt.case": "Dativ oder Akkusativ?",
+    "training.dativ_akk.prompt.article": "Pick the article.",
+    "training.case.dative": "Dativ",
+    "training.case.accusative": "Akkusativ",
+    "training.gender.label": "Gender",
+    "training.gender.masculine": "Masculine",
+    "training.gender.feminine": "Feminine",
+    "training.gender.neuter": "Neuter",
+    "training.gender.plural": "Plural",
+    "training.feedback.correct_case": "Correct. Now choose the article.",
+    "training.feedback.correct_article_partial": "Nice. Next article.",
+    "training.feedback.wrong_case": "Not quite. Try the other case.",
+    "training.feedback.correct_article": "Great job. Sentence completed.",
+    "training.feedback.wrong_article": "Not quite. Try another article.",
     "translation.tap_word": "Tap a word",
     "translation.tap_word_sentence": "Tap a word or sentence",
     "translation.placeholder": "Translation will appear here.",
@@ -345,6 +383,7 @@ const UI_COPY = {
     "screen.library": "Чтение немецкого",
     "screen.reader": "Читалка",
     "screen.lemmas": "Леммы",
+    "screen.trainings": "Тренировки",
     "screen.settings": "Настройки",
     "library.hint.rss": "RSS‑лента",
     "library.hint.stories": "Ваши тексты",
@@ -375,6 +414,42 @@ const UI_COPY = {
     "lemmas.action.export": "Экспорт",
     "lemmas.action.export.copied": "Скопировано",
     "lemmas.action.clear": "Очистить историю",
+    "trainings.section": "Тренировки",
+    "trainings.title": "Тренировки",
+    "trainings.subtitle": "Короткие упражнения на падежи и артикли.",
+    "trainings.action.generate": "Сгенерировать",
+    "trainings.action.back": "Назад",
+    "trainings.action.next": "Далее",
+    "trainings.action.skip": "Пропустить",
+    "trainings.status.loading": "Генерируем новые предложения...",
+    "trainings.status.ready": "Новый набор готов.",
+    "trainings.status.failed": "Не удалось сгенерировать предложения.",
+    "trainings.status.api_required": "Добавьте API ключ в настройках.",
+    "trainings.status.completed": "Все предложения изучены. Сгенерируйте новый набор.",
+    "trainings.status.session_complete": "Тренировка завершена.",
+    "trainings.count.label": "Предложений: {count}",
+    "trainings.status.need_generate": "Генерируем больше предложений...",
+    "trainings.summary.title": "Тренировка завершена",
+    "trainings.summary.score": "Верно: {percent}%",
+    "trainings.summary.note": "Предложения с ошибками вернутся в будущих тренировках.",
+    "trainings.action.close": "Закрыть",
+    "trainings.item.label": "Тренировка",
+    "training.dativ_akk.title": "Датив или аккузатив",
+    "training.dativ_akk.description": "Сначала выберите падеж, потом артикль.",
+    "training.dativ_akk.prompt.case": "Датив или аккузатив?",
+    "training.dativ_akk.prompt.article": "Выберите артикль.",
+    "training.case.dative": "Датив",
+    "training.case.accusative": "Аккузатив",
+    "training.gender.label": "Род",
+    "training.gender.masculine": "Мужской",
+    "training.gender.feminine": "Женский",
+    "training.gender.neuter": "Средний",
+    "training.gender.plural": "Множественное",
+    "training.feedback.correct_case": "Верно. Теперь выберите артикль.",
+    "training.feedback.correct_article_partial": "Хорошо. Следующий артикль.",
+    "training.feedback.wrong_case": "Не совсем. Попробуйте другой падеж.",
+    "training.feedback.correct_article": "Отлично. Предложение собрано.",
+    "training.feedback.wrong_article": "Не совсем. Попробуйте другой артикль.",
     "translation.tap_word": "Нажмите на слово",
     "translation.tap_word_sentence": "Нажмите на слово или предложение",
     "translation.placeholder": "Перевод появится здесь.",
@@ -538,6 +613,102 @@ const NATIVE_LANGUAGE_NAMES = {
   ru: "Russian",
 };
 
+const TRAINING_TOKEN = "__ARTICLE__";
+const TRAINING_BLANK = "__";
+const TRAINING_GENDERS = ["masculine", "feminine", "neuter", "plural"];
+const TRAINING_POSSESSIVE_BASES = ["mein", "dein", "sein", "ihr", "unser"];
+const TRAINING_DEFINITE_ENDINGS = {
+  dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
+  accusative: { masculine: "en", feminine: "ie", neuter: "as", plural: "ie" },
+};
+const TRAINING_INDEFINITE_ENDINGS = {
+  dative: { masculine: "em", feminine: "er", neuter: "em" },
+  accusative: { masculine: "en", feminine: "e", neuter: "" },
+};
+const TRAINING_POSSESSIVE_ENDINGS = {
+  dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
+  accusative: { masculine: "en", feminine: "e", neuter: "", plural: "e" },
+};
+const TRAINING_DEFAULT_ITEMS = [
+  {
+    sentence: "Ich gebe __ARTICLE__ Mann __ARTICLE__ Buch.",
+    articles: ["dem", "das"],
+    cases: ["dative", "accusative"],
+    genders: ["masculine", "neuter"],
+    nouns: ["Mann", "Buch"],
+  },
+  {
+    sentence: "Wir warten auf __ARTICLE__ Bus.",
+    articles: ["den"],
+    cases: ["accusative"],
+    genders: ["masculine"],
+    nouns: ["Bus"],
+  },
+  {
+    sentence: "Sie fährt mit __ARTICLE__ Freundin.",
+    articles: ["der"],
+    cases: ["dative"],
+    genders: ["feminine"],
+    nouns: ["Freundin"],
+  },
+  {
+    sentence: "Er sieht __ARTICLE__ Katze.",
+    articles: ["die"],
+    cases: ["accusative"],
+    genders: ["feminine"],
+    nouns: ["Katze"],
+  },
+  {
+    sentence: "Mara liest __ARTICLE__ Buch.",
+    articles: ["das"],
+    cases: ["accusative"],
+    genders: ["neuter"],
+    nouns: ["Buch"],
+  },
+  {
+    sentence: "Timo hilft __ARTICLE__ Kind.",
+    articles: ["dem"],
+    cases: ["dative"],
+    genders: ["neuter"],
+    nouns: ["Kind"],
+  },
+  {
+    sentence: "Wir danken __ARTICLE__ Gästen.",
+    articles: ["den"],
+    cases: ["dative"],
+    genders: ["plural"],
+    nouns: ["Gästen"],
+  },
+  {
+    sentence: "Sie besucht __ARTICLE__ Eltern.",
+    articles: ["die"],
+    cases: ["accusative"],
+    genders: ["plural"],
+    nouns: ["Eltern"],
+  },
+  {
+    sentence: "Er erklärt __ARTICLE__ Schülern __ARTICLE__ Regel.",
+    articles: ["den", "eine"],
+    cases: ["dative", "accusative"],
+    genders: ["plural", "feminine"],
+    nouns: ["Schülern", "Regel"],
+  },
+  {
+    sentence: "Ich zeige __ARTICLE__ Freundin __ARTICLE__ Plan.",
+    articles: ["meiner", "meinen"],
+    cases: ["dative", "accusative"],
+    genders: ["feminine", "masculine"],
+    nouns: ["Freundin", "Plan"],
+  },
+  {
+    sentence: "Wir sprechen mit __ARTICLE__ Nachbarin.",
+    articles: ["der"],
+    cases: ["dative"],
+    genders: ["feminine"],
+    nouns: ["Nachbarin"],
+  },
+];
+
 const getBrowserUiLang = () => {
   const candidate =
     (Array.isArray(navigator.languages) && navigator.languages[0]) ||
@@ -560,6 +731,20 @@ const t = (key, vars = {}) => {
   });
   return value;
 };
+
+let trainingItems = [];
+let trainingIndex = 0;
+let trainingPhase = "case";
+let trainingActiveItem = null;
+let trainingGenerationController = null;
+let trainingGapIndex = 0;
+let trainingAnswers = [];
+let trainingHadMistake = false;
+let trainingSessionComplete = false;
+let trainingSentenceScored = false;
+let trainingCorrectCount = 0;
+let trainingTotalCount = 0;
+let trainingSessionSize = 10;
 
 const readerTtsState = {
   isSpeaking: false,
@@ -927,6 +1112,9 @@ const STORY_STYLE_KEY = "reader_story_style";
 const LEMMA_STATS_KEY = "reader_lemma_stats_v1";
 const READ_STATUS_KEY = "reader_story_read_v1";
 const STORY_PROGRESS_KEY = "reader_story_progress_v1";
+const TRAINING_DA_ITEMS_KEY = "training_dative_accusative_v1";
+const TRAINING_DA_LEARNED_KEY = "training_dative_accusative_learned_v1";
+const TRAINING_DA_SESSION_SIZE_KEY = "training_dative_accusative_size_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
@@ -946,6 +1134,31 @@ let libraryViews = libraryStack
 const readerScreen = document.querySelector('[data-screen="reader"]');
 const readerPanel = document.querySelector(".reader-panel");
 const lemmasScreen = document.querySelector('[data-screen="lemmas"]');
+const trainingsScreen = document.querySelector('[data-screen="trainings"]');
+const trainingSentence = document.getElementById("trainingSentence");
+const trainingPrompt = document.getElementById("trainingPrompt");
+const trainingCaseOptions = document.getElementById("trainingCaseOptions");
+const trainingArticleOptions = document.getElementById("trainingArticleOptions");
+const trainingGender = document.getElementById("trainingGender");
+const trainingGenderValue = document.getElementById("trainingGenderValue");
+const trainingFeedback = document.getElementById("trainingFeedback");
+const trainingStatus = document.getElementById("trainingStatus");
+const trainingNext = document.getElementById("trainingNext");
+const trainingSkip = document.getElementById("trainingSkip");
+const trainingGenerate = document.getElementById("trainingGenerate");
+const trainingProgressBar = document.getElementById("trainingProgressBar");
+const trainingListView = document.getElementById("trainingListView");
+const trainingDetailView = document.getElementById("trainingDetailView");
+const trainingClose = document.getElementById("trainingClose");
+const trainingDativAkkItem = document.getElementById("trainingDativAkkItem");
+const trainingBody = document.getElementById("trainingBody");
+const trainingSummary = document.getElementById("trainingSummary");
+const trainingSummaryScore = document.getElementById("trainingSummaryScore");
+const trainingSummaryNote = document.getElementById("trainingSummaryNote");
+const trainingSummaryClose = document.getElementById("trainingSummaryClose");
+const trainingSessionSizeLabel = document.getElementById("trainingSessionSizeLabel");
+const trainingListStatus = document.getElementById("trainingListStatus");
+const trainingList = document.getElementById("trainingList");
 
 const updateScreenScrollLock = () => {
   if (!screenLayout) {
@@ -1182,6 +1395,787 @@ const normalizeCompare = (value) =>
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/-/g, "");
+
+const normalizeTrainingCase = (value) =>
+  String(value || "").trim().toLowerCase();
+
+const normalizeTrainingGender = (value) =>
+  String(value || "").trim().toLowerCase();
+
+const getTrainingItemId = (item) => {
+  if (!item?.template || !Array.isArray(item.gaps)) {
+    return "";
+  }
+  const gaps = item.gaps
+    .map((gap) =>
+      [
+        gap.article,
+        gap.case,
+        gap.gender,
+        gap.noun,
+      ]
+        .map((value) => String(value || "").trim().toLowerCase())
+        .join(":")
+    )
+    .join("|");
+  return `${item.template}||${gaps}`.trim();
+};
+
+const loadTrainingLearnedSet = () => {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(TRAINING_DA_LEARNED_KEY) || "[]"
+    );
+    if (!Array.isArray(stored)) {
+      return new Set();
+    }
+    return new Set(stored.map((entry) => String(entry)));
+  } catch (error) {
+    return new Set();
+  }
+};
+
+const saveTrainingLearnedSet = (set) => {
+  try {
+    localStorage.setItem(
+      TRAINING_DA_LEARNED_KEY,
+      JSON.stringify(Array.from(set))
+    );
+  } catch (error) {
+    console.warn("Failed to save learned training items.", error);
+  }
+};
+
+const loadTrainingSessionSize = () => {
+  try {
+    const stored = Number(localStorage.getItem(TRAINING_DA_SESSION_SIZE_KEY));
+    return Number.isFinite(stored) && stored > 0 ? stored : 10;
+  } catch (error) {
+    return 10;
+  }
+};
+
+const saveTrainingSessionSize = (size) => {
+  try {
+    localStorage.setItem(TRAINING_DA_SESSION_SIZE_KEY, String(size));
+  } catch (error) {
+    console.warn("Failed to save training session size.", error);
+  }
+};
+
+const setTrainingListStatus = (message, { isError = false } = {}) => {
+  if (!trainingListStatus) {
+    return;
+  }
+  trainingListStatus.textContent = message || "";
+  trainingListStatus.classList.toggle("is-hidden", !message);
+  trainingListStatus.classList.toggle("is-error", isError);
+};
+
+
+const updateTrainingSessionSizeLabel = () => {
+  if (!trainingSessionSizeLabel) {
+    return;
+  }
+  trainingSessionSizeLabel.textContent = t("trainings.count.label", {
+    count: trainingSessionSize,
+  });
+};
+
+const updateTrainingSessionSizeButtons = () => {
+  if (!trainingDativAkkItem) {
+    return;
+  }
+  trainingDativAkkItem
+    .querySelectorAll("button[data-training-count]")
+    .forEach((button) => {
+      const count = Number(button.dataset.trainingCount);
+      button.classList.toggle("is-active", count === trainingSessionSize);
+    });
+};
+
+const getTrainingArticleParts = (article) => {
+  const raw = String(article || "").trim();
+  if (!raw) {
+    return null;
+  }
+  const value = raw.toLowerCase();
+  const bases = [
+    "unser",
+    "mein",
+    "dein",
+    "sein",
+    "ihr",
+    "ein",
+    "d",
+  ];
+  const base = bases.find((prefix) => value.startsWith(prefix));
+  if (!base) {
+    return null;
+  }
+  return {
+    base,
+    suffix: value.slice(base.length),
+    full: raw,
+  };
+};
+
+const buildTrainingTemplate = (sentence, article) => {
+  if (!sentence) {
+    return "";
+  }
+  if (sentence.includes(TRAINING_TOKEN)) {
+    return sentence;
+  }
+  if (!article) {
+    return "";
+  }
+  const escaped = escapeRegExp(article);
+  const regex = new RegExp(`\\b${escaped}\\b`, "i");
+  if (!regex.test(sentence)) {
+    return "";
+  }
+  return sentence.replace(regex, TRAINING_TOKEN);
+};
+
+const normalizeTrainingItem = (item) => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const sentence = String(item.sentence || "").trim();
+  if (!sentence) {
+    return null;
+  }
+  const existingTemplate = String(item.template || "").trim();
+  const templateSource = existingTemplate || sentence;
+  const template = templateSource.includes(TRAINING_TOKEN)
+    ? templateSource
+    : buildTrainingTemplate(templateSource, String(item.article || ""));
+  if (!template) {
+    return null;
+  }
+  const gapCount = template.split(TRAINING_TOKEN).length - 1;
+  if (Array.isArray(item.gaps)) {
+    if (item.gaps.length !== gapCount) {
+      return null;
+    }
+    const gaps = item.gaps.map((gap) => {
+      const article = String(gap?.article || "").trim().toLowerCase();
+      const itemCase = normalizeTrainingCase(gap?.case);
+      const gender = normalizeTrainingGender(gap?.gender);
+      const noun = String(gap?.noun || "").trim();
+      const parts = getTrainingArticleParts(article);
+      if (!article || !itemCase || !gender || !parts) {
+        return null;
+      }
+      if (!["dative", "accusative"].includes(itemCase)) {
+        return null;
+      }
+      if (!TRAINING_GENDERS.includes(gender)) {
+        return null;
+      }
+      return {
+        article: parts.full,
+        base: parts.base,
+        suffix: parts.suffix,
+        case: itemCase,
+        gender,
+        noun,
+      };
+    });
+    if (gaps.some((gap) => !gap)) {
+      return null;
+    }
+    return {
+      sentence,
+      gaps,
+      template,
+    };
+  }
+  const rawArticles = item.articles ?? item.article;
+  const rawCases = item.cases ?? item.case;
+  const rawGenders = item.genders ?? item.gender;
+  const rawNouns = item.nouns ?? item.noun ?? [];
+  const articles = Array.isArray(rawArticles)
+    ? rawArticles
+    : rawArticles
+    ? [rawArticles]
+    : [];
+  const cases = Array.isArray(rawCases) ? rawCases : rawCases ? [rawCases] : [];
+  const genders = Array.isArray(rawGenders)
+    ? rawGenders
+    : rawGenders
+    ? [rawGenders]
+    : [];
+  const nouns = Array.isArray(rawNouns) ? rawNouns : rawNouns ? [rawNouns] : [];
+  if (
+    !gapCount ||
+    articles.length !== gapCount ||
+    cases.length !== gapCount ||
+    genders.length !== gapCount
+  ) {
+    return null;
+  }
+  const gaps = [];
+  for (let index = 0; index < gapCount; index += 1) {
+    const article = String(articles[index] || "").trim().toLowerCase();
+    const itemCase = normalizeTrainingCase(cases[index]);
+    const gender = normalizeTrainingGender(genders[index]);
+    const noun = String(nouns[index] || "").trim();
+    const parts = getTrainingArticleParts(article);
+    if (!article || !itemCase || !gender) {
+      return null;
+    }
+    if (!parts) {
+      return null;
+    }
+    if (!["dative", "accusative"].includes(itemCase)) {
+      return null;
+    }
+    if (!TRAINING_GENDERS.includes(gender)) {
+      return null;
+    }
+    gaps.push({
+      article: parts.full,
+      base: parts.base,
+      suffix: parts.suffix,
+      case: itemCase,
+      gender,
+      noun,
+    });
+  }
+  return {
+    sentence,
+    gaps,
+    template,
+  };
+};
+
+const loadTrainingItems = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(TRAINING_DA_ITEMS_KEY) || "[]");
+    if (!Array.isArray(stored)) {
+      return [];
+    }
+    return stored.map(normalizeTrainingItem).filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+};
+
+const saveTrainingItems = (items) => {
+  try {
+    localStorage.setItem(TRAINING_DA_ITEMS_KEY, JSON.stringify(items));
+  } catch (error) {
+    console.warn("Failed to save training items.", error);
+  }
+};
+
+const getFallbackTrainingItems = () =>
+  TRAINING_DEFAULT_ITEMS.map(normalizeTrainingItem).filter(Boolean);
+
+const setTrainingFeedback = (message, { isError = false } = {}) => {
+  if (!trainingFeedback) {
+    return;
+  }
+  trainingFeedback.textContent = message || "";
+  trainingFeedback.classList.toggle("is-hidden", !message);
+  trainingFeedback.classList.toggle("is-error", isError);
+};
+
+const setTrainingStatus = (message, { isError = false } = {}) => {
+  if (!trainingStatus) {
+    return;
+  }
+  trainingStatus.textContent = message || "";
+  trainingStatus.classList.toggle("is-hidden", !message);
+  trainingStatus.classList.toggle("is-error", isError);
+};
+
+const setTrainingButtonsEnabled = (container, isEnabled) => {
+  if (!container) {
+    return;
+  }
+  container.querySelectorAll("button").forEach((button) => {
+    button.disabled = !isEnabled;
+  });
+};
+
+const renderTrainingSentence = (item, { activeGapIndex = 0 } = {}) => {
+  if (!trainingSentence || !item) {
+    return;
+  }
+  trainingSentence.textContent = "";
+  const template = item.template || item.sentence;
+  const parts = template.split(TRAINING_TOKEN);
+  parts.forEach((part, index) => {
+    if (part) {
+      trainingSentence.appendChild(document.createTextNode(part));
+    }
+    if (index < parts.length - 1) {
+      const span = document.createElement("span");
+      const gap = item.gaps?.[index];
+      const isAnswered = trainingAnswers[index];
+      if (!gap) {
+        return;
+      }
+      if (isAnswered) {
+        span.className = "training-answer";
+        span.textContent = `${gap.base}${gap.suffix}`;
+      } else {
+        span.className = "training-gap";
+        span.textContent = `${gap.base}${TRAINING_BLANK}`;
+        if (index === activeGapIndex && trainingPhase !== "complete") {
+          span.classList.add("is-active");
+        }
+      }
+      trainingSentence.appendChild(span);
+    }
+  });
+};
+
+const renderTrainingGender = (item) => {
+  if (!trainingGender || !trainingGenderValue || !item) {
+    return;
+  }
+  const gap = item.gaps?.[trainingGapIndex];
+  if (!gap) {
+    return;
+  }
+  const genderKey = `training.gender.${gap.gender}`;
+  const label = t(genderKey);
+  trainingGenderValue.textContent = gap.noun ? `${label} · ${gap.noun}` : label;
+  trainingGender.classList.remove("is-hidden");
+};
+
+const buildTrainingArticleOptionsForBase = (gap) => {
+  if (!gap?.base || !gap?.case) {
+    return [];
+  }
+  const options = [];
+  const base = gap.base;
+  const cases = ["dative", "accusative"];
+  cases.forEach((itemCase) => {
+    let endingsTable = null;
+    if (base === "d") {
+      endingsTable = TRAINING_DEFINITE_ENDINGS[itemCase];
+    } else if (base === "ein") {
+      endingsTable = TRAINING_INDEFINITE_ENDINGS[itemCase];
+    } else {
+      endingsTable = TRAINING_POSSESSIVE_ENDINGS[itemCase];
+    }
+    TRAINING_GENDERS.forEach((gender) => {
+      const ending = endingsTable?.[gender];
+      if (typeof ending !== "string") {
+        return;
+      }
+      options.push(`${base}${ending}`);
+    });
+  });
+  return Array.from(new Set(options));
+};
+
+const renderTrainingArticleOptions = (gap) => {
+  if (!trainingArticleOptions) {
+    return;
+  }
+  trainingArticleOptions.innerHTML = "";
+  if (!gap) {
+    return;
+  }
+  const options = buildTrainingArticleOptionsForBase(gap);
+  options.forEach((article) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-button";
+    button.dataset.article = article;
+    button.textContent = article;
+    trainingArticleOptions.appendChild(button);
+  });
+};
+
+const resetTrainingUi = () => {
+  if (trainingPrompt) {
+    trainingPrompt.textContent = t("training.dativ_akk.prompt.case");
+  }
+  trainingBody?.classList.remove("is-hidden");
+  trainingSummary?.classList.add("is-hidden");
+  trainingDetailView?.classList.remove("is-summary");
+  if (trainingGender) {
+    trainingGender.classList.add("is-hidden");
+  }
+  if (trainingArticleOptions) {
+    trainingArticleOptions.classList.add("is-hidden");
+    trainingArticleOptions.innerHTML = "";
+  }
+  setTrainingFeedback("");
+  setTrainingStatus("");
+  if (trainingNext) {
+    trainingNext.disabled = true;
+  }
+  if (trainingSkip) {
+    trainingSkip.disabled = false;
+  }
+  setTrainingButtonsEnabled(trainingCaseOptions, true);
+};
+
+const setTrainingItem = (item) => {
+  trainingActiveItem = item;
+  trainingPhase = "case";
+  trainingGapIndex = 0;
+  trainingAnswers = new Array(item?.gaps?.length || 0).fill(false);
+  trainingHadMistake = false;
+  trainingSessionComplete = false;
+  trainingSentenceScored = false;
+  resetTrainingUi();
+  renderTrainingSentence(item, { activeGapIndex: trainingGapIndex });
+  updateTrainingProgress();
+};
+
+const showTrainingSummary = () => {
+  const percent = trainingTotalCount
+    ? Math.round((trainingCorrectCount / trainingTotalCount) * 100)
+    : 0;
+  if (trainingSummaryScore) {
+    trainingSummaryScore.textContent = t("trainings.summary.score", {
+      percent,
+    });
+  }
+  if (trainingSummaryNote) {
+    trainingSummaryNote.classList.toggle("is-hidden", percent === 100);
+  }
+  trainingBody?.classList.add("is-hidden");
+  trainingSummary?.classList.remove("is-hidden");
+  trainingDetailView?.classList.add("is-summary");
+};
+
+const completeTrainingSession = () => {
+  trainingSessionComplete = true;
+  trainingPhase = "complete";
+  setTrainingButtonsEnabled(trainingCaseOptions, false);
+  setTrainingButtonsEnabled(trainingArticleOptions, false);
+  trainingArticleOptions?.classList.add("is-hidden");
+  trainingGender?.classList.add("is-hidden");
+  if (trainingNext) {
+    trainingNext.disabled = true;
+  }
+  if (trainingSkip) {
+    trainingSkip.disabled = true;
+  }
+  setTrainingStatus(t("trainings.status.session_complete"));
+  showTrainingSummary();
+};
+
+const advanceTrainingItem = () => {
+  if (!trainingItems.length) {
+    return;
+  }
+  if (trainingIndex >= trainingItems.length - 1) {
+    completeTrainingSession();
+    updateTrainingProgress();
+    return;
+  }
+  trainingIndex += 1;
+  setTrainingItem(trainingItems[trainingIndex]);
+};
+
+const updateTrainingProgress = () => {
+  if (!trainingProgressBar || !trainingItems.length) {
+    return;
+  }
+  const currentIndex = Math.min(trainingIndex + 1, trainingItems.length);
+  const percent = Math.round((currentIndex / trainingItems.length) * 100);
+  trainingProgressBar.style.width = `${percent}%`;
+};
+
+const filterTrainingPool = (items) => {
+  const normalized = Array.isArray(items) ? items : [];
+  const fallback = getFallbackTrainingItems();
+  const combined = [...normalized, ...fallback].filter(Boolean);
+  const learnedSet = loadTrainingLearnedSet();
+  return combined.filter((item) => {
+    const id = getTrainingItemId(item);
+    return !id || !learnedSet.has(id);
+  });
+};
+
+const buildTrainingSet = (items, count) => {
+  const filtered = filterTrainingPool(items);
+  const limit = Number.isFinite(count) && count > 0 ? count : 10;
+  return filtered.slice(0, limit);
+};
+
+const ensureTrainingPoolSize = async (targetCount, statusHandler) => {
+  const desiredCount = Number.isFinite(targetCount) && targetCount > 0 ? targetCount : 10;
+  const currentPool = filterTrainingPool(loadTrainingItems());
+  if (currentPool.length >= desiredCount) {
+    return currentPool;
+  }
+  if (!getApiKey()) {
+    statusHandler?.(t("trainings.status.api_required"), { isError: true });
+    return null;
+  }
+  statusHandler?.(t("trainings.status.need_generate"));
+  const generated = await generateTrainingItemsWithChatGPT(desiredCount * 2);
+  if (!generated?.length) {
+    statusHandler?.(t("trainings.status.failed"), { isError: true });
+    return null;
+  }
+  const stored = loadTrainingItems();
+  const merged = [...generated, ...stored];
+  saveTrainingItems(merged);
+  statusHandler?.(t("trainings.status.ready"));
+  return filterTrainingPool(merged);
+};
+
+const initializeTraining = () => {
+  trainingSessionSize = loadTrainingSessionSize();
+  updateTrainingSessionSizeLabel();
+  updateTrainingSessionSizeButtons();
+  trainingItems = buildTrainingSet(loadTrainingItems(), trainingSessionSize);
+  trainingTotalCount = trainingItems.length;
+  trainingCorrectCount = 0;
+  if (trainingItems.length) {
+    trainingIndex = 0;
+    setTrainingItem(trainingItems[0]);
+  } else {
+    setTrainingStatus(t("trainings.status.completed"));
+  }
+};
+
+const openTrainingDetail = () => {
+  trainingListView?.classList.add("is-hidden");
+  trainingDetailView?.classList.remove("is-hidden");
+  setTrainingStatus("");
+  setTrainingListStatus("");
+  applyTrainingSessionSize(trainingSessionSize);
+};
+
+const closeTrainingDetail = () => {
+  trainingDetailView?.classList.add("is-hidden");
+  trainingListView?.classList.remove("is-hidden");
+  setTrainingFeedback("");
+  setTrainingStatus("");
+  if (trainingSkip) {
+    trainingSkip.disabled = false;
+  }
+};
+
+const applyTrainingSessionSize = async (
+  size,
+  { ensurePool = false, autoStart = false } = {}
+) => {
+  const nextSize = Number(size);
+  if (!Number.isFinite(nextSize) || nextSize <= 0) {
+    return;
+  }
+  trainingSessionSize = nextSize;
+  saveTrainingSessionSize(nextSize);
+  updateTrainingSessionSizeLabel();
+  updateTrainingSessionSizeButtons();
+  setTrainingListStatus("");
+  let pool = filterTrainingPool(loadTrainingItems());
+  if (ensurePool && pool.length < trainingSessionSize) {
+    pool = await ensureTrainingPoolSize(trainingSessionSize, setTrainingListStatus);
+  }
+  if (!pool || !pool.length) {
+    return;
+  }
+  trainingItems = buildTrainingSet(pool, trainingSessionSize);
+  trainingTotalCount = trainingItems.length;
+  trainingCorrectCount = 0;
+  trainingIndex = 0;
+  const isDetailVisible =
+    trainingDetailView && !trainingDetailView.classList.contains("is-hidden");
+  if (isDetailVisible) {
+    if (trainingItems.length) {
+      setTrainingItem(trainingItems[0]);
+    } else {
+      setTrainingStatus(t("trainings.status.completed"));
+    }
+  } else if (autoStart) {
+    openTrainingDetail();
+    if (trainingItems.length) {
+      setTrainingItem(trainingItems[0]);
+    } else {
+      setTrainingStatus(t("trainings.status.completed"));
+    }
+  }
+};
+
+const generateTrainingItemsWithChatGPT = async (count = 10) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  if (trainingGenerationController) {
+    trainingGenerationController.abort();
+  }
+  trainingGenerationController = new AbortController();
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You create short German grammar drills. Respond with strict JSON: " +
+              "{\"items\":[{\"sentence\":\"...\",\"articles\":[\"dem\"],\"cases\":[\"dative\"],\"genders\":[\"masculine\"],\"nouns\":[\"Mann\"]}]} " +
+              `Rules: Write ${count} short, natural German sentences (max 12 words) for A2 learners. ` +
+              "Each sentence must contain 1-3 determiners in accusative or dative case. " +
+              "Determiners may be definite (der/die/das forms), indefinite (ein-), or possessive (mein/dein/sein/ihr/unser). " +
+              "Replace each target article with the token __ARTICLE__. The noun must immediately follow each token. " +
+              "Do NOT include any other articles or determiners besides the hidden ones (no dieser/jeder/welcher/kein). " +
+              "Provide arrays for articles, cases, genders, and nouns in the same order as tokens appear. " +
+              "Use case values only: dative or accusative. " +
+              "Gender values must be one of: masculine, feminine, neuter, plural.",
+          },
+          {
+            role: "user",
+            content: "Generate a new set.",
+          },
+        ],
+      }),
+      signal: trainingGenerationController.signal,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Training generation failed");
+    }
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("Empty training data");
+    }
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed?.items) ? parsed.items : parsed;
+    const normalized = Array.isArray(items)
+      ? items.map(normalizeTrainingItem).filter(Boolean)
+      : [];
+    if (!normalized.length) {
+      throw new Error("Malformed training data");
+    }
+    return normalized;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    return null;
+  }
+};
+
+const handleTrainingCaseSelection = (caseValue) => {
+  if (!trainingActiveItem || trainingPhase !== "case") {
+    return;
+  }
+  const gap = trainingActiveItem.gaps?.[trainingGapIndex];
+  if (!gap) {
+    return;
+  }
+  if (caseValue === gap.case) {
+    trainingPhase = "article";
+    setTrainingFeedback(t("training.feedback.correct_case"));
+    setTrainingButtonsEnabled(trainingCaseOptions, false);
+    renderTrainingGender(trainingActiveItem);
+    renderTrainingArticleOptions(gap);
+    trainingArticleOptions?.classList.remove("is-hidden");
+    if (trainingPrompt) {
+      trainingPrompt.textContent = t("training.dativ_akk.prompt.article");
+    }
+    return;
+  }
+  trainingHadMistake = true;
+  setTrainingFeedback(t("training.feedback.wrong_case"), { isError: true });
+};
+
+const handleTrainingArticleSelection = (articleValue) => {
+  if (!trainingActiveItem || trainingPhase !== "article") {
+    return;
+  }
+  const gap = trainingActiveItem.gaps?.[trainingGapIndex];
+  if (!gap) {
+    return;
+  }
+  if (articleValue === gap.article) {
+    trainingAnswers[trainingGapIndex] = true;
+    setTrainingButtonsEnabled(trainingArticleOptions, false);
+    renderTrainingSentence(trainingActiveItem, {
+      activeGapIndex: trainingGapIndex,
+    });
+    if (trainingGapIndex < trainingActiveItem.gaps.length - 1) {
+      trainingGapIndex += 1;
+      trainingPhase = "case";
+      setTrainingFeedback(t("training.feedback.correct_article_partial"));
+      if (trainingPrompt) {
+        trainingPrompt.textContent = t("training.dativ_akk.prompt.case");
+      }
+      trainingGender?.classList.add("is-hidden");
+      trainingArticleOptions?.classList.add("is-hidden");
+      setTrainingButtonsEnabled(trainingCaseOptions, true);
+      renderTrainingSentence(trainingActiveItem, {
+        activeGapIndex: trainingGapIndex,
+      });
+      return;
+    }
+    trainingPhase = "complete";
+    setTrainingFeedback(t("training.feedback.correct_article"));
+    if (!trainingHadMistake && !trainingSentenceScored) {
+      const learnedSet = loadTrainingLearnedSet();
+      const id = getTrainingItemId(trainingActiveItem);
+      if (id) {
+        learnedSet.add(id);
+        saveTrainingLearnedSet(learnedSet);
+      }
+      trainingCorrectCount += 1;
+    }
+    trainingSentenceScored = true;
+    if (trainingIndex >= trainingItems.length - 1) {
+      if (trainingNext) {
+        trainingNext.disabled = false;
+      }
+    } else if (trainingNext) {
+      trainingNext.disabled = false;
+    }
+    renderTrainingSentence(trainingActiveItem, {
+      activeGapIndex: trainingGapIndex,
+    });
+    return;
+  }
+  trainingHadMistake = true;
+  setTrainingFeedback(t("training.feedback.wrong_article"), { isError: true });
+};
+
+const handleTrainingGenerate = async () => {
+  if (!trainingGenerate || trainingGenerate.disabled) {
+    return;
+  }
+  trainingGenerate.disabled = true;
+  let pool = filterTrainingPool(loadTrainingItems());
+  if (pool.length < trainingSessionSize) {
+    pool = await ensureTrainingPoolSize(trainingSessionSize, setTrainingStatus);
+  }
+  trainingGenerate.disabled = false;
+  if (!pool?.length) {
+    return;
+  }
+  trainingItems = buildTrainingSet(pool, trainingSessionSize);
+  trainingTotalCount = trainingItems.length;
+  trainingCorrectCount = 0;
+  trainingIndex = 0;
+  if (trainingItems.length) {
+    setTrainingItem(trainingItems[0]);
+  } else {
+    setTrainingStatus(t("trainings.status.completed"));
+  }
+};
 
 const loadRssUrls = () => {
   try {
@@ -6031,6 +7025,7 @@ const initializeStories = () => {
   renderLemmaList();
   renderRssSubscriptions();
   loadRssItems();
+  initializeTraining();
   if (!stories.length) {
     storyTitle.textContent = "";
     reader.innerHTML = "";
@@ -6184,6 +7179,88 @@ if (openLemmasButton) {
     scrollToScreen(lemmasScreen);
   });
 }
+
+if (trainingCaseOptions) {
+  trainingCaseOptions.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-case]");
+    if (!button) {
+      return;
+    }
+    handleTrainingCaseSelection(button.dataset.case);
+  });
+}
+
+if (trainingArticleOptions) {
+  trainingArticleOptions.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-article]");
+    if (!button) {
+      return;
+    }
+    handleTrainingArticleSelection(button.dataset.article);
+  });
+}
+
+if (trainingNext) {
+  trainingNext.addEventListener("click", () => {
+    if (trainingPhase !== "complete" || trainingSessionComplete) {
+      return;
+    }
+    advanceTrainingItem();
+  });
+}
+
+if (trainingSkip) {
+  trainingSkip.addEventListener("click", () => {
+    if (trainingSessionComplete) {
+      return;
+    }
+    advanceTrainingItem();
+  });
+}
+
+if (trainingGenerate) {
+  trainingGenerate.addEventListener("click", handleTrainingGenerate);
+}
+
+if (trainingClose) {
+  trainingClose.addEventListener("click", () => {
+    closeTrainingDetail();
+  });
+}
+
+if (trainingSummaryClose) {
+  trainingSummaryClose.addEventListener("click", () => {
+    closeTrainingDetail();
+  });
+}
+
+if (trainingDativAkkItem) {
+  const content = trainingDativAkkItem.querySelector(".home-item-content");
+  if (content) {
+    content.addEventListener("click", () => {
+      closeAllHomeMenus(undefined, trainingList);
+      openTrainingDetail();
+      if (trainingItems.length) {
+        setTrainingItem(trainingItems[0]);
+      }
+    });
+  }
+  const actions = trainingDativAkkItem.querySelector(".home-item-actions");
+  if (actions) {
+    actions.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-training-count]");
+      if (!button) {
+        return;
+      }
+      event.stopPropagation();
+      const count = Number(button.dataset.trainingCount);
+      await applyTrainingSessionSize(count, { ensurePool: true, autoStart: true });
+      closeAllHomeMenus(undefined, trainingList);
+    });
+  }
+  setupHomeItemLongPress(trainingDativAkkItem, trainingList);
+}
+
 
 if (screenLayout) {
   screenLayout.addEventListener("scroll", requestPageDotsUpdate, { passive: true });
@@ -6738,7 +7815,7 @@ window.addEventListener("hashchange", handleRoute);
 document.addEventListener(
   "click",
   (event) => {
-    const lists = [homeList, rssFeedList].filter(Boolean);
+    const lists = [homeList, rssFeedList, trainingList].filter(Boolean);
     const activeList = lists.find((list) => list.classList.contains("has-active"));
     if (!activeList) {
       return;

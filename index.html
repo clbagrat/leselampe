@@ -236,6 +236,155 @@
           </section>
         </section>
 
+        <section
+          class="book-panel training-panel"
+          aria-label="Trainings"
+          data-screen="trainings"
+          data-i18n-aria-label="screen.trainings"
+        >
+          <section
+            class="home-library"
+            aria-label="Training sessions"
+            data-i18n-aria-label="trainings.section"
+          >
+            <div class="home-library-header">
+              <div>
+                <h2 class="home-title" data-i18n="trainings.title">Trainings</h2>
+              </div>
+            </div>
+            <p class="home-subtitle" data-i18n="trainings.subtitle">
+              Short drills for cases and articles.
+            </p>
+            <div class="training-list-view" id="trainingListView">
+              <div class="home-list" id="trainingList">
+                <article
+                  class="home-item"
+                  id="trainingDativAkkItem"
+                  data-training-id="dativ-akkusativ"
+                >
+                  <button class="home-item-content" type="button">
+                    <div class="home-item-head">
+                      <p class="home-item-title" data-i18n="training.dativ_akk.title">
+                        Dativ oder Akkusativ
+                      </p>
+                    </div>
+                    <div class="rss-feed-meta">
+                      <span class="rss-feed-source" data-i18n="trainings.item.label">Training</span>
+                      <span class="rss-feed-check" id="trainingSessionSizeLabel">—</span>
+                    </div>
+                    <p
+                      class="home-item-excerpt"
+                      data-i18n="training.dativ_akk.description"
+                    >
+                      Choose the case, then the article.
+                    </p>
+                  </button>
+                  <div class="home-item-actions">
+                    <button class="home-action" type="button" data-training-count="3">3</button>
+                    <button class="home-action" type="button" data-training-count="5">5</button>
+                    <button class="home-action" type="button" data-training-count="10">10</button>
+                    <button class="home-action" type="button" data-training-count="15">15</button>
+                    <button class="home-action" type="button" data-training-count="20">20</button>
+                  </div>
+                </article>
+              </div>
+              <p class="helper-text training-status is-hidden" id="trainingListStatus"></p>
+            </div>
+            <div class="training-detail-view is-hidden" id="trainingDetailView">
+              <div class="training-detail-header">
+                <button class="ghost mini" type="button" id="trainingClose" data-i18n="trainings.action.back">
+                  Back
+                </button>
+                <button
+                  class="ghost mini"
+                  type="button"
+                  id="trainingGenerate"
+                  data-i18n="trainings.action.generate"
+                >
+                  Generate
+                </button>
+              </div>
+              <div class="training-card" id="trainingDativAkkusativ">
+                <div class="training-header">
+                  <h3 class="training-title" data-i18n="training.dativ_akk.title">
+                    Dativ oder Akkusativ
+                  </h3>
+                  <p class="training-description" data-i18n="training.dativ_akk.description">
+                    Choose the case, then the article.
+                  </p>
+                </div>
+                <div class="training-progress">
+                  <div class="training-progress-bar" id="trainingProgressBar"></div>
+                </div>
+                <div class="training-body" id="trainingBody">
+                  <p class="training-sentence" id="trainingSentence">—</p>
+                  <p
+                    class="training-prompt"
+                    id="trainingPrompt"
+                    data-i18n="training.dativ_akk.prompt.case"
+                  >
+                    Dativ oder Akkusativ?
+                  </p>
+                  <div class="training-options" id="trainingCaseOptions">
+                    <button
+                      class="option-button"
+                      type="button"
+                      data-case="dative"
+                      data-i18n="training.case.dative"
+                    >
+                      Dativ
+                    </button>
+                    <button
+                      class="option-button"
+                      type="button"
+                      data-case="accusative"
+                      data-i18n="training.case.accusative"
+                    >
+                      Akkusativ
+                    </button>
+                  </div>
+                  <div class="training-gender is-hidden" id="trainingGender">
+                    <span class="training-gender-label" data-i18n="training.gender.label">
+                      Gender
+                    </span>
+                    <span class="training-gender-value" id="trainingGenderValue">—</span>
+                  </div>
+                  <div
+                    class="training-options training-article-options is-hidden"
+                    id="trainingArticleOptions"
+                  ></div>
+                  <p class="helper-text training-feedback is-hidden" id="trainingFeedback"></p>
+                  <p class="helper-text training-status is-hidden" id="trainingStatus"></p>
+                  <div class="training-actions">
+                    <button class="ghost" type="button" id="trainingSkip" data-i18n="trainings.action.skip">
+                      Skip
+                    </button>
+                    <button class="primary" type="button" id="trainingNext" data-i18n="trainings.action.next">
+                      Next
+                    </button>
+                  </div>
+                </div>
+                <div class="training-summary is-hidden" id="trainingSummary">
+                  <p class="training-summary-title" data-i18n="trainings.summary.title">
+                    Training completed
+                  </p>
+                  <p class="training-summary-score" id="trainingSummaryScore">—</p>
+                  <p
+                    class="training-summary-note is-hidden"
+                    id="trainingSummaryNote"
+                    data-i18n="trainings.summary.note"
+                  >
+                    Sentences with mistakes will return in future trainings.
+                  </p>
+                  <button class="primary" type="button" id="trainingSummaryClose" data-i18n="trainings.action.close">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
         <aside
           class="translation-panel is-hidden"
           id="translationPanel"
