@@ -5123,9 +5123,6 @@ const startBottomSheetDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
     return;
   }
-  if (bottomSheet.classList.contains("is-sentence")) {
-    return;
-  }
   if (bottomSheet.classList.contains("is-loading")) {
     return;
   }
@@ -5160,7 +5157,11 @@ const moveBottomSheetDrag = (event) => {
     if (absX < 6 && absY < 6) {
       return;
     }
-    sheetDragMode = absX > absY ? "horizontal" : "vertical";
+    if (bottomSheet.classList.contains("is-sentence")) {
+      sheetDragMode = "vertical";
+    } else {
+      sheetDragMode = absX > absY ? "horizontal" : "vertical";
+    }
   }
   if (sheetDragMode === "horizontal") {
     sheetDragDeltaX = deltaX;
@@ -5187,9 +5188,10 @@ const endBottomSheetDrag = (event) => {
   const sheetRect = bottomSheet.getBoundingClientRect();
   const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
   const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+  const isSentenceSheet = bottomSheet.classList.contains("is-sentence");
   const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
-  const shouldAccept = sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
-  const shouldIgnore = sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
+  const shouldAccept = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
+  const shouldIgnore = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
   sheetDragPointerId = null;
   sheetDragMode = null;
@@ -5215,9 +5217,6 @@ const endBottomSheetDrag = (event) => {
 
 const startBottomSheetTouchDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
-    return;
-  }
-  if (bottomSheet.classList.contains("is-sentence")) {
     return;
   }
   if (bottomSheet.classList.contains("is-loading")) {
@@ -5258,7 +5257,11 @@ const moveBottomSheetTouchDrag = (event) => {
     if (absX < 6 && absY < 6) {
       return;
     }
-    sheetDragMode = absX > absY ? "horizontal" : "vertical";
+    if (bottomSheet.classList.contains("is-sentence")) {
+      sheetDragMode = "vertical";
+    } else {
+      sheetDragMode = absX > absY ? "horizontal" : "vertical";
+    }
   }
   if (sheetDragMode === "horizontal") {
     sheetDragDeltaX = deltaX;
@@ -5288,9 +5291,10 @@ const endBottomSheetTouchDrag = () => {
   const sheetRect = bottomSheet.getBoundingClientRect();
   const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
   const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
+  const isSentenceSheet = bottomSheet.classList.contains("is-sentence");
   const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
-  const shouldAccept = sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
-  const shouldIgnore = sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
+  const shouldAccept = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
+  const shouldIgnore = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
   sheetDragPointerId = null;
   sheetDragMode = null;
