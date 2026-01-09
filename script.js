@@ -1719,32 +1719,37 @@ const renderTrainingSentence = (item, { activeGapIndex = 0 } = {}) => {
     return;
   }
   trainingSentence.textContent = "";
+  const sentenceSpan = document.createElement("span");
+  sentenceSpan.className = "sentence";
+  sentenceSpan.dataset.translation = "";
   const template = item.template || item.sentence;
   const parts = template.split(TRAINING_TOKEN);
   parts.forEach((part, index) => {
     if (part) {
-      trainingSentence.appendChild(document.createTextNode(part));
+      appendSentenceTokens(sentenceSpan, part);
     }
     if (index < parts.length - 1) {
-      const span = document.createElement("span");
       const gap = item.gaps?.[index];
       const isAnswered = trainingAnswers[index];
       if (!gap) {
         return;
       }
+      let span;
       if (isAnswered) {
-        span.className = "training-answer";
-        span.textContent = `${gap.base}${gap.suffix}`;
+        const answerText = `${gap.base}${gap.suffix}`;
+        span = buildWordSpan(answerText, { extraClass: "training-answer" });
       } else {
+        span = document.createElement("span");
         span.className = "training-gap";
         span.textContent = `${gap.base}${TRAINING_BLANK}`;
         if (index === activeGapIndex && trainingPhase !== "complete") {
           span.classList.add("is-active");
         }
       }
-      trainingSentence.appendChild(span);
+      sentenceSpan.appendChild(span);
     }
   });
+  trainingSentence.appendChild(sentenceSpan);
 };
 
 const renderTrainingGender = (item) => {
@@ -5526,39 +5531,45 @@ const findSeparableVerbPhrase = (clickedWord, sentenceEl) => {
   return null;
 };
 
+const buildWordSpan = (token, { extraClass = "" } = {}) => {
+  const cleanToken = stripTokenPunctuation(token);
+  const span = document.createElement("span");
+  span.className = extraClass ? `word ${extraClass}` : "word";
+  span.dataset.translation = "";
+  span.textContent = token;
+  span.dataset.clean = cleanToken;
+  const lower = cleanToken.toLowerCase();
+  if (articleMap[lower]) {
+    span.dataset.pos = "article";
+    span.dataset.articleBase = articleMap[lower];
+  } else if (/^\p{Lu}/u.test(cleanToken)) {
+    span.dataset.pos = "noun";
+    span.dataset.lemma = cleanToken;
+  }
+  return span;
+};
+
+const appendSentenceTokens = (sentenceEl, text) => {
+  const parts = String(text).match(/\s+|\S+/g) || [];
+  parts.forEach((part) => {
+    if (/^\s+$/.test(part)) {
+      sentenceEl.appendChild(document.createTextNode(part));
+      return;
+    }
+    const cleanToken = stripTokenPunctuation(part);
+    if (isWordToken(cleanToken)) {
+      sentenceEl.appendChild(buildWordSpan(part));
+    } else {
+      sentenceEl.appendChild(document.createTextNode(part));
+    }
+  });
+};
+
 const buildSentenceSpan = (sentence) => {
   const sentenceSpan = document.createElement("span");
   sentenceSpan.className = "sentence";
   sentenceSpan.dataset.translation = "";
-
-  const tokens = sentence.match(/\S+/g) || [];
-
-  tokens.forEach((token) => {
-    if (sentenceSpan.childNodes.length) {
-      sentenceSpan.appendChild(document.createTextNode(" "));
-    }
-
-    const cleanToken = stripTokenPunctuation(token);
-    if (isWordToken(cleanToken)) {
-      const span = document.createElement("span");
-      span.className = "word";
-      span.dataset.translation = "";
-      span.textContent = token;
-      span.dataset.clean = cleanToken;
-      const lower = cleanToken.toLowerCase();
-      if (articleMap[lower]) {
-        span.dataset.pos = "article";
-        span.dataset.articleBase = articleMap[lower];
-      } else if (/^\p{Lu}/u.test(cleanToken)) {
-        span.dataset.pos = "noun";
-        span.dataset.lemma = cleanToken;
-      }
-      sentenceSpan.appendChild(span);
-    } else {
-      sentenceSpan.appendChild(document.createTextNode(token));
-    }
-  });
-
+  appendSentenceTokens(sentenceSpan, sentence);
   return sentenceSpan;
 };
 
@@ -5959,6 +5970,9 @@ const handleSentenceContainerClick = (event) => {
 
 reader.addEventListener("click", handleSentenceContainerClick);
 storyTitle.addEventListener("click", handleSentenceContainerClick);
+if (trainingSentence) {
+  trainingSentence.addEventListener("click", handleSentenceContainerClick);
+}
 
 const handleSentencePointerDown = (event) => {
   const word = event.target.closest(".word");
@@ -6314,6 +6328,13 @@ reader.addEventListener("pointerup", handleSentencePointerCancel);
 reader.addEventListener("pointerleave", handleSentencePointerCancel);
 reader.addEventListener("pointercancel", handleSentencePointerCancel);
 reader.addEventListener("contextmenu", handleSentenceContextMenu);
+if (trainingSentence) {
+  trainingSentence.addEventListener("pointerdown", handleSentencePointerDown);
+  trainingSentence.addEventListener("pointerup", handleSentencePointerCancel);
+  trainingSentence.addEventListener("pointerleave", handleSentencePointerCancel);
+  trainingSentence.addEventListener("pointercancel", handleSentencePointerCancel);
+  trainingSentence.addEventListener("contextmenu", handleSentenceContextMenu);
+}
 
 storyTitle.addEventListener("pointerdown", handleSentencePointerDown);
 storyTitle.addEventListener("pointerup", handleSentencePointerCancel);

@@ -1145,6 +1145,8 @@ h1 {
   font-family: var(--serif);
   font-size: 20px;
   line-height: 1.45;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .training-gap {
@@ -1166,6 +1168,16 @@ h1 {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.training-answer.word {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin: 0;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
   font-weight: 700;
