@@ -330,6 +330,10 @@
                   </button>
                 </div>
               </div>
+              <div class="training-card training-explain-card is-hidden" id="trainingExplainCard">
+                <p class="training-explain-title" data-i18n="trainings.explain.title">Explanation</p>
+                <p class="training-explain-text" id="trainingExplainText">—</p>
+              </div>
               <div class="training-card training-case-card" id="trainingCaseCard">
                 <div class="training-controls" id="trainingControls">
                   <div class="training-options" id="trainingCaseOptions">
@@ -367,6 +371,9 @@
                 <p class="helper-text training-feedback is-hidden" id="trainingFeedback"></p>
                 <p class="helper-text training-status is-hidden" id="trainingStatus"></p>
                 <div class="training-actions">
+                  <button class="ghost" type="button" id="trainingExplain" data-i18n="trainings.action.explain">
+                    Explain
+                  </button>
                   <button class="primary" type="button" id="trainingNext" data-i18n="trainings.action.next">
                     Next
                   </button>

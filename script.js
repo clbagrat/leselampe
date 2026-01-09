@@ -191,17 +191,21 @@ const UI_COPY = {
     "trainings.action.back": "Close",
     "trainings.action.next": "Next",
     "trainings.action.skip": "Skip",
+    "trainings.action.explain": "Explain",
     "trainings.status.loading": "Generating new sentences...",
     "trainings.status.ready": "New set is ready.",
     "trainings.status.failed": "Could not generate new sentences.",
     "trainings.status.api_required": "Add your API key in settings to generate.",
     "trainings.status.completed": "All sentences learned. Generate a new set.",
     "trainings.status.session_complete": "Training completed.",
+    "trainings.status.explain_loading": "Generating explanation...",
+    "trainings.status.explain_failed": "Could not generate explanation.",
     "trainings.count.label": "{count} sentences",
     "trainings.status.need_generate": "Generating more sentences...",
     "trainings.summary.title": "Training completed",
     "trainings.summary.score": "Correct: {percent}%",
     "trainings.summary.note": "Sentences with mistakes will return in future trainings.",
+    "trainings.explain.title": "Explanation",
     "trainings.action.close": "Close",
     "trainings.item.label": "Training",
     "training.dativ_akk.title": "Dativ oder Akkusativ",
@@ -416,17 +420,21 @@ const UI_COPY = {
     "trainings.action.back": "Закрыть",
     "trainings.action.next": "Далее",
     "trainings.action.skip": "Пропустить",
+    "trainings.action.explain": "Объяснить",
     "trainings.status.loading": "Генерируем новые предложения...",
     "trainings.status.ready": "Новый набор готов.",
     "trainings.status.failed": "Не удалось сгенерировать предложения.",
     "trainings.status.api_required": "Добавьте API ключ в настройках.",
     "trainings.status.completed": "Все предложения изучены. Сгенерируйте новый набор.",
     "trainings.status.session_complete": "Тренировка завершена.",
+    "trainings.status.explain_loading": "Готовим объяснение...",
+    "trainings.status.explain_failed": "Не удалось подготовить объяснение.",
     "trainings.count.label": "Предложений: {count}",
     "trainings.status.need_generate": "Генерируем больше предложений...",
     "trainings.summary.title": "Тренировка завершена",
     "trainings.summary.score": "Верно: {percent}%",
     "trainings.summary.note": "Предложения с ошибками вернутся в будущих тренировках.",
+    "trainings.explain.title": "Объяснение",
     "trainings.action.close": "Закрыть",
     "trainings.item.label": "Тренировка",
     "training.dativ_akk.title": "Датив или аккузатив",
@@ -659,6 +667,8 @@ let trainingSentenceScored = false;
 let trainingCorrectCount = 0;
 let trainingTotalCount = 0;
 let trainingSessionSize = 10;
+const trainingExplanationCache = new Map();
+let trainingExplanationController = null;
 
 const readerTtsState = {
   isSpeaking: false,
@@ -1082,6 +1092,9 @@ const trainingGender = document.getElementById("trainingGender");
 const trainingGenderValue = document.getElementById("trainingGenderValue");
 const trainingFeedback = document.getElementById("trainingFeedback");
 const trainingStatus = document.getElementById("trainingStatus");
+const trainingExplain = document.getElementById("trainingExplain");
+const trainingExplainCard = document.getElementById("trainingExplainCard");
+const trainingExplainText = document.getElementById("trainingExplainText");
 const trainingNext = document.getElementById("trainingNext");
 const trainingProgressBar = document.getElementById("trainingProgressBar");
 const trainingListView = document.getElementById("trainingListView");
@@ -1825,6 +1838,7 @@ const resetTrainingUi = () => {
   setTrainingStepVisibility("case");
   setTrainingFeedback("");
   setTrainingStatus("");
+  resetTrainingExplanation();
   updateTrainingNextButton();
   setTrainingButtonsEnabled(trainingCaseOptions, true);
 };
@@ -1845,6 +1859,7 @@ const updateTrainingNextButton = () => {
   trainingNext.classList.toggle("ghost", !isComplete);
   trainingNext.disabled = trainingSessionComplete;
   trainingNext.classList.remove("is-hidden");
+  updateTrainingExplainButton();
 };
 
 const markTrainingItemLearned = (item) => {
@@ -1858,6 +1873,137 @@ const markTrainingItemLearned = (item) => {
   }
   learnedSet.add(id);
   saveTrainingLearnedSet(learnedSet);
+};
+
+const resetTrainingExplanation = () => {
+  if (trainingExplainCard) {
+    trainingExplainCard.classList.add("is-hidden");
+  }
+  if (trainingExplainText) {
+    trainingExplainText.textContent = "";
+  }
+  if (trainingExplain) {
+    trainingExplain.disabled = false;
+    trainingExplain.classList.add("is-hidden");
+  }
+  if (trainingExplanationController) {
+    trainingExplanationController.abort();
+    trainingExplanationController = null;
+  }
+};
+
+const updateTrainingExplainButton = () => {
+  if (!trainingExplain) {
+    return;
+  }
+  const showExplain = trainingPhase === "complete" && !trainingSessionComplete;
+  trainingExplain.classList.toggle("is-hidden", !showExplain);
+  trainingExplain.disabled = false;
+};
+
+const buildTrainingFullSentence = (item) => {
+  if (!item) {
+    return "";
+  }
+  if (!item.template || !item.template.includes(TRAINING_TOKEN)) {
+    return item.sentence || item.template || "";
+  }
+  const parts = item.template.split(TRAINING_TOKEN);
+  return parts
+    .map((part, index) => {
+      if (index >= parts.length - 1) {
+        return part;
+      }
+      const gap = item.gaps?.[index];
+      if (!gap) {
+        return part;
+      }
+      return `${part}${gap.base}${gap.suffix}`;
+    })
+    .join("");
+};
+
+const generateTrainingExplanation = async (item) => {
+  if (!item) {
+    return null;
+  }
+  const id = getTrainingItemId(item);
+  if (id && trainingExplanationCache.has(id)) {
+    return trainingExplanationCache.get(id);
+  }
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    setTrainingStatus(t("trainings.status.api_required"), { isError: true });
+    return null;
+  }
+  if (trainingExplanationController) {
+    trainingExplanationController.abort();
+  }
+  trainingExplanationController = new AbortController();
+  setTrainingStatus(t("trainings.status.explain_loading"));
+  const nativeLanguageName =
+    NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
+  const sentence = buildTrainingFullSentence(item);
+  const targets = (item.gaps || []).map((gap) => ({
+    article: gap.article,
+    base: gap.base,
+    suffix: gap.suffix,
+    noun: gap.noun,
+    gender: gap.gender,
+    case: gap.case,
+  }));
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a German grammar tutor. ` +
+              `Explain how each case is determined (question, preposition, or verb) ` +
+              `and why the article form matches the noun's gender. ` +
+              `Write in ${nativeLanguageName}, concise (2-4 sentences). ` +
+              `Mention each target article in order.`,
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              sentence,
+              targets,
+            }),
+          },
+        ],
+      }),
+      signal: trainingExplanationController.signal,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Training explanation failed");
+    }
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("Empty training explanation");
+    }
+    if (id) {
+      trainingExplanationCache.set(id, raw);
+    }
+    setTrainingStatus("");
+    return raw;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    setTrainingStatus(t("trainings.status.explain_failed"), { isError: true });
+    return null;
+  }
 };
 
 const setTrainingItem = (item) => {
@@ -2160,12 +2306,7 @@ const handleTrainingArticleSelection = (articleValue) => {
     setTrainingStepVisibility("complete");
     setTrainingFeedback(t("training.feedback.correct_article"));
     if (!trainingHadMistake && !trainingSentenceScored) {
-      const learnedSet = loadTrainingLearnedSet();
-      const id = getTrainingItemId(trainingActiveItem);
-      if (id) {
-        learnedSet.add(id);
-        saveTrainingLearnedSet(learnedSet);
-      }
+      markTrainingItemLearned(trainingActiveItem);
       trainingCorrectCount += 1;
     }
     trainingSentenceScored = true;
@@ -7231,6 +7372,31 @@ if (trainingNext) {
       markTrainingItemLearned(trainingActiveItem);
     }
     advanceTrainingItem();
+  });
+}
+
+if (trainingExplain) {
+  trainingExplain.addEventListener("click", async () => {
+    if (trainingPhase !== "complete" || trainingSessionComplete) {
+      return;
+    }
+    if (trainingExplain) {
+      trainingExplain.disabled = true;
+    }
+    const explanation = await generateTrainingExplanation(trainingActiveItem);
+    if (!explanation) {
+      if (trainingExplain) {
+        trainingExplain.disabled = false;
+      }
+      return;
+    }
+    if (trainingExplainText) {
+      trainingExplainText.textContent = explanation;
+    }
+    trainingExplainCard?.classList.remove("is-hidden");
+    if (trainingExplain) {
+      trainingExplain.disabled = false;
+    }
   });
 }
 
