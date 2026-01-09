@@ -2198,6 +2198,7 @@ const completeTrainingSession = () => {
   setTrainingButtonsEnabled(trainingArticleOptions, false);
   setTrainingStepVisibility("complete");
   trainingGender?.classList.add("is-hidden");
+  resetTrainingExplanation();
   updateTrainingNextButton();
   setTrainingStatus(t("trainings.status.session_complete"));
   showTrainingSummary();
