@@ -190,6 +190,7 @@ const UI_COPY = {
     "trainings.subtitle": "Short drills for cases and articles.",
     "trainings.action.back": "Close",
     "trainings.action.next": "Next",
+    "trainings.action.skip": "Skip",
     "trainings.status.loading": "Generating new sentences...",
     "trainings.status.ready": "New set is ready.",
     "trainings.status.failed": "Could not generate new sentences.",
@@ -414,6 +415,7 @@ const UI_COPY = {
     "trainings.subtitle": "Короткие упражнения на падежи и артикли.",
     "trainings.action.back": "Закрыть",
     "trainings.action.next": "Далее",
+    "trainings.action.skip": "Пропустить",
     "trainings.status.loading": "Генерируем новые предложения...",
     "trainings.status.ready": "Новый набор готов.",
     "trainings.status.failed": "Не удалось сгенерировать предложения.",
@@ -1086,6 +1088,8 @@ const trainingListView = document.getElementById("trainingListView");
 const trainingDetailView = document.getElementById("trainingDetailView");
 const trainingClose = document.getElementById("trainingClose");
 const trainingDativAkkItem = document.getElementById("trainingDativAkkItem");
+const trainingCaseCard = document.getElementById("trainingCaseCard");
+const trainingArticleCard = document.getElementById("trainingArticleCard");
 const trainingBody = document.getElementById("trainingBody");
 const trainingSummary = document.getElementById("trainingSummary");
 const trainingSummaryScore = document.getElementById("trainingSummaryScore");
@@ -1685,9 +1689,29 @@ const setTrainingButtonsEnabled = (container, isEnabled) => {
   if (!container) {
     return;
   }
-  container.querySelectorAll("button").forEach((button) => {
-    button.disabled = !isEnabled;
-  });
+  container.classList.toggle("is-hidden", !isEnabled);
+  if (isEnabled) {
+    container.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+  }
+};
+
+const setTrainingStepVisibility = (step) => {
+  const showCase = step === "case";
+  const showArticle = step === "article";
+  if (trainingCaseOptions) {
+    trainingCaseOptions.classList.toggle("is-hidden", !showCase);
+  }
+  if (trainingArticleOptions) {
+    trainingArticleOptions.classList.toggle("is-hidden", !showArticle);
+  }
+  if (trainingCaseCard) {
+    trainingCaseCard.classList.toggle("is-hidden", !showCase);
+  }
+  if (trainingArticleCard) {
+    trainingArticleCard.classList.toggle("is-hidden", !showArticle);
+  }
 };
 
 const renderTrainingSentence = (item, { activeGapIndex = 0 } = {}) => {
@@ -1790,20 +1814,45 @@ const resetTrainingUi = () => {
   if (trainingGender) {
     trainingGender.classList.add("is-hidden");
   }
-  if (trainingCaseOptions) {
-    trainingCaseOptions.classList.remove("is-hidden");
-  }
   if (trainingArticleOptions) {
-    trainingArticleOptions.classList.add("is-hidden");
     trainingArticleOptions.innerHTML = "";
   }
+  setTrainingStepVisibility("case");
   setTrainingFeedback("");
   setTrainingStatus("");
-  if (trainingNext) {
-    trainingNext.disabled = true;
-    trainingNext.classList.add("is-hidden");
-  }
+  updateTrainingNextButton();
   setTrainingButtonsEnabled(trainingCaseOptions, true);
+};
+
+const updateTrainingNextButton = () => {
+  if (!trainingNext) {
+    return;
+  }
+  if (trainingSessionComplete) {
+    trainingNext.classList.add("is-hidden");
+    return;
+  }
+  const isComplete = trainingPhase === "complete";
+  const labelKey = isComplete ? "trainings.action.next" : "trainings.action.skip";
+  trainingNext.dataset.i18n = labelKey;
+  trainingNext.textContent = t(labelKey);
+  trainingNext.classList.toggle("primary", isComplete);
+  trainingNext.classList.toggle("ghost", !isComplete);
+  trainingNext.disabled = trainingSessionComplete;
+  trainingNext.classList.remove("is-hidden");
+};
+
+const markTrainingItemLearned = (item) => {
+  const id = getTrainingItemId(item);
+  if (!id) {
+    return;
+  }
+  const learnedSet = loadTrainingLearnedSet();
+  if (learnedSet.has(id)) {
+    return;
+  }
+  learnedSet.add(id);
+  saveTrainingLearnedSet(learnedSet);
 };
 
 const setTrainingItem = (item) => {
@@ -1841,13 +1890,9 @@ const completeTrainingSession = () => {
   trainingPhase = "complete";
   setTrainingButtonsEnabled(trainingCaseOptions, false);
   setTrainingButtonsEnabled(trainingArticleOptions, false);
-  trainingCaseOptions?.classList.add("is-hidden");
-  trainingArticleOptions?.classList.add("is-hidden");
+  setTrainingStepVisibility("complete");
   trainingGender?.classList.add("is-hidden");
-  if (trainingNext) {
-    trainingNext.disabled = true;
-    trainingNext.classList.add("is-hidden");
-  }
+  updateTrainingNextButton();
   setTrainingStatus(t("trainings.status.session_complete"));
   showTrainingSummary();
 };
@@ -2069,10 +2114,10 @@ const handleTrainingCaseSelection = (caseValue) => {
     trainingPhase = "article";
     setTrainingFeedback(t("training.feedback.correct_case"));
     setTrainingButtonsEnabled(trainingCaseOptions, false);
-    trainingCaseOptions?.classList.add("is-hidden");
     renderTrainingGender(trainingActiveItem);
     renderTrainingArticleOptions(gap);
-    trainingArticleOptions?.classList.remove("is-hidden");
+    setTrainingButtonsEnabled(trainingArticleOptions, true);
+    setTrainingStepVisibility("article");
     return;
   }
   trainingHadMistake = true;
@@ -2097,21 +2142,17 @@ const handleTrainingArticleSelection = (articleValue) => {
       trainingGapIndex += 1;
       trainingPhase = "case";
       setTrainingFeedback(t("training.feedback.correct_article_partial"));
-      if (trainingNext) {
-        trainingNext.disabled = true;
-        trainingNext.classList.add("is-hidden");
-      }
+      updateTrainingNextButton();
       trainingGender?.classList.add("is-hidden");
-      trainingArticleOptions?.classList.add("is-hidden");
-      trainingCaseOptions?.classList.remove("is-hidden");
       setTrainingButtonsEnabled(trainingCaseOptions, true);
+      setTrainingStepVisibility("case");
       renderTrainingSentence(trainingActiveItem, {
         activeGapIndex: trainingGapIndex,
       });
       return;
     }
     trainingPhase = "complete";
-    trainingCaseOptions?.classList.add("is-hidden");
+    setTrainingStepVisibility("complete");
     setTrainingFeedback(t("training.feedback.correct_article"));
     if (!trainingHadMistake && !trainingSentenceScored) {
       const learnedSet = loadTrainingLearnedSet();
@@ -2123,10 +2164,7 @@ const handleTrainingArticleSelection = (articleValue) => {
       trainingCorrectCount += 1;
     }
     trainingSentenceScored = true;
-    if (trainingNext) {
-      trainingNext.disabled = false;
-      trainingNext.classList.remove("is-hidden");
-    }
+    updateTrainingNextButton();
     renderTrainingSentence(trainingActiveItem, {
       activeGapIndex: trainingGapIndex,
     });
@@ -7161,8 +7199,15 @@ if (trainingArticleOptions) {
 
 if (trainingNext) {
   trainingNext.addEventListener("click", () => {
-    if (trainingPhase !== "complete" || trainingSessionComplete) {
+    if (trainingSessionComplete) {
       return;
+    }
+    if (trainingPhase === "complete") {
+      advanceTrainingItem();
+      return;
+    }
+    if (trainingActiveItem) {
+      markTrainingItemLearned(trainingActiveItem);
     }
     advanceTrainingItem();
   });
