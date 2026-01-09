@@ -71,7 +71,6 @@ const uiLanguageGroup = document.getElementById("uiLanguageGroup");
 const translationPanel = document.getElementById("translationPanel");
 const bottomSheet = document.getElementById("bottomSheet");
 const sheetActions = bottomSheet?.querySelector(".sheet-actions");
-const sheetSwipeHint = document.getElementById("sheetSwipeHint");
 const readerStatus = document.getElementById("readerStatus");
 const readerStatusLemmas = document.getElementById("readerStatusLemmas");
 const reloadApp = document.getElementById("reloadApp");
@@ -237,7 +236,6 @@ const UI_COPY = {
     "translation.meta.case": "Case",
     "translation.swipe.add": "Add to lemmas",
     "translation.swipe.ignore": "Ignore",
-    "translation.swipe.hint": "Swipe right to add",
     "translation.action.copy": "Copy word",
     "translation.action.skip": "Do not add",
     "translation.action.listen": "Listen to German",
@@ -469,7 +467,6 @@ const UI_COPY = {
     "translation.meta.case": "Падеж",
     "translation.swipe.add": "Добавить в леммы",
     "translation.swipe.ignore": "Пропустить",
-    "translation.swipe.hint": "Свайп вправо — добавить",
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
     "translation.action.listen": "Слушать по-немецки",
@@ -1085,8 +1082,6 @@ let sheetDragDeltaX = 0;
 let sheetDragDeltaY = 0;
 let sheetDragActive = false;
 let sheetDragMode = null;
-let sheetSwipeHintTimer = null;
-let sheetSwipeHintHideTimer = null;
 let resetTranslationTimer = null;
 let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
@@ -4061,13 +4056,7 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   sheetSentenceDivider?.classList.toggle("is-hidden", !isSentence);
   translationDivider?.classList.toggle("is-hidden", !isWord);
   sheetDivider?.classList.toggle("is-hidden", !isWord);
-  if (shouldShowSheet && isWord) {
-    resetSheetActionOrder();
-    scheduleSheetSwipeHint();
-  } else {
-    clearSheetSwipeHintTimers();
-    resetSheetActionOrder();
-  }
+  resetSheetActionOrder();
   updateCopyButtonLabel(type);
   syncPageDots();
   syncReaderBottomPadding();
@@ -6418,86 +6407,6 @@ const resetSheetActionOrder = () => {
   skipLemma.style.transform = "";
 };
 
-const showSheetSwipeHint = () => {
-  if (!sheetSwipeHint) {
-    return;
-  }
-  sheetSwipeHint.classList.remove("is-hidden");
-  requestAnimationFrame(() => {
-    sheetSwipeHint.classList.add("is-visible");
-  });
-};
-
-const hideSheetSwipeHint = () => {
-  if (!sheetSwipeHint) {
-    return;
-  }
-  sheetSwipeHint.classList.remove("is-visible");
-  window.setTimeout(() => {
-    sheetSwipeHint.classList.add("is-hidden");
-  }, 240);
-};
-
-const animateSheetActionSwap = () => {
-  if (!sheetActions || !reportTranslationSheet || !skipLemma) {
-    return;
-  }
-  if (sheetActions.firstElementChild === skipLemma) {
-    return;
-  }
-  const reportRect = reportTranslationSheet.getBoundingClientRect();
-  const skipRect = skipLemma.getBoundingClientRect();
-  sheetActions.insertBefore(skipLemma, reportTranslationSheet);
-  const nextReportRect = reportTranslationSheet.getBoundingClientRect();
-  const nextSkipRect = skipLemma.getBoundingClientRect();
-  const reportDelta = reportRect.left - nextReportRect.left;
-  const skipDelta = skipRect.left - nextSkipRect.left;
-  reportTranslationSheet.style.transform = `translateX(${reportDelta}px)`;
-  skipLemma.style.transform = `translateX(${skipDelta}px)`;
-  sheetActions.classList.add("is-swapping");
-  requestAnimationFrame(() => {
-    reportTranslationSheet.style.transform = "";
-    skipLemma.style.transform = "";
-  });
-  window.setTimeout(() => {
-    sheetActions.classList.remove("is-swapping");
-  }, 380);
-};
-
-const clearSheetSwipeHintTimers = () => {
-  if (sheetSwipeHintTimer) {
-    window.clearTimeout(sheetSwipeHintTimer);
-    sheetSwipeHintTimer = null;
-  }
-  if (sheetSwipeHintHideTimer) {
-    window.clearTimeout(sheetSwipeHintHideTimer);
-    sheetSwipeHintHideTimer = null;
-  }
-  hideSheetSwipeHint();
-  sheetActions?.classList.remove("is-hinting");
-};
-
-const scheduleSheetSwipeHint = () => {
-  clearSheetSwipeHintTimers();
-  if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
-    return;
-  }
-  sheetSwipeHintTimer = window.setTimeout(() => {
-    if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
-      return;
-    }
-    sheetActions?.classList.add("is-hinting");
-    window.setTimeout(() => {
-      animateSheetActionSwap();
-      showSheetSwipeHint();
-    }, 320);
-    sheetSwipeHintHideTimer = window.setTimeout(() => {
-      hideSheetSwipeHint();
-      sheetActions?.classList.remove("is-hinting");
-    }, 2200);
-  }, 5000);
-};
-
 const startBottomSheetDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
     return;
@@ -6511,7 +6420,6 @@ const startBottomSheetDrag = (event) => {
   if (event.target.closest("button, a, input, textarea, select")) {
     return;
   }
-  clearSheetSwipeHintTimers();
   sheetDragPointerId = event.pointerId;
   sheetDragStartX = event.clientX;
   sheetDragStartY = event.clientY;
@@ -6608,7 +6516,6 @@ const startBottomSheetTouchDrag = (event) => {
   if (event.target.closest("button, a, input, textarea, select")) {
     return;
   }
-  clearSheetSwipeHintTimers();
   sheetDragPointerId = "touch";
   sheetDragStartX = touch.clientX;
   sheetDragStartY = touch.clientY;
@@ -6824,7 +6731,6 @@ const resetTranslation = ({ animate = true, commitLemma = false } = {}) => {
     applyEmptyTranslation();
   }
   setSwipeOverlay(null, 0);
-  clearSheetSwipeHintTimers();
   resetSheetActionOrder();
   syncReaderBottomPadding();
   updateCopyButtonLabel("word");
