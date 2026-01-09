@@ -188,8 +188,7 @@ const UI_COPY = {
     "trainings.section": "Training sessions",
     "trainings.title": "Trainings",
     "trainings.subtitle": "Short drills for cases and articles.",
-    "trainings.action.generate": "Generate",
-    "trainings.action.back": "Back",
+    "trainings.action.back": "Close",
     "trainings.action.next": "Next",
     "trainings.status.loading": "Generating new sentences...",
     "trainings.status.ready": "New set is ready.",
@@ -206,11 +205,8 @@ const UI_COPY = {
     "trainings.item.label": "Training",
     "training.dativ_akk.title": "Dativ oder Akkusativ",
     "training.dativ_akk.description": "Choose the case, then the article.",
-    "training.dativ_akk.prompt.case": "Dativ oder Akkusativ?",
-    "training.dativ_akk.prompt.article": "Pick the article.",
     "training.case.dative": "Dativ",
     "training.case.accusative": "Akkusativ",
-    "training.gender.label": "Gender",
     "training.gender.masculine": "Masculine",
     "training.gender.feminine": "Feminine",
     "training.gender.neuter": "Neuter",
@@ -416,8 +412,7 @@ const UI_COPY = {
     "trainings.section": "Тренировки",
     "trainings.title": "Тренировки",
     "trainings.subtitle": "Короткие упражнения на падежи и артикли.",
-    "trainings.action.generate": "Сгенерировать",
-    "trainings.action.back": "Назад",
+    "trainings.action.back": "Закрыть",
     "trainings.action.next": "Далее",
     "trainings.status.loading": "Генерируем новые предложения...",
     "trainings.status.ready": "Новый набор готов.",
@@ -434,11 +429,8 @@ const UI_COPY = {
     "trainings.item.label": "Тренировка",
     "training.dativ_akk.title": "Датив или аккузатив",
     "training.dativ_akk.description": "Сначала выберите падеж, потом артикль.",
-    "training.dativ_akk.prompt.case": "Датив или аккузатив?",
-    "training.dativ_akk.prompt.article": "Выберите артикль.",
     "training.case.dative": "Датив",
     "training.case.accusative": "Аккузатив",
-    "training.gender.label": "Род",
     "training.gender.masculine": "Мужской",
     "training.gender.feminine": "Женский",
     "training.gender.neuter": "Средний",
@@ -1082,7 +1074,6 @@ const readerPanel = document.querySelector(".reader-panel");
 const lemmasScreen = document.querySelector('[data-screen="lemmas"]');
 const trainingsScreen = document.querySelector('[data-screen="trainings"]');
 const trainingSentence = document.getElementById("trainingSentence");
-const trainingPrompt = document.getElementById("trainingPrompt");
 const trainingCaseOptions = document.getElementById("trainingCaseOptions");
 const trainingArticleOptions = document.getElementById("trainingArticleOptions");
 const trainingGender = document.getElementById("trainingGender");
@@ -1090,7 +1081,6 @@ const trainingGenderValue = document.getElementById("trainingGenderValue");
 const trainingFeedback = document.getElementById("trainingFeedback");
 const trainingStatus = document.getElementById("trainingStatus");
 const trainingNext = document.getElementById("trainingNext");
-const trainingGenerate = document.getElementById("trainingGenerate");
 const trainingProgressBar = document.getElementById("trainingProgressBar");
 const trainingListView = document.getElementById("trainingListView");
 const trainingDetailView = document.getElementById("trainingDetailView");
@@ -1665,18 +1655,30 @@ const setTrainingFeedback = (message, { isError = false } = {}) => {
   if (!trainingFeedback) {
     return;
   }
+  if (!isError) {
+    trainingFeedback.textContent = "";
+    trainingFeedback.classList.add("is-hidden");
+    trainingFeedback.classList.remove("is-error");
+    return;
+  }
   trainingFeedback.textContent = message || "";
   trainingFeedback.classList.toggle("is-hidden", !message);
-  trainingFeedback.classList.toggle("is-error", isError);
+  trainingFeedback.classList.toggle("is-error", true);
 };
 
 const setTrainingStatus = (message, { isError = false } = {}) => {
   if (!trainingStatus) {
     return;
   }
+  if (!isError) {
+    trainingStatus.textContent = "";
+    trainingStatus.classList.add("is-hidden");
+    trainingStatus.classList.remove("is-error");
+    return;
+  }
   trainingStatus.textContent = message || "";
   trainingStatus.classList.toggle("is-hidden", !message);
-  trainingStatus.classList.toggle("is-error", isError);
+  trainingStatus.classList.toggle("is-error", true);
 };
 
 const setTrainingButtonsEnabled = (container, isEnabled) => {
@@ -1782,9 +1784,6 @@ const renderTrainingArticleOptions = (gap) => {
 };
 
 const resetTrainingUi = () => {
-  if (trainingPrompt) {
-    trainingPrompt.textContent = t("training.dativ_akk.prompt.case");
-  }
   trainingBody?.classList.remove("is-hidden");
   trainingSummary?.classList.add("is-hidden");
   trainingDetailView?.classList.remove("is-summary");
@@ -1933,6 +1932,7 @@ const initializeTraining = () => {
 const openTrainingDetail = () => {
   trainingListView?.classList.add("is-hidden");
   trainingDetailView?.classList.remove("is-hidden");
+  trainingsScreen?.classList.add("is-training-active");
   setTrainingStatus("");
   setTrainingListStatus("");
   applyTrainingSessionSize(trainingSessionSize);
@@ -1941,6 +1941,7 @@ const openTrainingDetail = () => {
 const closeTrainingDetail = () => {
   trainingDetailView?.classList.add("is-hidden");
   trainingListView?.classList.remove("is-hidden");
+  trainingsScreen?.classList.remove("is-training-active");
   setTrainingFeedback("");
   setTrainingStatus("");
 };
@@ -2072,9 +2073,6 @@ const handleTrainingCaseSelection = (caseValue) => {
     renderTrainingGender(trainingActiveItem);
     renderTrainingArticleOptions(gap);
     trainingArticleOptions?.classList.remove("is-hidden");
-    if (trainingPrompt) {
-      trainingPrompt.textContent = t("training.dativ_akk.prompt.article");
-    }
     return;
   }
   trainingHadMistake = true;
@@ -2102,9 +2100,6 @@ const handleTrainingArticleSelection = (articleValue) => {
       if (trainingNext) {
         trainingNext.disabled = true;
         trainingNext.classList.add("is-hidden");
-      }
-      if (trainingPrompt) {
-        trainingPrompt.textContent = t("training.dativ_akk.prompt.case");
       }
       trainingGender?.classList.add("is-hidden");
       trainingArticleOptions?.classList.add("is-hidden");
@@ -2139,30 +2134,6 @@ const handleTrainingArticleSelection = (articleValue) => {
   }
   trainingHadMistake = true;
   setTrainingFeedback(t("training.feedback.wrong_article"), { isError: true });
-};
-
-const handleTrainingGenerate = async () => {
-  if (!trainingGenerate || trainingGenerate.disabled) {
-    return;
-  }
-  trainingGenerate.disabled = true;
-  let pool = filterTrainingPool(loadTrainingItems());
-  if (pool.length < trainingSessionSize) {
-    pool = await ensureTrainingPoolSize(trainingSessionSize, setTrainingStatus);
-  }
-  trainingGenerate.disabled = false;
-  if (!pool?.length) {
-    return;
-  }
-  trainingItems = buildTrainingSet(pool, trainingSessionSize);
-  trainingTotalCount = trainingItems.length;
-  trainingCorrectCount = 0;
-  trainingIndex = 0;
-  if (trainingItems.length) {
-    setTrainingItem(trainingItems[0]);
-  } else {
-    setTrainingStatus(t("trainings.status.completed"));
-  }
 };
 
 const loadRssUrls = () => {
@@ -7195,10 +7166,6 @@ if (trainingNext) {
     }
     advanceTrainingItem();
   });
-}
-
-if (trainingGenerate) {
-  trainingGenerate.addEventListener("click", handleTrainingGenerate);
 }
 
 if (trainingClose) {

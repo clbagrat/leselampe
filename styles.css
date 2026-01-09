@@ -1046,34 +1046,46 @@ h1 {
   gap: 12px;
 }
 
+.training-panel.is-training-active .home-library-header,
+.training-panel.is-training-active .home-subtitle {
+  display: none;
+}
+
 .training-detail-view {
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 .training-detail-header {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.training-detail-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.training-detail-actions {
+  display: flex;
   gap: 8px;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .training-detail-view.is-summary .training-detail-header {
   display: none;
 }
 
-.training-header {
-  display: grid;
-  gap: 6px;
-}
-
-.training-title {
+.training-screen-title {
   margin: 0;
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 22px;
 }
 
-.training-description {
+.training-screen-subtitle {
   margin: 0;
   font-size: 13px;
   opacity: 0.68;
@@ -1122,10 +1134,6 @@ h1 {
   font-family: var(--serif);
   font-size: 20px;
   line-height: 1.45;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .training-gap {
@@ -1168,13 +1176,6 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.training-gender-label {
-  text-transform: uppercase;
-  letter-spacing: 1.1px;
-  font-size: 11px;
-  opacity: 0.6;
 }
 
 .training-gender-value {
