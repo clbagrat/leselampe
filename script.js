@@ -1490,6 +1490,9 @@ const hideTrainingArticles = (template, articles) => {
   return next;
 };
 
+const hasAdjacentTrainingTokens = (template) =>
+  new RegExp(`${TRAINING_TOKEN}\\s+${TRAINING_TOKEN}`).test(template);
+
 const buildTrainingTemplate = (sentence, articles) => {
   if (!sentence) {
     return "";
@@ -1540,6 +1543,9 @@ const normalizeTrainingItem = (item) => {
     }
     template = hideTrainingArticles(template, templateArticles);
     if (!template) {
+      return null;
+    }
+    if (hasAdjacentTrainingTokens(template)) {
       return null;
     }
     if (item.gaps.length !== gapCount) {
@@ -1608,6 +1614,9 @@ const normalizeTrainingItem = (item) => {
   }
   template = hideTrainingArticles(template, rawArticles);
   if (!template) {
+    return null;
+  }
+  if (hasAdjacentTrainingTokens(template)) {
     return null;
   }
   const gaps = [];
