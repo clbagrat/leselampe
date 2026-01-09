@@ -621,6 +621,16 @@ const TRAINING_TOKEN = "__ARTICLE__";
 const TRAINING_BLANK = "__";
 const TRAINING_GENDERS = ["masculine", "feminine", "neuter", "plural"];
 const TRAINING_POSSESSIVE_BASES = ["mein", "dein", "sein", "ihr", "unser"];
+const TRAINING_CONTRACTIONS = {
+  im: { preposition: "in", article: "dem" },
+  ins: { preposition: "in", article: "das" },
+  am: { preposition: "an", article: "dem" },
+  ans: { preposition: "an", article: "das" },
+  zum: { preposition: "zu", article: "dem" },
+  zur: { preposition: "zu", article: "der" },
+  vom: { preposition: "von", article: "dem" },
+  beim: { preposition: "bei", article: "dem" },
+};
 const TRAINING_DEFINITE_ENDINGS = {
   dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
   accusative: { masculine: "en", feminine: "ie", neuter: "as", plural: "ie" },
@@ -1470,10 +1480,39 @@ const updateTrainingSessionSizeButtons = () => {
     });
 };
 
+const getTrainingContractionInfo = (article) => {
+  const key = String(article || "").trim().toLowerCase();
+  if (!key) {
+    return null;
+  }
+  return TRAINING_CONTRACTIONS[key] ? { ...TRAINING_CONTRACTIONS[key], key } : null;
+};
+
+const getTrainingContractionFor = (preposition, article) => {
+  const prepositionKey = String(preposition || "").trim().toLowerCase();
+  const articleKey = String(article || "").trim().toLowerCase();
+  const entry = Object.entries(TRAINING_CONTRACTIONS).find(
+    ([, value]) =>
+      value.preposition === prepositionKey && value.article === articleKey
+  );
+  return entry ? entry[0] : "";
+};
+
 const getTrainingArticleParts = (article) => {
   const raw = String(article || "").trim();
   if (!raw) {
     return null;
+  }
+  const contractionInfo = getTrainingContractionInfo(raw);
+  if (contractionInfo) {
+    const base = contractionInfo.key.slice(0, 1);
+    return {
+      base,
+      suffix: contractionInfo.key.slice(1),
+      full: contractionInfo.key,
+      preposition: contractionInfo.preposition,
+      isContraction: true,
+    };
   }
   const value = raw.toLowerCase();
   const bases = [
@@ -1510,6 +1549,16 @@ const hideTrainingArticles = (template, articles) => {
     const escaped = escapeRegExp(article);
     const regex = new RegExp(`\\b${escaped}\\b`, "gi");
     next = next.replace(regex, TRAINING_TOKEN);
+    const normalized = String(article || "").trim().toLowerCase();
+    if (normalized) {
+      Object.entries(TRAINING_CONTRACTIONS).forEach(([contraction, info]) => {
+        if (info.article !== normalized) {
+          return;
+        }
+        const contractionRegex = new RegExp(`\\b${contraction}\\b`, "gi");
+        next = next.replace(contractionRegex, TRAINING_TOKEN);
+      });
+    }
   }
   return next;
 };
@@ -1537,7 +1586,15 @@ const buildTrainingTemplate = (sentence, articles) => {
     const escaped = escapeRegExp(article);
     const regex = new RegExp(`\\b${escaped}\\b`, "i");
     if (!regex.test(template)) {
-      return "";
+      const normalized = String(article || "").trim().toLowerCase();
+      const hasContraction = Object.entries(TRAINING_CONTRACTIONS).some(
+        ([contraction, info]) =>
+          info.article === normalized &&
+          new RegExp(`\\b${contraction}\\b`, "i").test(template)
+      );
+      if (!hasContraction) {
+        return "";
+      }
     }
   }
   return hideTrainingArticles(template, list);
@@ -1594,6 +1651,7 @@ const normalizeTrainingItem = (item) => {
         article: parts.full,
         base: parts.base,
         suffix: parts.suffix,
+        preposition: parts.preposition || "",
         case: itemCase,
         gender,
         noun,
@@ -1666,6 +1724,7 @@ const normalizeTrainingItem = (item) => {
       article: parts.full,
       base: parts.base,
       suffix: parts.suffix,
+      preposition: parts.preposition || "",
       case: itemCase,
       gender,
       noun,
@@ -1782,7 +1841,7 @@ const renderTrainingSentence = (item, { activeGapIndex = 0 } = {}) => {
       }
       let span;
       if (isAnswered) {
-        const answerText = `${gap.base}${gap.suffix}`;
+        const answerText = gap.article || `${gap.base}${gap.suffix}`;
         span = buildWordSpan(answerText, { extraClass: "training-answer" });
       } else {
         span = document.createElement("span");
@@ -1817,6 +1876,23 @@ const buildTrainingArticleOptionsForBase = (gap) => {
     return [];
   }
   const options = [];
+  if (gap.preposition) {
+    const preposition = gap.preposition;
+    const cases = ["dative", "accusative"];
+    cases.forEach((itemCase) => {
+      const endingsTable = TRAINING_DEFINITE_ENDINGS[itemCase];
+      TRAINING_GENDERS.forEach((gender) => {
+        const ending = endingsTable?.[gender];
+        if (typeof ending !== "string") {
+          return;
+        }
+        const articleForm = `d${ending}`;
+        const contraction = getTrainingContractionFor(preposition, articleForm);
+        options.push(contraction || `${preposition} ${articleForm}`);
+      });
+    });
+    return Array.from(new Set(options));
+  }
   const base = gap.base;
   const cases = ["dative", "accusative"];
   cases.forEach((itemCase) => {
@@ -2244,6 +2320,7 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
     : "";
 
   try {
+    const seed = Date.now();
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -2262,11 +2339,13 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
               `Rules: Write ${count} short, natural German sentences (max 12 words) for A2 learners. ` +
               "Each sentence must contain 1-3 determiners in accusative or dative case. " +
               "Determiners may be definite (der/die/das forms), indefinite (ein-), or possessive (mein/dein/sein/ihr/unser). " +
+              "If a determiner is contracted with a preposition (im, am, ins, ans, zum, zur, vom, beim), keep the contraction in the sentence and list the contraction in the articles array. " +
               "Do NOT replace determiners with tokens; return the full sentence text. " +
               "Do NOT include any other articles or determiners besides the target ones (no dieser/jeder/welcher/kein). " +
               "Provide arrays for articles, cases, genders, and nouns in the same order as they appear in the sentence. " +
               "Use case values only: dative or accusative. " +
-              "Gender values must be one of: masculine, feminine, neuter, plural." +
+              "Gender values must be one of: masculine, feminine, neuter, plural. " +
+              `Random seed: ${seed}.` +
               lemmaInstruction,
           },
           {
