@@ -641,6 +641,7 @@ body {
   padding: 14px 16px;
   border-radius: 18px;
   text-align: left;
+  cursor: pointer;
   display: grid;
   gap: 8px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -1044,6 +1045,24 @@ h1 {
 .training-list-view {
   display: grid;
   gap: 12px;
+}
+
+.training-item-status {
+  margin-top: 6px;
+}
+
+.training-item-status-label {
+  margin: 0;
+}
+
+.training-item-status.is-error .training-item-status-label {
+  color: #b04636;
+  opacity: 1;
+}
+
+.training-item-status.is-error .rss-item-loading {
+  animation: none;
+  color: #b04636;
 }
 
 .training-panel.is-training-active .home-library-header,

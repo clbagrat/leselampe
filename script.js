@@ -192,6 +192,7 @@ const UI_COPY = {
     "trainings.action.next": "Next",
     "trainings.action.skip": "Skip",
     "trainings.action.explain": "Explain",
+    "trainings.action.abort": "Abort",
     "trainings.status.loading": "Generating new sentences...",
     "trainings.status.ready": "New set is ready.",
     "trainings.status.failed": "Could not generate new sentences.",
@@ -202,6 +203,7 @@ const UI_COPY = {
     "trainings.status.explain_failed": "Could not generate explanation.",
     "trainings.count.label": "{count} sentences",
     "trainings.status.need_generate": "Generating more sentences...",
+    "trainings.status.generating_short": "Generating",
     "trainings.summary.title": "Training completed",
     "trainings.summary.score": "Correct: {percent}%",
     "trainings.summary.note": "Sentences with mistakes will return in future trainings.",
@@ -421,6 +423,7 @@ const UI_COPY = {
     "trainings.action.next": "Далее",
     "trainings.action.skip": "Пропустить",
     "trainings.action.explain": "Объяснить",
+    "trainings.action.abort": "Отменить",
     "trainings.status.loading": "Генерируем новые предложения...",
     "trainings.status.ready": "Новый набор готов.",
     "trainings.status.failed": "Не удалось сгенерировать предложения.",
@@ -431,6 +434,7 @@ const UI_COPY = {
     "trainings.status.explain_failed": "Не удалось подготовить объяснение.",
     "trainings.count.label": "Предложений: {count}",
     "trainings.status.need_generate": "Генерируем больше предложений...",
+    "trainings.status.generating_short": "Генерируем",
     "trainings.summary.title": "Тренировка завершена",
     "trainings.summary.score": "Верно: {percent}%",
     "trainings.summary.note": "Предложения с ошибками вернутся в будущих тренировках.",
@@ -659,6 +663,7 @@ let trainingIndex = 0;
 let trainingPhase = "case";
 let trainingActiveItem = null;
 let trainingGenerationController = null;
+let trainingGenerationAbortRequested = false;
 let trainingGapIndex = 0;
 let trainingAnswers = [];
 let trainingHadMistake = false;
@@ -1109,7 +1114,9 @@ const trainingSummaryScore = document.getElementById("trainingSummaryScore");
 const trainingSummaryNote = document.getElementById("trainingSummaryNote");
 const trainingSummaryClose = document.getElementById("trainingSummaryClose");
 const trainingSessionSizeLabel = document.getElementById("trainingSessionSizeLabel");
-const trainingListStatus = document.getElementById("trainingListStatus");
+const trainingItemStatus = document.getElementById("trainingItemStatus");
+const trainingItemStatusLabel = document.getElementById("trainingItemStatusLabel");
+const trainingAbort = document.getElementById("trainingAbort");
 const trainingList = document.getElementById("trainingList");
 
 const updateScreenScrollLock = () => {
@@ -1401,9 +1408,9 @@ const saveTrainingLearnedSet = (set) => {
 const loadTrainingSessionSize = () => {
   try {
     const stored = Number(localStorage.getItem(TRAINING_DA_SESSION_SIZE_KEY));
-    return Number.isFinite(stored) && stored > 0 ? stored : 10;
+    return Number.isFinite(stored) && stored > 0 ? stored : 5;
   } catch (error) {
-    return 10;
+    return 5;
   }
 };
 
@@ -1415,13 +1422,30 @@ const saveTrainingSessionSize = (size) => {
   }
 };
 
-const setTrainingListStatus = (message, { isError = false } = {}) => {
-  if (!trainingListStatus) {
+const setTrainingListStatus = (
+  message,
+  { isError = false, isLoading = false } = {}
+) => {
+  if (!trainingItemStatus || !trainingItemStatusLabel) {
     return;
   }
-  trainingListStatus.textContent = message || "";
-  trainingListStatus.classList.toggle("is-hidden", !message);
-  trainingListStatus.classList.toggle("is-error", isError);
+  const nextMessage = isLoading ? t("trainings.status.generating_short") : message || "";
+  trainingItemStatusLabel.textContent = nextMessage;
+  trainingItemStatusLabel.classList.toggle("rss-item-loading", isLoading);
+  trainingItemStatus.classList.toggle("is-hidden", !nextMessage);
+  trainingItemStatus.classList.toggle("is-error", isError);
+  if (trainingAbort) {
+    trainingAbort.classList.toggle("is-hidden", !isLoading);
+  }
+};
+
+const abortTrainingGeneration = () => {
+  if (!trainingGenerationController) {
+    return;
+  }
+  trainingGenerationAbortRequested = true;
+  trainingGenerationController.abort();
+  setTrainingListStatus("");
 };
 
 
@@ -2106,8 +2130,13 @@ const ensureTrainingPoolSize = async (targetCount, statusHandler) => {
     statusHandler?.(t("trainings.status.api_required"), { isError: true });
     return null;
   }
-  statusHandler?.(t("trainings.status.need_generate"));
+  statusHandler?.(t("trainings.status.need_generate"), { isLoading: true });
   const generated = await generateTrainingItemsWithChatGPT(desiredCount * 2);
+  if (trainingGenerationAbortRequested) {
+    trainingGenerationAbortRequested = false;
+    statusHandler?.("");
+    return currentPool;
+  }
   if (!generated?.length) {
     statusHandler?.(t("trainings.status.failed"), { isError: true });
     return null;
@@ -2198,10 +2227,21 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
   if (!apiKey) {
     return null;
   }
+  const lemmaSeeds = getTrainingLemmaList(5);
+  if (lemmaSeeds.length) {
+    markTrainingLemmasSent(lemmaSeeds);
+  }
   if (trainingGenerationController) {
     trainingGenerationController.abort();
   }
+  trainingGenerationAbortRequested = false;
   trainingGenerationController = new AbortController();
+
+  const lemmaInstruction = lemmaSeeds.length
+    ? ` Only include the following terms if they are nouns; use each noun at least once and no more than once: ${lemmaSeeds.join(
+        ", "
+      )}.`
+    : "";
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -2226,7 +2266,8 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
               "Do NOT include any other articles or determiners besides the target ones (no dieser/jeder/welcher/kein). " +
               "Provide arrays for articles, cases, genders, and nouns in the same order as they appear in the sentence. " +
               "Use case values only: dative or accusative. " +
-              "Gender values must be one of: masculine, feminine, neuter, plural.",
+              "Gender values must be one of: masculine, feminine, neuter, plural." +
+              lemmaInstruction,
           },
           {
             role: "user",
@@ -2259,6 +2300,8 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
       return null;
     }
     return null;
+  } finally {
+    trainingGenerationController = null;
   }
 };
 
@@ -4476,6 +4519,9 @@ const loadLemmaStats = () => {
       if (!entry.originals.length && entry.original) {
         entry.originals = [{ word: entry.original, translation: "" }];
       }
+      if (typeof entry.trainingUsed !== "boolean") {
+        entry.trainingUsed = false;
+      }
     });
     return parsed;
   } catch (error) {
@@ -5201,6 +5247,57 @@ const getTopLemmaList = (limit = 10) => {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((item) => item.lemma);
+};
+
+const getTrainingLemmaList = (limit = 5) => {
+  const entries = getLemmaEntries();
+  const total = entries.length;
+  const scored = entries.map((entry, index) => {
+    const position = index + 1;
+    const countValue = Number(entry.count) || 1;
+    const score = (total / position) * countValue;
+    return { entry, score };
+  });
+  const seen = new Set();
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.entry)
+    .filter((entry) => {
+      const lemma = String(entry?.lemma || "").trim();
+      const key = normalizeLemmaKey(lemma);
+      if (!key || seen.has(key)) {
+        return false;
+      }
+      if (entry.trainingUsed) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit)
+    .map((entry) => entry.lemma);
+};
+
+const markTrainingLemmasSent = (lemmas) => {
+  if (!Array.isArray(lemmas) || !lemmas.length) {
+    return;
+  }
+  const stats = loadLemmaStats();
+  let changed = false;
+  lemmas.forEach((lemma) => {
+    const normalized = normalizeLemmaKey(lemma);
+    if (!normalized || !stats[normalized]) {
+      return;
+    }
+    stats[normalized].trainingUsed = true;
+    changed = true;
+  });
+  if (!changed) {
+    return;
+  }
+  saveLemmaStats(stats);
+  renderLemmaList();
+  updateLemmaBadge();
 };
 
 const getLemmaSearchQuery = () =>
@@ -7421,15 +7518,33 @@ if (trainingSummaryClose) {
   });
 }
 
+if (trainingAbort) {
+  trainingAbort.addEventListener("click", (event) => {
+    event.stopPropagation();
+    abortTrainingGeneration();
+  });
+  trainingAbort.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+  });
+}
+
 if (trainingDativAkkItem) {
   const content = trainingDativAkkItem.querySelector(".home-item-content");
   if (content) {
-    content.addEventListener("click", async () => {
+    const openTraining = async () => {
       closeAllHomeMenus(undefined, trainingList);
       await applyTrainingSessionSize(trainingSessionSize, {
         ensurePool: true,
         autoStart: true,
       });
+    };
+    content.addEventListener("click", openTraining);
+    content.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      openTraining();
     });
   }
   const actions = trainingDativAkkItem.querySelector(".home-item-actions");
