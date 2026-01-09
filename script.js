@@ -51,6 +51,7 @@ const sheetGoverningLegend = document.getElementById("sheetGoverningLegend");
 const copySelection = document.getElementById("copySelection");
 const skipLemma = document.getElementById("skipLemma");
 const reportTranslationSheet = document.getElementById("reportTranslationSheet");
+const sheetTtsButton = document.getElementById("sheetTts");
 const apiKeyInput = document.getElementById("apiKey");
 const apiKeyError = document.getElementById("apiKeyError");
 const saveKey = document.getElementById("saveKey");
@@ -239,6 +240,7 @@ const UI_COPY = {
     "translation.swipe.hint": "Swipe right to add",
     "translation.action.copy": "Copy word",
     "translation.action.skip": "Do not add",
+    "translation.action.listen": "Listen to German",
     "translation.report.action": "Report issue",
     "translation.report.sending": "Sending...",
     "translation.report.sent": "Reported",
@@ -470,6 +472,7 @@ const UI_COPY = {
     "translation.swipe.hint": "Свайп вправо — добавить",
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
+    "translation.action.listen": "Слушать по-немецки",
     "translation.report.action": "Сообщить об ошибке",
     "translation.report.sending": "Отправка...",
     "translation.report.sent": "Отправлено",
@@ -771,6 +774,48 @@ const getGermanVoice = () => {
   );
 };
 
+const getSheetTtsText = () => {
+  const text = (sheetGerman?.textContent || "").trim();
+  if (!text) {
+    return "";
+  }
+  if (
+    text === t("translation.tap_word") ||
+    text === t("translation.tap_word_sentence")
+  ) {
+    return "";
+  }
+  return text;
+};
+
+const updateSheetTtsState = () => {
+  if (!sheetTtsButton) {
+    return;
+  }
+  sheetTtsButton.disabled = !isTtsSupported() || !getSheetTtsText();
+};
+
+const speakSheetTts = () => {
+  if (!isTtsSupported()) {
+    return;
+  }
+  const text = getSheetTtsText();
+  if (!text) {
+    return;
+  }
+  stopReaderTts();
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = getGermanVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  } else {
+    utterance.lang = "de-DE";
+  }
+  window.speechSynthesis.speak(utterance);
+};
+
 const updateReaderTtsLabel = () => {
   if (!readerTtsButton) {
     return;
@@ -940,6 +985,7 @@ const applyTranslations = (lang) => {
   lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
   lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
   updateReaderTtsLabel();
+  updateSheetTtsState();
   updateLanguageButtons();
   refreshUiCollections();
 };
@@ -4056,6 +4102,7 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
     grammarMeta.classList.add("is-hidden");
     sheetGrammarMeta.classList.add("is-hidden");
   }
+  updateSheetTtsState();
   scheduleActiveWordScroll();
 };
 
@@ -6813,6 +6860,10 @@ copySelection?.addEventListener("click", () => {
     : "word";
   const text = type === "sentence" ? lastGerman : lastGerman;
   copyTextToClipboard(text);
+});
+
+sheetTtsButton?.addEventListener("click", () => {
+  speakSheetTts();
 });
 
 reportTranslationSheet?.addEventListener("click", submitTranslationReport);
