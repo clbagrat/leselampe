@@ -191,7 +191,6 @@ const UI_COPY = {
     "trainings.action.generate": "Generate",
     "trainings.action.back": "Back",
     "trainings.action.next": "Next",
-    "trainings.action.skip": "Skip",
     "trainings.status.loading": "Generating new sentences...",
     "trainings.status.ready": "New set is ready.",
     "trainings.status.failed": "Could not generate new sentences.",
@@ -369,7 +368,7 @@ const UI_COPY = {
     "settings.api.invalid": "Invalid API key",
     "settings.api.failed": "Failed to validate API key. Please check your connection.",
     "settings.reset.confirm":
-      "Reset all stored data (stories, lemmas, RSS, and reader settings)? This will keep your API key.",
+      "Reset all stored data (stories, lemmas, RSS, trainings, and reader settings)? This will keep your API key.",
     "prompt.suggesting": "Suggesting...",
     "prompt.generating": "Generating...",
     "prompt.generate": "Generate",
@@ -420,7 +419,6 @@ const UI_COPY = {
     "trainings.action.generate": "Сгенерировать",
     "trainings.action.back": "Назад",
     "trainings.action.next": "Далее",
-    "trainings.action.skip": "Пропустить",
     "trainings.status.loading": "Генерируем новые предложения...",
     "trainings.status.ready": "Новый набор готов.",
     "trainings.status.failed": "Не удалось сгенерировать предложения.",
@@ -598,7 +596,7 @@ const UI_COPY = {
     "settings.api.invalid": "Неверный API ключ",
     "settings.api.failed": "Не удалось проверить ключ. Проверьте подключение.",
     "settings.reset.confirm":
-      "Сбросить все данные (истории, леммы, RSS и настройки чтения)? API ключ будет сохранен.",
+      "Сбросить все данные (истории, леммы, RSS, тренировки и настройки чтения)? API ключ будет сохранен.",
     "prompt.suggesting": "Подбираем...",
     "prompt.generating": "Генерируем...",
     "prompt.generate": "Сгенерировать",
@@ -629,85 +627,7 @@ const TRAINING_POSSESSIVE_ENDINGS = {
   dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
   accusative: { masculine: "en", feminine: "e", neuter: "", plural: "e" },
 };
-const TRAINING_DEFAULT_ITEMS = [
-  {
-    sentence: "Ich gebe __ARTICLE__ Mann __ARTICLE__ Buch.",
-    articles: ["dem", "das"],
-    cases: ["dative", "accusative"],
-    genders: ["masculine", "neuter"],
-    nouns: ["Mann", "Buch"],
-  },
-  {
-    sentence: "Wir warten auf __ARTICLE__ Bus.",
-    articles: ["den"],
-    cases: ["accusative"],
-    genders: ["masculine"],
-    nouns: ["Bus"],
-  },
-  {
-    sentence: "Sie fährt mit __ARTICLE__ Freundin.",
-    articles: ["der"],
-    cases: ["dative"],
-    genders: ["feminine"],
-    nouns: ["Freundin"],
-  },
-  {
-    sentence: "Er sieht __ARTICLE__ Katze.",
-    articles: ["die"],
-    cases: ["accusative"],
-    genders: ["feminine"],
-    nouns: ["Katze"],
-  },
-  {
-    sentence: "Mara liest __ARTICLE__ Buch.",
-    articles: ["das"],
-    cases: ["accusative"],
-    genders: ["neuter"],
-    nouns: ["Buch"],
-  },
-  {
-    sentence: "Timo hilft __ARTICLE__ Kind.",
-    articles: ["dem"],
-    cases: ["dative"],
-    genders: ["neuter"],
-    nouns: ["Kind"],
-  },
-  {
-    sentence: "Wir danken __ARTICLE__ Gästen.",
-    articles: ["den"],
-    cases: ["dative"],
-    genders: ["plural"],
-    nouns: ["Gästen"],
-  },
-  {
-    sentence: "Sie besucht __ARTICLE__ Eltern.",
-    articles: ["die"],
-    cases: ["accusative"],
-    genders: ["plural"],
-    nouns: ["Eltern"],
-  },
-  {
-    sentence: "Er erklärt __ARTICLE__ Schülern __ARTICLE__ Regel.",
-    articles: ["den", "eine"],
-    cases: ["dative", "accusative"],
-    genders: ["plural", "feminine"],
-    nouns: ["Schülern", "Regel"],
-  },
-  {
-    sentence: "Ich zeige __ARTICLE__ Freundin __ARTICLE__ Plan.",
-    articles: ["meiner", "meinen"],
-    cases: ["dative", "accusative"],
-    genders: ["feminine", "masculine"],
-    nouns: ["Freundin", "Plan"],
-  },
-  {
-    sentence: "Wir sprechen mit __ARTICLE__ Nachbarin.",
-    articles: ["der"],
-    cases: ["dative"],
-    genders: ["feminine"],
-    nouns: ["Nachbarin"],
-  },
-];
+const TRAINING_DEFAULT_ITEMS = [];
 
 const getBrowserUiLang = () => {
   const candidate =
@@ -1123,6 +1043,32 @@ const RSS_ADAPT_STORAGE_KEY = "reader_rss_adapt_v1";
 const LIBRARY_VIEW_KEY = "reader_library_view_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const REPORT_ISSUE_ENDPOINT = "https://leselampe-report.gobedashvilibagrat.workers.dev";
+const RESET_STORAGE_KEYS = [
+  UI_LANG_KEY,
+  STORY_STORAGE_KEY,
+  LAST_STORY_KEY,
+  STORY_LEVEL_KEY,
+  STORY_WORD_COUNT_KEY,
+  STORY_STYLE_KEY,
+  LEMMA_STATS_KEY,
+  READ_STATUS_KEY,
+  STORY_PROGRESS_KEY,
+  TRAINING_DA_ITEMS_KEY,
+  TRAINING_DA_LEARNED_KEY,
+  TRAINING_DA_SESSION_SIZE_KEY,
+  RSS_STORAGE_KEY,
+  RSS_ARCHIVE_STORAGE_KEY,
+  RSS_LEVELS_KEY,
+  RSS_ITEM_LEVELS_KEY,
+  RSS_ADAPT_STORAGE_KEY,
+  LIBRARY_VIEW_KEY,
+  "reader_font",
+  "reader_size",
+  "reader_leading",
+  "reader_hyphenation",
+  "reader_justify",
+  "reader_sentence_per_line",
+];
 const storyTitle = document.querySelector(".book-header h1");
 const screenLayout = document.querySelector(".layout");
 const libraryScreen = document.querySelector('[data-screen="library"]');
@@ -1144,7 +1090,6 @@ const trainingGenderValue = document.getElementById("trainingGenderValue");
 const trainingFeedback = document.getElementById("trainingFeedback");
 const trainingStatus = document.getElementById("trainingStatus");
 const trainingNext = document.getElementById("trainingNext");
-const trainingSkip = document.getElementById("trainingSkip");
 const trainingGenerate = document.getElementById("trainingGenerate");
 const trainingProgressBar = document.getElementById("trainingProgressBar");
 const trainingListView = document.getElementById("trainingListView");
@@ -1520,22 +1465,48 @@ const getTrainingArticleParts = (article) => {
   };
 };
 
-const buildTrainingTemplate = (sentence, article) => {
+const hideTrainingArticles = (template, articles) => {
+  const list = Array.isArray(articles)
+    ? articles.filter(Boolean)
+    : articles
+    ? [articles]
+    : [];
+  if (!list.length) {
+    return template;
+  }
+  let next = template;
+  for (const article of list) {
+    const escaped = escapeRegExp(article);
+    const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+    next = next.replace(regex, TRAINING_TOKEN);
+  }
+  return next;
+};
+
+const buildTrainingTemplate = (sentence, articles) => {
   if (!sentence) {
     return "";
   }
+  const list = Array.isArray(articles)
+    ? articles.filter(Boolean)
+    : articles
+    ? [articles]
+    : [];
+  if (!list.length) {
+    return "";
+  }
   if (sentence.includes(TRAINING_TOKEN)) {
-    return sentence;
+    return hideTrainingArticles(sentence, list);
   }
-  if (!article) {
-    return "";
+  let template = sentence;
+  for (const article of list) {
+    const escaped = escapeRegExp(article);
+    const regex = new RegExp(`\\b${escaped}\\b`, "i");
+    if (!regex.test(template)) {
+      return "";
+    }
   }
-  const escaped = escapeRegExp(article);
-  const regex = new RegExp(`\\b${escaped}\\b`, "i");
-  if (!regex.test(sentence)) {
-    return "";
-  }
-  return sentence.replace(regex, TRAINING_TOKEN);
+  return hideTrainingArticles(template, list);
 };
 
 const normalizeTrainingItem = (item) => {
@@ -1547,15 +1518,23 @@ const normalizeTrainingItem = (item) => {
     return null;
   }
   const existingTemplate = String(item.template || "").trim();
-  const templateSource = existingTemplate || sentence;
-  const template = templateSource.includes(TRAINING_TOKEN)
-    ? templateSource
-    : buildTrainingTemplate(templateSource, String(item.article || ""));
-  if (!template) {
-    return null;
-  }
-  const gapCount = template.split(TRAINING_TOKEN).length - 1;
+  const templateArticles = Array.isArray(item.gaps)
+    ? item.gaps.map((gap) => gap?.article)
+    : item.articles ?? item.article;
   if (Array.isArray(item.gaps)) {
+    const gapCount = item.gaps.length;
+    let template = "";
+    if (existingTemplate) {
+      const tokenCount = existingTemplate.split(TRAINING_TOKEN).length - 1;
+      template = tokenCount === gapCount ? existingTemplate : "";
+    }
+    if (!template) {
+      template = buildTrainingTemplate(sentence, templateArticles);
+    }
+    template = hideTrainingArticles(template, templateArticles);
+    if (!template) {
+      return null;
+    }
     if (item.gaps.length !== gapCount) {
       return null;
     }
@@ -1608,12 +1587,20 @@ const normalizeTrainingItem = (item) => {
     ? [rawGenders]
     : [];
   const nouns = Array.isArray(rawNouns) ? rawNouns : rawNouns ? [rawNouns] : [];
-  if (
-    !gapCount ||
-    articles.length !== gapCount ||
-    cases.length !== gapCount ||
-    genders.length !== gapCount
-  ) {
+  const gapCount = articles.length;
+  if (!gapCount || cases.length !== gapCount || genders.length !== gapCount) {
+    return null;
+  }
+  let template = "";
+  if (existingTemplate) {
+    const tokenCount = existingTemplate.split(TRAINING_TOKEN).length - 1;
+    template = tokenCount === gapCount ? existingTemplate : "";
+  }
+  if (!template) {
+    template = buildTrainingTemplate(sentence, rawArticles);
+  }
+  template = hideTrainingArticles(template, rawArticles);
+  if (!template) {
     return null;
   }
   const gaps = [];
@@ -1804,6 +1791,9 @@ const resetTrainingUi = () => {
   if (trainingGender) {
     trainingGender.classList.add("is-hidden");
   }
+  if (trainingCaseOptions) {
+    trainingCaseOptions.classList.remove("is-hidden");
+  }
   if (trainingArticleOptions) {
     trainingArticleOptions.classList.add("is-hidden");
     trainingArticleOptions.innerHTML = "";
@@ -1812,9 +1802,7 @@ const resetTrainingUi = () => {
   setTrainingStatus("");
   if (trainingNext) {
     trainingNext.disabled = true;
-  }
-  if (trainingSkip) {
-    trainingSkip.disabled = false;
+    trainingNext.classList.add("is-hidden");
   }
   setTrainingButtonsEnabled(trainingCaseOptions, true);
 };
@@ -1854,13 +1842,12 @@ const completeTrainingSession = () => {
   trainingPhase = "complete";
   setTrainingButtonsEnabled(trainingCaseOptions, false);
   setTrainingButtonsEnabled(trainingArticleOptions, false);
+  trainingCaseOptions?.classList.add("is-hidden");
   trainingArticleOptions?.classList.add("is-hidden");
   trainingGender?.classList.add("is-hidden");
   if (trainingNext) {
     trainingNext.disabled = true;
-  }
-  if (trainingSkip) {
-    trainingSkip.disabled = true;
+    trainingNext.classList.add("is-hidden");
   }
   setTrainingStatus(t("trainings.status.session_complete"));
   showTrainingSummary();
@@ -1956,9 +1943,6 @@ const closeTrainingDetail = () => {
   trainingListView?.classList.remove("is-hidden");
   setTrainingFeedback("");
   setTrainingStatus("");
-  if (trainingSkip) {
-    trainingSkip.disabled = false;
-  }
 };
 
 const applyTrainingSessionSize = async (
@@ -2032,9 +2016,9 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
               `Rules: Write ${count} short, natural German sentences (max 12 words) for A2 learners. ` +
               "Each sentence must contain 1-3 determiners in accusative or dative case. " +
               "Determiners may be definite (der/die/das forms), indefinite (ein-), or possessive (mein/dein/sein/ihr/unser). " +
-              "Replace each target article with the token __ARTICLE__. The noun must immediately follow each token. " +
-              "Do NOT include any other articles or determiners besides the hidden ones (no dieser/jeder/welcher/kein). " +
-              "Provide arrays for articles, cases, genders, and nouns in the same order as tokens appear. " +
+              "Do NOT replace determiners with tokens; return the full sentence text. " +
+              "Do NOT include any other articles or determiners besides the target ones (no dieser/jeder/welcher/kein). " +
+              "Provide arrays for articles, cases, genders, and nouns in the same order as they appear in the sentence. " +
               "Use case values only: dative or accusative. " +
               "Gender values must be one of: masculine, feminine, neuter, plural.",
           },
@@ -2084,6 +2068,7 @@ const handleTrainingCaseSelection = (caseValue) => {
     trainingPhase = "article";
     setTrainingFeedback(t("training.feedback.correct_case"));
     setTrainingButtonsEnabled(trainingCaseOptions, false);
+    trainingCaseOptions?.classList.add("is-hidden");
     renderTrainingGender(trainingActiveItem);
     renderTrainingArticleOptions(gap);
     trainingArticleOptions?.classList.remove("is-hidden");
@@ -2114,11 +2099,16 @@ const handleTrainingArticleSelection = (articleValue) => {
       trainingGapIndex += 1;
       trainingPhase = "case";
       setTrainingFeedback(t("training.feedback.correct_article_partial"));
+      if (trainingNext) {
+        trainingNext.disabled = true;
+        trainingNext.classList.add("is-hidden");
+      }
       if (trainingPrompt) {
         trainingPrompt.textContent = t("training.dativ_akk.prompt.case");
       }
       trainingGender?.classList.add("is-hidden");
       trainingArticleOptions?.classList.add("is-hidden");
+      trainingCaseOptions?.classList.remove("is-hidden");
       setTrainingButtonsEnabled(trainingCaseOptions, true);
       renderTrainingSentence(trainingActiveItem, {
         activeGapIndex: trainingGapIndex,
@@ -2126,6 +2116,7 @@ const handleTrainingArticleSelection = (articleValue) => {
       return;
     }
     trainingPhase = "complete";
+    trainingCaseOptions?.classList.add("is-hidden");
     setTrainingFeedback(t("training.feedback.correct_article"));
     if (!trainingHadMistake && !trainingSentenceScored) {
       const learnedSet = loadTrainingLearnedSet();
@@ -2137,12 +2128,9 @@ const handleTrainingArticleSelection = (articleValue) => {
       trainingCorrectCount += 1;
     }
     trainingSentenceScored = true;
-    if (trainingIndex >= trainingItems.length - 1) {
-      if (trainingNext) {
-        trainingNext.disabled = false;
-      }
-    } else if (trainingNext) {
+    if (trainingNext) {
       trainingNext.disabled = false;
+      trainingNext.classList.remove("is-hidden");
     }
     renderTrainingSentence(trainingActiveItem, {
       activeGapIndex: trainingGapIndex,
@@ -7209,15 +7197,6 @@ if (trainingNext) {
   });
 }
 
-if (trainingSkip) {
-  trainingSkip.addEventListener("click", () => {
-    if (trainingSessionComplete) {
-      return;
-    }
-    advanceTrainingItem();
-  });
-}
-
 if (trainingGenerate) {
   trainingGenerate.addEventListener("click", handleTrainingGenerate);
 }
@@ -7237,12 +7216,12 @@ if (trainingSummaryClose) {
 if (trainingDativAkkItem) {
   const content = trainingDativAkkItem.querySelector(".home-item-content");
   if (content) {
-    content.addEventListener("click", () => {
+    content.addEventListener("click", async () => {
       closeAllHomeMenus(undefined, trainingList);
-      openTrainingDetail();
-      if (trainingItems.length) {
-        setTrainingItem(trainingItems[0]);
-      }
+      await applyTrainingSessionSize(trainingSessionSize, {
+        ensurePool: true,
+        autoStart: true,
+      });
     });
   }
   const actions = trainingDativAkkItem.querySelector(".home-item-actions");
@@ -7354,7 +7333,9 @@ resetAllDataButton?.addEventListener("click", () => {
     return;
   }
   const apiKey = localStorage.getItem("chatgpt_api_key");
-  localStorage.clear();
+  RESET_STORAGE_KEYS.forEach((key) => {
+    localStorage.removeItem(key);
+  });
   if (apiKey) {
     localStorage.setItem("chatgpt_api_key", apiKey);
   }
