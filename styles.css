@@ -2413,6 +2413,46 @@ button:disabled {
   opacity: 0.75;
 }
 
+.sheet-morphology {
+  display: none;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bottom-sheet.is-expanded .sheet-morphology {
+  display: grid;
+}
+
+.sheet-morphology-text {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.sheet-morphology-table {
+  display: grid;
+  gap: 6px;
+}
+
+.sheet-morphology-row {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr 1.4fr;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.sheet-morphology-header {
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.sheet-morphology-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 @keyframes rise {
   from {
     transform: translateY(20px);

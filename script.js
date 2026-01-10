@@ -24,6 +24,9 @@ const sheetEnglish = document.getElementById("sheetEnglish");
 const sheetCompound = document.getElementById("sheetCompound");
 const sheetCompoundList = document.getElementById("sheetCompoundList");
 const sheetGrammar = document.getElementById("sheetGrammar");
+const sheetMorphology = document.getElementById("sheetMorphology");
+const sheetMorphologyText = document.getElementById("sheetMorphologyText");
+const sheetMorphologyTable = document.getElementById("sheetMorphologyTable");
 const sheetGrammarMeta = document.getElementById("sheetGrammarMeta");
 const sheetMetaLemma = document.getElementById("sheetMetaLemma");
 const sheetMetaHead = document.getElementById("sheetMetaHead");
@@ -229,6 +232,17 @@ const UI_COPY = {
     "translation.legend.gender": "gender governor",
     "translation.legend.case": "case governor",
     "translation.grammar.placeholder": "Declension notes will appear here.",
+    "translation.morphology.label": "Morphological composition",
+    "translation.morphology.placeholder": "Morphological analysis will appear here.",
+    "translation.morphology.part": "Part",
+    "translation.morphology.category": "Category",
+    "translation.morphology.function": "Function",
+    "translation.morphology.category.Praefix": "Prefix",
+    "translation.morphology.category.Wurzel": "Root",
+    "translation.morphology.category.Wortstamm": "Stem",
+    "translation.morphology.category.Suffix": "Suffix",
+    "translation.morphology.category.Endung": "Inflection",
+    "translation.morphology.category.Fugenelement": "Linking element",
     "translation.meta.lemma": "Dictionary form",
     "translation.meta.head": "Head word",
     "translation.meta.article": "Article",
@@ -460,6 +474,17 @@ const UI_COPY = {
     "translation.legend.gender": "слово, определяющее род",
     "translation.legend.case": "слово, задающее падеж",
     "translation.grammar.placeholder": "Объяснение склонения появится здесь.",
+    "translation.morphology.label": "Морфологический состав",
+    "translation.morphology.placeholder": "Морфологический разбор появится здесь.",
+    "translation.morphology.part": "Часть",
+    "translation.morphology.category": "Категория",
+    "translation.morphology.function": "Функция",
+    "translation.morphology.category.Praefix": "Приставка",
+    "translation.morphology.category.Wurzel": "Корень",
+    "translation.morphology.category.Wortstamm": "Основа",
+    "translation.morphology.category.Suffix": "Суффикс",
+    "translation.morphology.category.Endung": "Окончание",
+    "translation.morphology.category.Fugenelement": "Соединительный элемент",
     "translation.meta.lemma": "Словарная форма",
     "translation.meta.head": "Главное слово",
     "translation.meta.article": "Артикль",
@@ -1041,20 +1066,33 @@ const updateStandaloneMode = () => {
   document.body.classList.toggle("is-standalone", isStandaloneMatch || isIosStandalone);
 };
 
+const normalizeMorphologyKey = (value) =>
+  String(value || "").trim().toLowerCase();
+
+const getMorphologyCategoryLabel = (category) => {
+  const key = `translation.morphology.category.${category}`;
+  return t(key) || category || "";
+};
+
 let lastGerman = "";
 let lastTranslation = "";
 let lastGrammar = "";
 let lastSentence = "";
 let lastTranslationType = "word";
 let lastMeta = null;
+let lastClickedWord = "";
 const translationCache = new Map();
+const morphologyCache = new Map();
 let pendingController = null;
 let generationController = null;
 let suggestionController = null;
+let morphologyController = null;
+let morphologyRequestId = 0;
 let translationRequestId = 0;
 let longPressTimer = null;
 let longPressTriggered = false;
 let sentenceTranslationEl = null;
+let activeMorphologyKey = "";
 let currentStoryId = null;
 let currentRenderedStory = null;
 let currentRssItem = null;
@@ -1080,8 +1118,10 @@ let sheetDragStartX = 0;
 let sheetDragStartY = 0;
 let sheetDragDeltaX = 0;
 let sheetDragDeltaY = 0;
+let sheetDragRawDeltaY = 0;
 let sheetDragActive = false;
 let sheetDragMode = null;
+let sheetExpanded = false;
 let resetTranslationTimer = null;
 let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
@@ -3964,6 +4004,67 @@ const setSheetCompoundParts = (parts, isWord, isCompound) => {
   sheetCompound.classList.remove("is-hidden");
 };
 
+const updateSheetMorphology = (meta, type) => {
+  if (!sheetMorphology || !sheetMorphologyText || !sheetMorphologyTable) {
+    return;
+  }
+  const isWord = type === "word";
+  const rows = Array.isArray(meta?.morphology)
+    ? meta.morphology.filter(
+        (item) =>
+          item &&
+          typeof item.part === "string" &&
+          typeof item.category === "string" &&
+          typeof item.function === "string" &&
+          item.part.trim() &&
+          item.category.trim() &&
+          item.function.trim()
+      )
+    : [];
+
+  Array.from(sheetMorphologyTable.querySelectorAll(".sheet-morphology-row"))
+    .slice(1)
+    .forEach((row) => row.remove());
+
+  if (rows.length) {
+    rows.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "sheet-morphology-row";
+      const part = document.createElement("span");
+      part.className = "sheet-morphology-cell";
+      part.textContent = item.part.trim();
+      const category = document.createElement("span");
+      category.className = "sheet-morphology-cell";
+      category.textContent = getMorphologyCategoryLabel(item.category.trim());
+      const functionCell = document.createElement("span");
+      functionCell.className = "sheet-morphology-cell";
+      functionCell.textContent = item.function.trim();
+      row.append(part, category, functionCell);
+      sheetMorphologyTable.appendChild(row);
+    });
+  }
+
+  sheetMorphologyText.classList.toggle("is-hidden", rows.length > 0);
+  sheetMorphologyTable.classList.toggle("is-hidden", rows.length === 0);
+  sheetMorphologyTable.setAttribute("aria-hidden", rows.length === 0 ? "true" : "false");
+  sheetMorphologyText.textContent = t("translation.morphology.placeholder");
+  sheetMorphology.classList.toggle("is-hidden", !(sheetExpanded && isWord));
+};
+
+const setSheetExpanded = (isExpanded) => {
+  sheetExpanded = isExpanded;
+  bottomSheet?.classList.toggle("is-expanded", isExpanded);
+  updateSheetMorphology(lastMeta, lastTranslationType);
+  if (isExpanded && lastTranslationType === "word") {
+    const target = (lastClickedWord || lastMeta?.lemma || lastGerman || "").trim();
+    if (target && (!Array.isArray(lastMeta?.morphology) || !lastMeta.morphology.length)) {
+      loadMorphologyForWord(target);
+    }
+  }
+  syncReaderBottomPadding();
+  scheduleActiveWordScroll();
+};
+
 const updateTranslation = (type, german, translation, grammar, meta, options = {}) => {
   lastGerman = german;
   lastTranslation = translation;
@@ -3994,6 +4095,14 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   sheetGerman.textContent = german;
   sheetEnglish.textContent = translation;
   sheetGrammar.innerHTML = sheetGrammarHtml;
+  if (meta && type === "word") {
+    const cacheKey = normalizeMorphologyKey(lastClickedWord || german);
+    const cachedMorphology = morphologyCache.get(cacheKey);
+    if (cachedMorphology && (!Array.isArray(meta.morphology) || !meta.morphology.length)) {
+      meta.morphology = cachedMorphology;
+    }
+  }
+  updateSheetMorphology(meta, type);
   setSheetCompoundParts(
     meta?.compoundParts,
     isWord,
@@ -5986,6 +6095,119 @@ const getApiKey = () => {
   return localStorage.getItem("chatgpt_api_key") || "";
 };
 
+const fetchMorphologyAnalysis = async (word) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const cleanedWord = String(word || "").trim();
+  if (!cleanedWord) {
+    return null;
+  }
+  const nativeLanguageName =
+    NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
+  const cacheKey = normalizeMorphologyKey(cleanedWord);
+  if (morphologyCache.has(cacheKey)) {
+    return morphologyCache.get(cacheKey);
+  }
+  if (morphologyController) {
+    morphologyController.abort();
+  }
+  morphologyController = new AbortController();
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a German morphology analyzer trained in German linguistic terminology.\n\n" +
+              "Your task is to segment a German word into ALL of its morphological parts.\n\n" +
+              "You MUST distinguish between the following categories ONLY:\n" +
+              "- \"Praefix\" (derivational prefix)\n" +
+              "- \"Wurzel\" (lexical root, smallest meaning-bearing unit)\n" +
+              "- \"Wortstamm\" (stem used for inflection or derivation)\n" +
+              "- \"Suffix\" (derivational suffix)\n" +
+              "- \"Endung\" (Flexionsendung, purely grammatical ending)\n" +
+              "- \"Fugenelement\" (linking element in compounds)\n\n" +
+              "Rules:\n" +
+              "- A word may contain multiple elements of any category.\n" +
+              "- Compound words must be split into their meaningful components.\n" +
+              "- Inflectional endings MUST be classified as \"Endung\", not \"Suffix\".\n" +
+              "- Do NOT collapse Wurzel and Wortstamm unless they are identical.\n" +
+              "- Morphemes must be listed in surface order.\n" +
+              "- Umlauts and ß belong to the morpheme they appear in.\n" +
+              "- If a distinction is linguistically unclear or debatable, return an empty JSON array [].\n" +
+              "- Return ONLY valid JSON. No explanations, no prose.",
+          },
+          {
+            role: "user",
+            content:
+              "Provide a morphological analysis of the following German word.\n\n" +
+              "Return a JSON array named \"morphological_analysis\".\n" +
+              "Each element must contain:\n" +
+              "- \"part\": the morpheme as it appears in the word\n" +
+              "- \"category\": one of\n" +
+              "  [\"Praefix\", \"Wurzel\", \"Wortstamm\", \"Suffix\", \"Endung\", \"Fugenelement\"]\n" +
+              `- \"function\": short semantic or grammatical function in ${nativeLanguageName}\n\n` +
+              `Word: ${cleanedWord}`,
+          },
+        ],
+      }),
+      signal: morphologyController.signal,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Morphology failed");
+    }
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("Empty morphology");
+    }
+    const parsed = JSON.parse(raw);
+    const analysis = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.morphological_analysis)
+        ? parsed.morphological_analysis
+        : [];
+    morphologyCache.set(cacheKey, analysis);
+    return analysis;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    return null;
+  }
+};
+
+const loadMorphologyForWord = async (word) => {
+  const cleanedWord = String(word || "").trim();
+  if (!cleanedWord) {
+    return;
+  }
+  const cacheKey = normalizeMorphologyKey(cleanedWord);
+  activeMorphologyKey = cacheKey;
+  const requestId = ++morphologyRequestId;
+  const analysis = await fetchMorphologyAnalysis(cleanedWord);
+  if (requestId !== morphologyRequestId) {
+    return;
+  }
+  if (activeMorphologyKey !== cacheKey || !analysis) {
+    return;
+  }
+  if (lastMeta) {
+    lastMeta.morphology = analysis;
+  }
+  updateSheetMorphology(lastMeta, lastTranslationType);
+};
+
 const translateWithChatGPT = async (text, type, context) => {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -6209,7 +6431,9 @@ const handleSentenceContainerClick = (event) => {
     word.classList.add("active");
     setWordLoading(word, true);
     setSheetCompoundParts([], false, false);
+    setSheetExpanded(false);
     const german = getCleanWordText(word);
+    lastClickedWord = german;
     const requestId = ++translationRequestId;
     updateTranslation(
       "word",
@@ -6274,6 +6498,7 @@ const handleSentenceContainerClick = (event) => {
         caseWord,
         genderWord,
         formExplanation: result?.form_explanation || "",
+        morphology: [],
         isCompound: !!result?.is_compound,
         compoundParts,
       };
@@ -6326,6 +6551,8 @@ const handleSentenceContainerClick = (event) => {
 
   if (sentence) {
     const german = sentence.textContent.trim();
+    lastClickedWord = "";
+    setSheetExpanded(false);
     setActiveSentence(sentence);
     translateSentenceText(german, sentence.dataset.translation, sentence);
   }
@@ -6425,6 +6652,7 @@ const startBottomSheetDrag = (event) => {
   sheetDragStartY = event.clientY;
   sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
+  sheetDragRawDeltaY = 0;
   sheetDragActive = true;
   sheetDragMode = null;
   setSwipeOverlay(null, 0);
@@ -6438,6 +6666,7 @@ const moveBottomSheetDrag = (event) => {
   }
   const deltaX = event.clientX - sheetDragStartX;
   const deltaY = event.clientY - sheetDragStartY;
+  sheetDragRawDeltaY = deltaY;
   if (!sheetDragMode) {
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
@@ -6476,7 +6705,9 @@ const endBottomSheetDrag = (event) => {
   const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
   const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
   const isSentenceSheet = bottomSheet.classList.contains("is-sentence");
+  const expandThreshold = Math.max(60, sheetRect.height * 0.2);
   const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
+  const shouldExpand = !isSentenceSheet && sheetDragMode === "vertical" && sheetDragRawDeltaY < -expandThreshold;
   const shouldAccept = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
   const shouldIgnore = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
@@ -6486,6 +6717,7 @@ const endBottomSheetDrag = (event) => {
   sheetDragStartY = 0;
   sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
+  sheetDragRawDeltaY = 0;
   bottomSheet.style.transform = "";
   setSwipeOverlay(null, 0);
   if (shouldAccept) {
@@ -6495,6 +6727,10 @@ const endBottomSheetDrag = (event) => {
   }
   if (shouldIgnore) {
     resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
+  if (shouldExpand) {
+    setSheetExpanded(true);
     return;
   }
   if (shouldClose) {
@@ -6521,6 +6757,7 @@ const startBottomSheetTouchDrag = (event) => {
   sheetDragStartY = touch.clientY;
   sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
+  sheetDragRawDeltaY = 0;
   sheetDragActive = true;
   sheetDragMode = null;
   setSwipeOverlay(null, 0);
@@ -6537,6 +6774,7 @@ const moveBottomSheetTouchDrag = (event) => {
   }
   const deltaX = touch.clientX - sheetDragStartX;
   const deltaY = touch.clientY - sheetDragStartY;
+  sheetDragRawDeltaY = deltaY;
   if (!sheetDragMode) {
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
@@ -6578,7 +6816,9 @@ const endBottomSheetTouchDrag = () => {
   const verticalThreshold = Math.max(80, sheetRect.height * 0.25);
   const horizontalThreshold = Math.max(90, sheetRect.width * 0.25);
   const isSentenceSheet = bottomSheet.classList.contains("is-sentence");
+  const expandThreshold = Math.max(60, sheetRect.height * 0.2);
   const shouldClose = sheetDragMode === "vertical" && sheetDragDeltaY > verticalThreshold;
+  const shouldExpand = !isSentenceSheet && sheetDragMode === "vertical" && sheetDragRawDeltaY < -expandThreshold;
   const shouldAccept = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX > horizontalThreshold;
   const shouldIgnore = !isSentenceSheet && sheetDragMode === "horizontal" && sheetDragDeltaX < -horizontalThreshold;
   sheetDragActive = false;
@@ -6588,6 +6828,7 @@ const endBottomSheetTouchDrag = () => {
   sheetDragStartY = 0;
   sheetDragDeltaX = 0;
   sheetDragDeltaY = 0;
+  sheetDragRawDeltaY = 0;
   bottomSheet.style.transform = "";
   setSwipeOverlay(null, 0);
   if (shouldAccept) {
@@ -6597,6 +6838,10 @@ const endBottomSheetTouchDrag = () => {
   }
   if (shouldIgnore) {
     resetTranslation({ animate: false, commitLemma: false });
+    return;
+  }
+  if (shouldExpand) {
+    setSheetExpanded(true);
     return;
   }
   if (shouldClose) {
@@ -6675,11 +6920,17 @@ const resetTranslation = ({ animate = true, commitLemma = false } = {}) => {
   if (pendingController) {
     pendingController.abort();
   }
+  if (morphologyController) {
+    morphologyController.abort();
+  }
+  activeMorphologyKey = "";
+  setSheetExpanded(false);
   if (commitLemma) {
     commitPendingLemmaEntry();
   } else {
     pendingLemmaEntry = null;
   }
+  lastClickedWord = "";
   translationRequestId += 1;
   clearActiveWord();
   clearSentenceTranslationHighlight();
