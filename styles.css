@@ -2272,6 +2272,10 @@ button:disabled {
   flex: 0 0 auto;
 }
 
+.bottom-sheet.is-sentence .sheet-tip {
+  display: none;
+}
+
 .sheet-actions button {
   transition: opacity 0.3s ease;
 }
