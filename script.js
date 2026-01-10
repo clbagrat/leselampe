@@ -481,7 +481,7 @@ const UI_COPY = {
     "translation.morphology.part": "Часть",
     "translation.morphology.category": "Категория",
     "translation.morphology.function": "Функция",
-    "translation.morphology.loading": "Анализируем",
+    "translation.morphology.loading": "Анализируем...",
     "translation.morphology.empty": "Разбор недоступен.",
     "translation.morphology.category.Praefix": "Приставка",
     "translation.morphology.category.Wurzel": "Корень",
@@ -6211,6 +6211,8 @@ const loadMorphologyForWord = async (word) => {
       lastMeta.morphologyLoaded = true;
     }
     updateSheetMorphology(lastMeta, lastTranslationType);
+    syncReaderBottomPadding();
+    scheduleActiveWordScroll();
     return;
   }
   if (lastMeta) {
@@ -6231,6 +6233,8 @@ const loadMorphologyForWord = async (word) => {
     lastMeta.morphologyLoaded = true;
   }
   updateSheetMorphology(lastMeta, lastTranslationType);
+  syncReaderBottomPadding();
+  scheduleActiveWordScroll();
 };
 
 const translateWithChatGPT = async (text, type, context) => {
