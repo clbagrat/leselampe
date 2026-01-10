@@ -2441,16 +2441,13 @@ button:disabled {
   font-size: 12px;
 }
 
-.sheet-morphology-header {
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
 .sheet-morphology-cell {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.sheet-morphology-row .sheet-morphology-cell:first-child {
+  font-weight: 600;
 }
 
 @keyframes rise {

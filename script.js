@@ -237,6 +237,8 @@ const UI_COPY = {
     "translation.morphology.part": "Part",
     "translation.morphology.category": "Category",
     "translation.morphology.function": "Function",
+    "translation.morphology.loading": "Analyzing...",
+    "translation.morphology.empty": "No analysis available.",
     "translation.morphology.category.Praefix": "Prefix",
     "translation.morphology.category.Wurzel": "Root",
     "translation.morphology.category.Wortstamm": "Stem",
@@ -479,6 +481,8 @@ const UI_COPY = {
     "translation.morphology.part": "Часть",
     "translation.morphology.category": "Категория",
     "translation.morphology.function": "Функция",
+    "translation.morphology.loading": "Анализируем",
+    "translation.morphology.empty": "Разбор недоступен.",
     "translation.morphology.category.Praefix": "Приставка",
     "translation.morphology.category.Wurzel": "Корень",
     "translation.morphology.category.Wortstamm": "Основа",
@@ -4009,6 +4013,8 @@ const updateSheetMorphology = (meta, type) => {
     return;
   }
   const isWord = type === "word";
+  const isLoading = !!meta?.morphologyLoading;
+  const isLoaded = !!meta?.morphologyLoaded;
   const rows = Array.isArray(meta?.morphology)
     ? meta.morphology.filter(
         (item) =>
@@ -4023,10 +4029,9 @@ const updateSheetMorphology = (meta, type) => {
     : [];
 
   Array.from(sheetMorphologyTable.querySelectorAll(".sheet-morphology-row"))
-    .slice(1)
     .forEach((row) => row.remove());
 
-  if (rows.length) {
+  if (rows.length && !isLoading) {
     rows.forEach((item) => {
       const row = document.createElement("div");
       row.className = "sheet-morphology-row";
@@ -4044,10 +4049,13 @@ const updateSheetMorphology = (meta, type) => {
     });
   }
 
-  sheetMorphologyText.classList.toggle("is-hidden", rows.length > 0);
-  sheetMorphologyTable.classList.toggle("is-hidden", rows.length === 0);
-  sheetMorphologyTable.setAttribute("aria-hidden", rows.length === 0 ? "true" : "false");
-  sheetMorphologyText.textContent = t("translation.morphology.placeholder");
+  const shouldShowTable = rows.length > 0 && !isLoading;
+  sheetMorphologyText.classList.toggle("is-hidden", shouldShowTable);
+  sheetMorphologyTable.classList.toggle("is-hidden", !shouldShowTable);
+  sheetMorphologyTable.setAttribute("aria-hidden", shouldShowTable ? "false" : "true");
+  sheetMorphologyText.textContent = isLoading
+    ? t("translation.morphology.loading")
+    : (isLoaded ? t("translation.morphology.empty") : t("translation.morphology.placeholder"));
   sheetMorphology.classList.toggle("is-hidden", !(sheetExpanded && isWord));
 };
 
@@ -6195,15 +6203,32 @@ const loadMorphologyForWord = async (word) => {
   const cacheKey = normalizeMorphologyKey(cleanedWord);
   activeMorphologyKey = cacheKey;
   const requestId = ++morphologyRequestId;
+  const cached = morphologyCache.get(cacheKey);
+  if (cached) {
+    if (lastMeta) {
+      lastMeta.morphology = cached;
+      lastMeta.morphologyLoading = false;
+      lastMeta.morphologyLoaded = true;
+    }
+    updateSheetMorphology(lastMeta, lastTranslationType);
+    return;
+  }
+  if (lastMeta) {
+    lastMeta.morphologyLoading = true;
+    lastMeta.morphologyLoaded = false;
+  }
+  updateSheetMorphology(lastMeta, lastTranslationType);
   const analysis = await fetchMorphologyAnalysis(cleanedWord);
   if (requestId !== morphologyRequestId) {
     return;
   }
-  if (activeMorphologyKey !== cacheKey || !analysis) {
+  if (activeMorphologyKey !== cacheKey) {
     return;
   }
   if (lastMeta) {
-    lastMeta.morphology = analysis;
+    lastMeta.morphology = Array.isArray(analysis) ? analysis : [];
+    lastMeta.morphologyLoading = false;
+    lastMeta.morphologyLoaded = true;
   }
   updateSheetMorphology(lastMeta, lastTranslationType);
 };
@@ -6499,6 +6524,8 @@ const handleSentenceContainerClick = (event) => {
         genderWord,
         formExplanation: result?.form_explanation || "",
         morphology: [],
+        morphologyLoading: false,
+        morphologyLoaded: false,
         isCompound: !!result?.is_compound,
         compoundParts,
       };
@@ -6924,6 +6951,10 @@ const resetTranslation = ({ animate = true, commitLemma = false } = {}) => {
     morphologyController.abort();
   }
   activeMorphologyKey = "";
+  if (lastMeta) {
+    lastMeta.morphologyLoading = false;
+    lastMeta.morphologyLoaded = false;
+  }
   setSheetExpanded(false);
   if (commitLemma) {
     commitPendingLemmaEntry();
