@@ -3153,6 +3153,21 @@ const renderRssFeedItems = (items) => {
     const content = document.createElement("button");
     content.className = "home-item-content";
     content.type = "button";
+    const body = document.createElement("div");
+    body.className = "rss-item-body";
+
+    if (item.thumbnailUrl) {
+      content.classList.add("has-thumbnail");
+      const preview = document.createElement("div");
+      preview.className = "rss-item-thumbnail";
+      const img = document.createElement("img");
+      img.src = item.thumbnailUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      preview.appendChild(img);
+      content.appendChild(preview);
+    }
 
     const head = document.createElement("div");
     head.className = "home-item-head";
@@ -3188,8 +3203,8 @@ const renderRssFeedItems = (items) => {
     excerpt.className = "home-item-excerpt";
     excerpt.textContent = buildRssExcerpt(item);
 
-    content.appendChild(head);
-    content.appendChild(meta);
+    body.appendChild(head);
+    body.appendChild(meta);
     const progressPercent = getStoryProgressPercent(item.id);
     if (progressPercent > 0 && !isRead) {
       const progress = document.createElement("div");
@@ -3199,7 +3214,7 @@ const renderRssFeedItems = (items) => {
       bar.className = "home-item-progress-bar";
       bar.style.width = `${progressPercent}%`;
       progress.appendChild(bar);
-      content.appendChild(progress);
+      body.appendChild(progress);
     }
     if (isLoading) {
       const loadingRow = document.createElement("div");
@@ -3213,10 +3228,12 @@ const renderRssFeedItems = (items) => {
       abortButton.textContent = t("rss.feed.abort");
       abortButton.dataset.abort = "true";
       loadingRow.append(loading, abortButton);
-      content.appendChild(loadingRow);
+      body.appendChild(loadingRow);
     } else {
-      content.appendChild(excerpt);
+      body.appendChild(excerpt);
     }
+
+    content.appendChild(body);
 
     const actions = document.createElement("div");
     actions.className = "home-item-actions";
@@ -3295,6 +3312,71 @@ const getLinkFromNode = (node) => {
   return node.getAttribute("href") || node.textContent?.trim() || "";
 };
 
+const normalizeRssMediaUrl = (value, sourceUrl) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    return new URL(trimmed, sourceUrl).toString();
+  } catch (error) {
+    return trimmed;
+  }
+};
+
+const getRssThumbnailFromNodes = (nodes, sourceUrl) => {
+  for (const node of nodes) {
+    const url =
+      node.getAttribute("url") ||
+      node.getAttribute("href") ||
+      node.getAttribute("src") ||
+      "";
+    if (!url) {
+      continue;
+    }
+    const type = String(node.getAttribute("type") || node.getAttribute("medium") || "")
+      .toLowerCase()
+      .trim();
+    if (type && type !== "image" && !type.startsWith("image/")) {
+      continue;
+    }
+    return normalizeRssMediaUrl(url, sourceUrl);
+  }
+  return "";
+};
+
+const getThumbnailFromHtml = (html, sourceUrl) => {
+  if (!html) {
+    return "";
+  }
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const img = doc.querySelector("img");
+  if (!img) {
+    return "";
+  }
+  const url =
+    img.getAttribute("src") ||
+    img.getAttribute("data-src") ||
+    img.getAttribute("data-original") ||
+    "";
+  return normalizeRssMediaUrl(url, sourceUrl);
+};
+
+const getRssThumbnailUrl = (entry, contentHtml, sourceUrl) => {
+  if (!entry) {
+    return getThumbnailFromHtml(contentHtml, sourceUrl);
+  }
+  const direct = getRssThumbnailFromNodes(
+    [
+      ...getElementsByTag(entry, "thumbnail"),
+      ...getElementsByTag(entry, "enclosure"),
+      ...getElementsByTag(entry, "content"),
+    ],
+    sourceUrl
+  );
+  return direct || getThumbnailFromHtml(contentHtml, sourceUrl);
+};
+
 const getAtomEntryLink = (entry) => {
   const links = getElementsByTag(entry, "link");
   if (!links.length) {
@@ -3319,12 +3401,14 @@ const parseFeedItems = (doc, sourceUrl) => {
     );
     const contentHtml =
       getTextFromTag(item, "encoded") || getTextFromTag(item, "description");
+    const thumbnailUrl = getRssThumbnailUrl(item, contentHtml, sourceUrl);
     return {
       title,
       link,
       date,
       source: channelTitle,
       contentHtml,
+      thumbnailUrl,
       feedUrl: sourceUrl,
     };
   });
@@ -3341,12 +3425,14 @@ const parseFeedItems = (doc, sourceUrl) => {
     );
     const contentHtml =
       getTextFromTag(entry, "content") || getTextFromTag(entry, "summary");
+    const thumbnailUrl = getRssThumbnailUrl(entry, contentHtml, sourceUrl);
     return {
       title,
       link,
       date,
       source: feedTitle,
       contentHtml,
+      thumbnailUrl,
       feedUrl: sourceUrl,
     };
   });
