@@ -4327,10 +4327,97 @@ function appendSheetChatMessage(role, text, options = {}) {
   if (options.isLoading) {
     message.classList.add("is-loading");
   }
-  message.textContent = text;
+  if (options.allowMarkdown) {
+    message.innerHTML = renderSimpleMarkdown(text);
+  } else {
+    message.textContent = text;
+  }
   sheetChatLog.appendChild(message);
   sheetChatLog.scrollTop = sheetChatLog.scrollHeight;
   return message;
+}
+
+function renderSimpleMarkdown(text) {
+  const safe = escapeHtml(String(text || ""));
+  const lines = safe.split(/\r?\n/);
+  const blocks = [];
+  let listType = null;
+  let listItems = [];
+  let paragraph = [];
+
+  const flushParagraph = () => {
+    if (!paragraph.length) {
+      return;
+    }
+    blocks.push(`<p>${paragraph.join("<br>")}</p>`);
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!listType || !listItems.length) {
+      listType = null;
+      listItems = [];
+      return;
+    }
+    const tag = listType === "ol" ? "ol" : "ul";
+    blocks.push(`<${tag}>${listItems.join("")}</${tag}>`);
+    listType = null;
+    listItems = [];
+  };
+
+  const formatInline = (value) => {
+    let result = value;
+    result = result.replace(/`([^`]+)`/g, "<code>$1</code>");
+    result = result.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    result = result.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    return result;
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+    const unordered = trimmed.match(/^[-*]\s+(.+)/);
+    const ordered = trimmed.match(/^(\d+)[.)]\s+(.+)/);
+    if (unordered) {
+      flushParagraph();
+      if (listType && listType !== "ul") {
+        flushList();
+      }
+      listType = "ul";
+      listItems.push(`<li>${formatInline(unordered[1])}</li>`);
+      return;
+    }
+    if (ordered) {
+      flushParagraph();
+      if (listType && listType !== "ol") {
+        flushList();
+      }
+      listType = "ol";
+      listItems.push(`<li>${formatInline(ordered[2])}</li>`);
+      return;
+    }
+    flushList();
+    paragraph.push(formatInline(trimmed));
+  });
+
+  flushParagraph();
+  flushList();
+  return blocks.join("");
+}
+
+function setChatMessageContent(message, text, options = {}) {
+  if (!message) {
+    return;
+  }
+  if (options.allowMarkdown) {
+    message.innerHTML = renderSimpleMarkdown(text);
+  } else {
+    message.textContent = text;
+  }
 }
 
 function buildSheetAskMessages(context) {
@@ -7409,14 +7496,14 @@ const sendSheetChatQuestion = async (question) => {
     }
     if (loadingMessage) {
       loadingMessage.classList.remove("is-loading");
-      loadingMessage.textContent = response;
+      setChatMessageContent(loadingMessage, response, { allowMarkdown: true });
     }
     sheetChatHistory.push({ role: "assistant", content: response });
     sheetChatHistory = sheetChatHistory.slice(-12);
   } catch (error) {
     if (loadingMessage) {
       loadingMessage.classList.remove("is-loading");
-      loadingMessage.textContent = t("translation.ask.error");
+      setChatMessageContent(loadingMessage, t("translation.ask.error"));
     }
   }
 };

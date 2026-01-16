@@ -2415,6 +2415,28 @@ button:disabled {
   background: rgba(0, 0, 0, 0.06);
 }
 
+.sheet-chat-message p {
+  margin: 0 0 6px;
+}
+
+.sheet-chat-message p:last-child {
+  margin-bottom: 0;
+}
+
+.sheet-chat-message ul,
+.sheet-chat-message ol {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.sheet-chat-message code {
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
 .sheet-chat-message.is-user {
   align-self: flex-end;
   background: rgba(39, 123, 59, 0.14);
