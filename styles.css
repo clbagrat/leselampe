@@ -2331,6 +2331,17 @@ button:disabled {
   width: 100%;
 }
 
+.sheet-chat-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.sheet-chat-empty.is-hidden {
+  display: none;
+}
+
 .sheet-chat-log {
   display: flex;
   flex-direction: column;
@@ -2349,6 +2360,21 @@ button:disabled {
   font-size: 11px;
   opacity: 0.6;
   width: 100%;
+}
+
+.sheet-chat-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.sheet-chat-quick button {
+  align-self: flex-start;
+}
+
+.sheet-chat-quick.is-hidden {
+  display: none;
 }
 
 .sheet-chat-form {

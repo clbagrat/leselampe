@@ -801,7 +801,6 @@
           </div>
           <div class="bottom-sheet-face bottom-sheet-back">
             <div class="sheet-ask-header">
-              <p class="sheet-ask-title" data-i18n="translation.ask.title">Ask about this word</p>
               <button
                 class="ghost mini sheet-back-close"
                 type="button"
@@ -812,11 +811,27 @@
                 ×
               </button>
             </div>
-            <p class="sheet-ask-context" id="sheetAskContext"></p>
             <div class="sheet-chat-log" id="sheetChatLog" aria-live="polite"></div>
-            <p class="sheet-chat-hint" id="sheetChatHint" data-i18n="translation.ask.hint">
-              Ask a question about the word in this sentence.
-            </p>
+            <div class="sheet-chat-empty" id="sheetChatEmpty">
+              <p class="sheet-ask-context" id="sheetAskContext"></p>
+              <p class="sheet-chat-hint" id="sheetChatHint" data-i18n="translation.ask.hint">
+                Ask a question about the word in this sentence.
+              </p>
+              <div class="sheet-chat-quick" id="sheetChatQuick">
+                <button class="ghost mini" type="button" data-ask="meanings" data-i18n="translation.ask.quick.meanings">
+                  What other meanings?
+                </button>
+                <button class="ghost mini" type="button" data-ask="examples" data-i18n="translation.ask.quick.examples">
+                  Other examples of usage
+                </button>
+                <button class="ghost mini" type="button" data-ask="special" data-i18n="translation.ask.quick.special">
+                  What's special about this word?
+                </button>
+                <button class="ghost mini" type="button" data-ask="structure" data-i18n="translation.ask.quick.structure">
+                  Explain the sentence structure
+                </button>
+              </div>
+            </div>
             <form class="sheet-chat-form" id="sheetChatForm">
               <textarea
                 class="sheet-chat-input"

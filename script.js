@@ -60,6 +60,8 @@ const sheetAskClose = document.getElementById("sheetAskClose");
 const sheetAskContext = document.getElementById("sheetAskContext");
 const sheetChatLog = document.getElementById("sheetChatLog");
 const sheetChatHint = document.getElementById("sheetChatHint");
+const sheetChatEmpty = document.getElementById("sheetChatEmpty");
+const sheetChatQuick = document.getElementById("sheetChatQuick");
 const sheetChatForm = document.getElementById("sheetChatForm");
 const sheetChatInput = document.getElementById("sheetChatInput");
 const sheetChatSend = document.getElementById("sheetChatSend");
@@ -266,7 +268,6 @@ const UI_COPY = {
     "translation.action.skip": "Do not add",
     "translation.action.listen": "Listen to German",
     "translation.action.ask": "Ask",
-    "translation.ask.title": "Ask about this word",
     "translation.ask.placeholder": "Ask a question",
     "translation.ask.send": "Send",
     "translation.ask.hint": "Ask a question about the word in this sentence.",
@@ -275,6 +276,10 @@ const UI_COPY = {
     "translation.ask.context.word": "Word",
     "translation.ask.context.sentence": "Sentence",
     "translation.ask.error": "Could not get a reply. Try again.",
+    "translation.ask.quick.meanings": "What other meanings?",
+    "translation.ask.quick.examples": "Other examples of usage",
+    "translation.ask.quick.special": "What's special about this word?",
+    "translation.ask.quick.structure": "Explain the sentence structure",
     "translation.report.action": "Report issue",
     "translation.report.sending": "Sending...",
     "translation.report.sent": "Reported",
@@ -522,7 +527,6 @@ const UI_COPY = {
     "translation.action.skip": "Не добавлять",
     "translation.action.listen": "Слушать по-немецки",
     "translation.action.ask": "Спросить",
-    "translation.ask.title": "Спросить про это слово",
     "translation.ask.placeholder": "Задайте вопрос",
     "translation.ask.send": "Отправить",
     "translation.ask.hint": "Спросите про слово в этом предложении.",
@@ -531,6 +535,10 @@ const UI_COPY = {
     "translation.ask.context.word": "Слово",
     "translation.ask.context.sentence": "Предложение",
     "translation.ask.error": "Не удалось получить ответ. Попробуйте еще раз.",
+    "translation.ask.quick.meanings": "Какие есть другие значения?",
+    "translation.ask.quick.examples": "Примеры употребления",
+    "translation.ask.quick.special": "Что особенного в этом слове?",
+    "translation.ask.quick.structure": "Объясните структуру предложения",
     "translation.report.action": "Сообщить об ошибке",
     "translation.report.sending": "Отправка...",
     "translation.report.sent": "Отправлено",
@@ -4275,6 +4283,7 @@ function updateSheetAskContext() {
   sheetChatHint.textContent = nextHint;
   sheetChatInput.disabled = !hasWord || !hasApiKey;
   sheetChatSend.disabled = !hasWord || !hasApiKey;
+  updateSheetChatEmptyVisibility(hasWord && hasApiKey);
   const nextKey = hasWord ? `${word}::${sentence}` : "";
   if (nextKey !== sheetAskContextKey) {
     sheetAskContextKey = nextKey;
@@ -4282,7 +4291,16 @@ function updateSheetAskContext() {
     if (sheetChatLog) {
       sheetChatLog.textContent = "";
     }
+    updateSheetChatEmptyVisibility(hasWord && hasApiKey);
   }
+}
+
+function updateSheetChatEmptyVisibility(canAsk = false) {
+  if (!sheetChatEmpty) {
+    return;
+  }
+  const shouldShow = canAsk && sheetChatHistory.length === 0;
+  sheetChatEmpty.classList.toggle("is-hidden", !shouldShow);
 }
 
 function updateAskViewportHeight() {
@@ -7369,12 +7387,7 @@ sheetAskClose?.addEventListener("click", () => {
   setSheetAskMode(false);
 });
 
-const handleSheetChatSubmit = async (event) => {
-  event.preventDefault();
-  if (!sheetChatInput || !sheetChatSend) {
-    return;
-  }
-  const question = sheetChatInput.value.trim();
+const sendSheetChatQuestion = async (question) => {
   if (!question) {
     return;
   }
@@ -7383,11 +7396,11 @@ const handleSheetChatSubmit = async (event) => {
     updateSheetAskContext();
     return;
   }
-  sheetChatInput.value = "";
   const userMessage = appendSheetChatMessage("user", question);
   if (userMessage) {
     sheetChatHistory.push({ role: "user", content: question });
   }
+  updateSheetChatEmptyVisibility(true);
   const loadingMessage = appendSheetChatMessage("assistant", "...", { isLoading: true });
   try {
     const response = await askTeacherWithChatGPT(context);
@@ -7408,7 +7421,35 @@ const handleSheetChatSubmit = async (event) => {
   }
 };
 
+const handleSheetChatSubmit = async (event) => {
+  event.preventDefault();
+  if (!sheetChatInput || !sheetChatSend) {
+    return;
+  }
+  const question = sheetChatInput.value.trim();
+  if (!question) {
+    return;
+  }
+  sheetChatInput.value = "";
+  await sendSheetChatQuestion(question);
+};
+
 sheetChatForm?.addEventListener("submit", handleSheetChatSubmit);
+
+sheetChatQuick?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-ask]");
+  if (!button) {
+    return;
+  }
+  const key = button.dataset.ask;
+  const text = key
+    ? t(`translation.ask.quick.${key}`)
+    : "";
+  if (!text) {
+    return;
+  }
+  sendSheetChatQuestion(text);
+});
 
 sheetChatInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
