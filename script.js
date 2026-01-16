@@ -132,6 +132,7 @@ const rssFeedEmpty = document.getElementById("rssFeedEmpty");
 const rssFeedEmptyAction = document.getElementById("rssFeedEmptyAction");
 const rssFeedStatus = document.getElementById("rssFeedStatus");
 const rssModalStatus = document.getElementById("rssModalStatus");
+const rssThumbnailOptions = document.querySelectorAll("[data-rss-thumbnails]");
 const readerAppearanceModal = document.getElementById("readerAppearanceModal");
 const closeReaderAppearance = document.getElementById("closeReaderAppearance");
 const bottomSheetHandle = document.querySelector("#bottomSheet .sheet-handle");
@@ -282,6 +283,7 @@ const UI_COPY = {
     "settings.rss.search_placeholder": "Search by site or article URL",
     "settings.rss.attribution": "powered by Feedsearch",
     "settings.rss.storage": "We store your subscriptions locally in this browser.",
+    "settings.rss.thumbnails": "Show thumbnails",
     "settings.rss.empty": "No feeds yet.",
     "settings.appearance.title": "Reader appearance",
     "settings.appearance.reader_font": "Reader font",
@@ -527,6 +529,7 @@ const UI_COPY = {
     "settings.rss.search_placeholder": "Поиск по сайту или URL статьи",
     "settings.rss.attribution": "powered by Feedsearch",
     "settings.rss.storage": "Мы храним подписки локально в этом браузере.",
+    "settings.rss.thumbnails": "Показывать миниатюры",
     "settings.rss.empty": "Пока нет лент.",
     "settings.appearance.title": "Внешний вид читалки",
     "settings.appearance.reader_font": "Шрифт читалки",
@@ -1112,6 +1115,7 @@ let rssLoadController = null;
 let rssLoadingItemId = null;
 let rssLoadingMessage = "";
 let rssLoadingRequestId = 0;
+let rssThumbnailsEnabled = true;
 let libraryActiveIndex = 0;
 let libraryOverscroll = 0;
 let libraryIsSwitching = false;
@@ -1146,6 +1150,7 @@ const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
 const RSS_ITEM_LEVELS_KEY = "reader_rss_item_levels_v1";
 const RSS_ADAPT_STORAGE_KEY = "reader_rss_adapt_v1";
+const RSS_THUMBNAILS_KEY = "reader_rss_thumbnails";
 const LIBRARY_VIEW_KEY = "reader_library_view_v1";
 const RSS_PROXY_BASE = "https://leselampe-rss.gobedashvilibagrat.workers.dev";
 const REPORT_ISSUE_ENDPOINT = "https://leselampe-report.gobedashvilibagrat.workers.dev";
@@ -1167,6 +1172,7 @@ const RESET_STORAGE_KEYS = [
   RSS_LEVELS_KEY,
   RSS_ITEM_LEVELS_KEY,
   RSS_ADAPT_STORAGE_KEY,
+  RSS_THUMBNAILS_KEY,
   LIBRARY_VIEW_KEY,
   "reader_font",
   "reader_size",
@@ -3123,6 +3129,7 @@ const renderRssFeedItems = (items) => {
   }
   rssCurrentItems = items;
   rssFeedList.innerHTML = "";
+  const showThumbnails = rssThumbnailsEnabled;
   if (rssFeedEmptyAction) {
     rssFeedEmptyAction.classList.add("is-hidden");
   }
@@ -3156,7 +3163,7 @@ const renderRssFeedItems = (items) => {
     const body = document.createElement("div");
     body.className = "rss-item-body";
 
-    if (item.thumbnailUrl) {
+    if (showThumbnails && item.thumbnailUrl) {
       content.classList.add("has-thumbnail");
       const preview = document.createElement("div");
       preview.className = "rss-item-thumbnail";
@@ -7230,6 +7237,21 @@ const applyReaderSentencePerLine = (mode) => {
   restoreReaderProgress(currentStoryId);
 };
 
+const applyRssThumbnails = (mode) => {
+  const normalized = mode === "off" ? "off" : "on";
+  rssThumbnailsEnabled = normalized === "on";
+  localStorage.setItem(RSS_THUMBNAILS_KEY, normalized);
+  rssThumbnailOptions.forEach((option) => {
+    option.classList.toggle(
+      "active",
+      option.dataset.rssThumbnails === normalized
+    );
+  });
+  if (rssFeedList) {
+    renderRssFeedItems(rssCurrentItems);
+  }
+};
+
 const applyStoryWordCount = (value) => {
   const clamped = Math.min(600, Math.max(50, Number(value) || 120));
   if (wordCountSlider) {
@@ -7278,6 +7300,12 @@ hyphenationOptions.forEach((option) => {
 sentencePerLineOptions.forEach((option) => {
   option.addEventListener("click", () => {
     applyReaderSentencePerLine(option.dataset.sentencePerLine);
+  });
+});
+
+rssThumbnailOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyRssThumbnails(option.dataset.rssThumbnails);
   });
 });
 
@@ -7335,12 +7363,14 @@ const storedHyphenation = localStorage.getItem("reader_hyphenation") || "on";
 const storedSentencePerLine =
   localStorage.getItem("reader_sentence_per_line") || "off";
 const storedJustify = localStorage.getItem("reader_justify") || "left";
+const storedRssThumbnails = localStorage.getItem(RSS_THUMBNAILS_KEY) || "on";
 applyReaderFont(storedFont);
 applyReaderSize(storedSize);
 applyReaderLeading(storedLeading);
 applyReaderHyphenation(storedHyphenation);
 applyReaderSentencePerLine(storedSentencePerLine);
 applyReaderJustification(storedJustify);
+applyRssThumbnails(storedRssThumbnails);
 const storedWordCount = localStorage.getItem(STORY_WORD_COUNT_KEY) || "120";
 const storedLevel = localStorage.getItem(STORY_LEVEL_KEY) || "A2";
 const storedStyle = localStorage.getItem(STORY_STYLE_KEY) || "casual";
