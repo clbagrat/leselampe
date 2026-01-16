@@ -526,7 +526,7 @@ const UI_COPY = {
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
     "translation.action.listen": "Слушать по-немецки",
-    "translation.action.ask": "Спросить",
+    "translation.action.ask": "Чат",
     "translation.ask.placeholder": "Задайте вопрос",
     "translation.ask.send": "Отправить",
     "translation.ask.hint": "Спросите про слово в этом предложении.",
@@ -3943,7 +3943,13 @@ const getReportButtons = () =>
 
 const setReportButtonsState = (label, disabled) => {
   getReportButtons().forEach((button) => {
-    button.textContent = label;
+    const srLabel = button.querySelector(".sr-only");
+    if (srLabel) {
+      srLabel.textContent = label;
+    } else {
+      button.textContent = label;
+    }
+    button.setAttribute("aria-label", label);
     button.disabled = disabled;
   });
 };
@@ -4271,7 +4277,12 @@ function updateSheetAskContext() {
   const hasWord = Boolean(word && sentence);
   const hasApiKey = Boolean(getApiKey());
   if (hasWord) {
-    sheetAskContext.textContent = `${t("translation.ask.context.word")}: ${word}\n${t("translation.ask.context.sentence")}: ${sentence}`;
+    sheetAskContext.textContent = "";
+    const wordStrong = document.createElement("strong");
+    wordStrong.textContent = word;
+    sheetAskContext.append(wordStrong);
+    sheetAskContext.append(document.createElement("br"));
+    sheetAskContext.append(document.createTextNode(sentence));
   } else {
     sheetAskContext.textContent = "";
   }
@@ -7542,6 +7553,7 @@ sheetChatInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     sheetChatForm?.requestSubmit();
+    sheetChatInput.blur();
   }
 });
 
