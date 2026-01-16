@@ -280,6 +280,9 @@ const UI_COPY = {
     "translation.ask.quick.examples": "Other examples of usage",
     "translation.ask.quick.special": "What's special about this word?",
     "translation.ask.quick.structure": "Explain the sentence structure",
+    "translation.ask.quick.sentence.syntax": "Parse the sentence syntax",
+    "translation.ask.quick.sentence.paraphrase": "Say the same in other words",
+    "translation.ask.quick.sentence.simplify": "Simplify this sentence",
     "translation.report.action": "Report issue",
     "translation.report.sending": "Sending...",
     "translation.report.sent": "Reported",
@@ -539,6 +542,9 @@ const UI_COPY = {
     "translation.ask.quick.examples": "Примеры употребления",
     "translation.ask.quick.special": "Что особенного в этом слове?",
     "translation.ask.quick.structure": "Объясните структуру предложения",
+    "translation.ask.quick.sentence.syntax": "Сделай синтаксический разбор предложения",
+    "translation.ask.quick.sentence.paraphrase": "Как сказать то же самое другими словами",
+    "translation.ask.quick.sentence.simplify": "Упрости это предложение",
     "translation.report.action": "Сообщить об ошибке",
     "translation.report.sending": "Отправка...",
     "translation.report.sent": "Отправлено",
@@ -4258,51 +4264,77 @@ const setSheetAskMode = (isAsk) => {
 
 function getSheetAskContext() {
   const isWord = lastTranslationType === "word";
+  const isSentence = lastTranslationType === "sentence";
   const word = isWord ? (lastGerman || "").trim() : "";
-  const sentence = isWord ? (lastSentence || "").trim() : "";
+  const sentence = (lastSentence || "").trim();
   const isPlaceholder =
     word === t("translation.tap_word") ||
     word === t("translation.tap_word_sentence");
   return {
     word: isPlaceholder ? "" : word,
-    sentence,
+    sentence: isWord || isSentence ? sentence : "",
+    mode: isSentence ? "sentence" : "word",
   };
 }
+
+const renderSheetChatQuickButtons = (mode) => {
+  if (!sheetChatQuick) {
+    return;
+  }
+  const promptKeys =
+    mode === "sentence"
+      ? ["sentence.syntax", "sentence.paraphrase", "sentence.simplify"]
+      : ["meanings", "examples", "special", "structure"];
+  sheetChatQuick.textContent = "";
+  promptKeys.forEach((key) => {
+    const button = document.createElement("button");
+    button.className = "ghost mini";
+    button.type = "button";
+    button.dataset.ask = key;
+    button.textContent = t(`translation.ask.quick.${key}`);
+    sheetChatQuick.append(button);
+  });
+};
 
 function updateSheetAskContext() {
   if (!sheetAskContext || !sheetChatHint || !sheetChatInput || !sheetChatSend) {
     return;
   }
-  const { word, sentence } = getSheetAskContext();
-  const hasWord = Boolean(word && sentence);
+  const { word, sentence, mode } = getSheetAskContext();
+  const hasContext = mode === "sentence" ? Boolean(sentence) : Boolean(word && sentence);
   const hasApiKey = Boolean(getApiKey());
-  if (hasWord) {
+  if (hasContext) {
     sheetAskContext.textContent = "";
-    const wordStrong = document.createElement("strong");
-    wordStrong.textContent = word;
-    sheetAskContext.append(wordStrong);
-    sheetAskContext.append(document.createElement("br"));
-    sheetAskContext.append(document.createTextNode(sentence));
+    if (mode === "sentence") {
+      sheetAskContext.textContent = sentence;
+    } else {
+      const wordStrong = document.createElement("strong");
+      wordStrong.textContent = word;
+      sheetAskContext.append(wordStrong);
+      sheetAskContext.append(document.createElement("br"));
+      sheetAskContext.append(document.createTextNode(sentence));
+    }
   } else {
     sheetAskContext.textContent = "";
   }
-  const nextHint = !hasWord
+  const nextHint = !hasContext
     ? t("translation.ask.no_word")
     : !hasApiKey
       ? t("translation.ask.no_api")
       : t("translation.ask.hint");
   sheetChatHint.textContent = nextHint;
-  sheetChatInput.disabled = !hasWord || !hasApiKey;
-  sheetChatSend.disabled = !hasWord || !hasApiKey;
-  updateSheetChatEmptyVisibility(hasWord && hasApiKey);
-  const nextKey = hasWord ? `${word}::${sentence}` : "";
+  sheetChatInput.disabled = !hasContext || !hasApiKey;
+  sheetChatSend.disabled = !hasContext || !hasApiKey;
+  renderSheetChatQuickButtons(mode);
+  updateSheetChatEmptyVisibility(hasContext && hasApiKey);
+  const nextKey = hasContext ? `${word}::${sentence}::${mode}` : "";
   if (nextKey !== sheetAskContextKey) {
     sheetAskContextKey = nextKey;
     sheetChatHistory = [];
     if (sheetChatLog) {
       sheetChatLog.textContent = "";
     }
-    updateSheetChatEmptyVisibility(hasWord && hasApiKey);
+    updateSheetChatEmptyVisibility(hasContext && hasApiKey);
   }
 }
 
@@ -4434,19 +4466,31 @@ function setChatMessageContent(message, text, options = {}) {
 function buildSheetAskMessages(context) {
   const nativeLanguageName =
     NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
+  const isSentenceMode = context.mode === "sentence";
   const system = {
     role: "system",
     content:
       `You are a patient German teacher. Respond in ${nativeLanguageName}. ` +
-      "Answer concisely with clear grammar explanations. " +
-      "Ground your answer in the provided sentence and word. " +
-      "If helpful, include a short German example and its translation.",
+      (isSentenceMode
+        ? "Focus on explaining and improving the sentence. " +
+          "Do not translate the sentence unless explicitly asked. " +
+          "Answer concisely with clear grammar explanations. " +
+          "If helpful, include a short German example and its translation."
+        : "Answer concisely with clear grammar explanations. " +
+          "Ground your answer in the provided sentence and word. " +
+          "If helpful, include a short German example and its translation."),
   };
+  const contextLines = ["Context:"];
+  if (context.word) {
+    contextLines.push(`Word: ${context.word}`);
+  }
+  if (context.sentence) {
+    contextLines.push(`Sentence: ${context.sentence}`);
+  }
+  contextLines.push(`UI language: ${nativeLanguageName}`);
   const contextMessage = {
     role: "user",
-    content:
-      `Context:\nWord: ${context.word}\nSentence: ${context.sentence}\n` +
-      `UI language: ${nativeLanguageName}`,
+    content: contextLines.join("\n"),
   };
   const history = sheetChatHistory.slice(-6).map((item) => ({
     role: item.role,
@@ -7490,7 +7534,11 @@ const sendSheetChatQuestion = async (question) => {
     return;
   }
   const context = getSheetAskContext();
-  if (!context.word || !context.sentence) {
+  const canAsk =
+    context.mode === "sentence"
+      ? Boolean(context.sentence)
+      : Boolean(context.word && context.sentence);
+  if (!canAsk) {
     updateSheetAskContext();
     return;
   }
