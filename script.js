@@ -55,6 +55,8 @@ const copySelection = document.getElementById("copySelection");
 const skipLemma = document.getElementById("skipLemma");
 const reportTranslationSheet = document.getElementById("reportTranslationSheet");
 const sheetTtsButton = document.getElementById("sheetTts");
+const sheetAskButton = document.getElementById("sheetAsk");
+const sheetAskClose = document.getElementById("sheetAskClose");
 const apiKeyInput = document.getElementById("apiKey");
 const apiKeyError = document.getElementById("apiKeyError");
 const saveKey = document.getElementById("saveKey");
@@ -257,6 +259,7 @@ const UI_COPY = {
     "translation.action.copy": "Copy word",
     "translation.action.skip": "Do not add",
     "translation.action.listen": "Listen to German",
+    "translation.action.ask": "Ask",
     "translation.report.action": "Report issue",
     "translation.report.sending": "Sending...",
     "translation.report.sent": "Reported",
@@ -503,6 +506,7 @@ const UI_COPY = {
     "translation.action.copy": "Копировать слово",
     "translation.action.skip": "Не добавлять",
     "translation.action.listen": "Слушать по-немецки",
+    "translation.action.ask": "Спросить",
     "translation.report.action": "Сообщить об ошибке",
     "translation.report.sending": "Отправка...",
     "translation.report.sent": "Отправлено",
@@ -1132,6 +1136,9 @@ let sheetDragRawDeltaY = 0;
 let sheetDragActive = false;
 let sheetDragMode = null;
 let sheetExpanded = false;
+let sheetAskPrevExpanded = null;
+let sheetAskPrevHeight = null;
+let sheetAskRestoreTimer = null;
 let resetTranslationTimer = null;
 let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
@@ -4168,6 +4175,46 @@ const setSheetExpanded = (isExpanded) => {
   scheduleActiveWordScroll();
 };
 
+const setSheetAskMode = (isAsk) => {
+  if (!bottomSheet) {
+    return;
+  }
+  if (isAsk) {
+    if (sheetAskPrevExpanded === null) {
+      sheetAskPrevExpanded = sheetExpanded;
+    }
+    if (sheetAskPrevHeight === null) {
+      sheetAskPrevHeight = bottomSheet.getBoundingClientRect().height;
+    }
+    if (sheetAskRestoreTimer) {
+      window.clearTimeout(sheetAskRestoreTimer);
+      sheetAskRestoreTimer = null;
+    }
+    bottomSheet.style.transform = "";
+    bottomSheet.style.height = "";
+    setSheetExpanded(true);
+    bottomSheet.classList.add("is-ask");
+  } else {
+    bottomSheet.classList.remove("is-ask");
+    bottomSheet.style.transform = "";
+    if (sheetAskPrevHeight !== null) {
+      bottomSheet.style.height = `${sheetAskPrevHeight}px`;
+      sheetAskPrevHeight = null;
+      sheetAskRestoreTimer = window.setTimeout(() => {
+        if (bottomSheet) {
+          bottomSheet.style.height = "";
+        }
+        sheetAskRestoreTimer = null;
+      }, 460);
+    }
+    if (sheetAskPrevExpanded !== null) {
+      setSheetExpanded(sheetAskPrevExpanded);
+      sheetAskPrevExpanded = null;
+    }
+  }
+  syncReaderBottomPadding();
+};
+
 const updateTranslation = (type, german, translation, grammar, meta, options = {}) => {
   lastGerman = german;
   lastTranslation = translation;
@@ -6764,6 +6811,9 @@ const startBottomSheetDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
     return;
   }
+  if (bottomSheet.classList.contains("is-ask")) {
+    return;
+  }
   if (bottomSheet.classList.contains("is-loading")) {
     return;
   }
@@ -6866,6 +6916,9 @@ const endBottomSheetDrag = (event) => {
 
 const startBottomSheetTouchDrag = (event) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return;
+  }
+  if (bottomSheet.classList.contains("is-ask")) {
     return;
   }
   if (bottomSheet.classList.contains("is-loading")) {
@@ -7055,6 +7108,7 @@ const resetTranslation = ({ animate = true, commitLemma = false } = {}) => {
     lastMeta.morphologyLoaded = false;
   }
   setSheetExpanded(false);
+  setSheetAskMode(false);
   if (commitLemma) {
     commitPendingLemmaEntry();
   } else {
@@ -7155,6 +7209,14 @@ sheetTtsButton?.addEventListener("click", () => {
 });
 
 reportTranslationSheet?.addEventListener("click", submitTranslationReport);
+
+sheetAskButton?.addEventListener("click", () => {
+  setSheetAskMode(true);
+});
+
+sheetAskClose?.addEventListener("click", () => {
+  setSheetAskMode(false);
+});
 
 skipLemma?.addEventListener("click", () => {
   resetTranslation({ commitLemma: false });

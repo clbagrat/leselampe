@@ -696,100 +696,118 @@
       </main>
 
       <section class="bottom-sheet" id="bottomSheet" aria-live="polite">
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <div class="sheet-swipe-overlay" id="sheetSwipeOverlay" aria-hidden="true">
-          <span class="sheet-swipe-label sheet-swipe-add" id="sheetSwipeAdd" data-i18n="translation.swipe.add">
-            Add to lemmas
-          </span>
-          <span class="sheet-swipe-label sheet-swipe-ignore is-hidden" id="sheetSwipeIgnore" data-i18n="translation.swipe.ignore">
-            Ignore
-          </span>
-        </div>
-        <p class="sheet-german" id="sheetGerman" data-i18n="translation.tap_word_sentence">
-          Tap a word or sentence
-        </p>
-        <div class="panel-divider sheet-divider sentence-divider is-hidden" id="sheetSentenceDivider" aria-hidden="true"></div>
-        <p class="sheet-english" id="sheetEnglish" data-i18n="translation.placeholder">
-          Translation will appear here.
-        </p>
-        <div class="sheet-compound is-hidden" id="sheetCompound">
-          <div class="sheet-compound-list" id="sheetCompoundList"></div>
-        </div>
-        <div class="panel-divider sheet-divider" id="sheetDivider" aria-hidden="true"></div>
-        <div class="sheet-grammar-stack">
-          <div class="governing-legend" id="sheetGoverningLegend" aria-hidden="true">
-            <span class="legend-item" id="sheetGenderLegendItem">
-              <span class="legend-swatch governing-gender" id="sheetGenderWord">—</span>
-              <span data-i18n="translation.legend.gender">gender governor</span>
-            </span>
-            <span class="legend-item" id="sheetCaseLegendItem">
-              <span class="legend-swatch governing-case" id="sheetCaseWord">—</span>
-              <span data-i18n="translation.legend.case">case governor</span>
-            </span>
-          </div>
-          <div class="grammar-meta" id="sheetGrammarMeta">
-            <div class="meta-pill" id="sheetMetaLemmaPill">
-              <span class="meta-label" data-i18n="translation.meta.lemma">Dictionary form</span>
-              <span class="meta-value" id="sheetMetaLemma">—</span>
+        <div class="bottom-sheet-inner">
+          <div class="bottom-sheet-face bottom-sheet-front">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <div class="sheet-swipe-overlay" id="sheetSwipeOverlay" aria-hidden="true">
+              <span class="sheet-swipe-label sheet-swipe-add" id="sheetSwipeAdd" data-i18n="translation.swipe.add">
+                Add to lemmas
+              </span>
+              <span class="sheet-swipe-label sheet-swipe-ignore is-hidden" id="sheetSwipeIgnore" data-i18n="translation.swipe.ignore">
+                Ignore
+              </span>
             </div>
-            <div class="meta-pill" id="sheetMetaHeadPill">
-              <span class="meta-label" data-i18n="translation.meta.head">Head word</span>
-              <span class="meta-value" id="sheetMetaHead">—</span>
-            </div>
-            <div class="meta-pill" id="sheetMetaArticlePill">
-              <span class="meta-label" data-i18n="translation.meta.article">Article</span>
-              <span class="meta-value" id="sheetMetaArticle">—</span>
-            </div>
-            <div class="meta-pill" id="sheetMetaGenderPill">
-              <span class="meta-label" data-i18n="translation.meta.gender">Gender</span>
-              <span class="meta-value" id="sheetMetaGender">—</span>
-            </div>
-            <div class="meta-pill" id="sheetMetaCasePill">
-              <span class="meta-label" data-i18n="translation.meta.case">Case</span>
-              <span class="meta-value" id="sheetMetaCase">—</span>
-            </div>
-          </div>
-          <p class="sheet-grammar" id="sheetGrammar" data-i18n="translation.grammar.placeholder">
-            Declension notes will appear here.
-          </p>
-          <div class="sheet-morphology is-hidden" id="sheetMorphology">
-            <p class="sheet-label" data-i18n="translation.morphology.label">Morphological composition</p>
-            <p class="sheet-morphology-text is-hidden" id="sheetMorphologyText" data-i18n="translation.morphology.placeholder">
-              Morphological analysis will appear here.
+            <p class="sheet-german" id="sheetGerman" data-i18n="translation.tap_word_sentence">
+              Tap a word or sentence
             </p>
-            <div class="sheet-morphology-table is-hidden" id="sheetMorphologyTable" aria-hidden="true"></div>
+            <div class="panel-divider sheet-divider sentence-divider is-hidden" id="sheetSentenceDivider" aria-hidden="true"></div>
+            <p class="sheet-english" id="sheetEnglish" data-i18n="translation.placeholder">
+              Translation will appear here.
+            </p>
+            <div class="sheet-compound is-hidden" id="sheetCompound">
+              <div class="sheet-compound-list" id="sheetCompoundList"></div>
+            </div>
+            <div class="panel-divider sheet-divider" id="sheetDivider" aria-hidden="true"></div>
+            <div class="sheet-grammar-stack">
+              <div class="governing-legend" id="sheetGoverningLegend" aria-hidden="true">
+                <span class="legend-item" id="sheetGenderLegendItem">
+                  <span class="legend-swatch governing-gender" id="sheetGenderWord">—</span>
+                  <span data-i18n="translation.legend.gender">gender governor</span>
+                </span>
+                <span class="legend-item" id="sheetCaseLegendItem">
+                  <span class="legend-swatch governing-case" id="sheetCaseWord">—</span>
+                  <span data-i18n="translation.legend.case">case governor</span>
+                </span>
+              </div>
+              <div class="grammar-meta" id="sheetGrammarMeta">
+                <div class="meta-pill" id="sheetMetaLemmaPill">
+                  <span class="meta-label" data-i18n="translation.meta.lemma">Dictionary form</span>
+                  <span class="meta-value" id="sheetMetaLemma">—</span>
+                </div>
+                <div class="meta-pill" id="sheetMetaHeadPill">
+                  <span class="meta-label" data-i18n="translation.meta.head">Head word</span>
+                  <span class="meta-value" id="sheetMetaHead">—</span>
+                </div>
+                <div class="meta-pill" id="sheetMetaArticlePill">
+                  <span class="meta-label" data-i18n="translation.meta.article">Article</span>
+                  <span class="meta-value" id="sheetMetaArticle">—</span>
+                </div>
+                <div class="meta-pill" id="sheetMetaGenderPill">
+                  <span class="meta-label" data-i18n="translation.meta.gender">Gender</span>
+                  <span class="meta-value" id="sheetMetaGender">—</span>
+                </div>
+                <div class="meta-pill" id="sheetMetaCasePill">
+                  <span class="meta-label" data-i18n="translation.meta.case">Case</span>
+                  <span class="meta-value" id="sheetMetaCase">—</span>
+                </div>
+              </div>
+              <p class="sheet-grammar" id="sheetGrammar" data-i18n="translation.grammar.placeholder">
+                Declension notes will appear here.
+              </p>
+              <div class="sheet-morphology is-hidden" id="sheetMorphology">
+                <p class="sheet-label" data-i18n="translation.morphology.label">Morphological composition</p>
+                <p class="sheet-morphology-text is-hidden" id="sheetMorphologyText" data-i18n="translation.morphology.placeholder">
+                  Morphological analysis will appear here.
+                </p>
+                <div class="sheet-morphology-table is-hidden" id="sheetMorphologyTable" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="sheet-actions">
+              <p class="sheet-tip" data-i18n="translation.sheet.tip">Swipe this panel in any direction.</p>
+              <div class="sheet-actions-buttons">
+                <button
+                  class="ghost mini icon-button"
+                  type="button"
+                  id="sheetTts"
+                  aria-label="Listen to German"
+                  data-i18n-aria-label="translation.action.listen"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 10v4h4l5 4V6l-5 4H4z" fill="currentColor" />
+                    <path
+                      d="M16 9.5c1.5 1.5 1.5 3.5 0 5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M18.5 7c2.5 2.5 2.5 7.5 0 10"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-width="2"
+                    />
+                  </svg>
+                </button>
+                <button class="ghost mini" id="reportTranslationSheet" data-i18n="translation.report.action">
+                  Report issue
+                </button>
+                <button class="ghost mini" id="sheetAsk" data-i18n="translation.action.ask">
+                  Ask
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="sheet-actions">
-          <p class="sheet-tip" data-i18n="translation.sheet.tip">Swipe this panel in any direction.</p>
-          <div class="sheet-actions-buttons">
+          <div class="bottom-sheet-face bottom-sheet-back">
             <button
-              class="ghost mini icon-button"
+              class="ghost mini sheet-back-close"
               type="button"
-              id="sheetTts"
-              aria-label="Listen to German"
-              data-i18n-aria-label="translation.action.listen"
+              id="sheetAskClose"
+              aria-label="Close"
+              data-i18n-aria-label="action.close"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M4 10v4h4l5 4V6l-5 4H4z" fill="currentColor" />
-                <path
-                  d="M16 9.5c1.5 1.5 1.5 3.5 0 5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="2"
-                />
-                <path
-                  d="M18.5 7c2.5 2.5 2.5 7.5 0 10"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="2"
-                />
-              </svg>
-            </button>
-            <button class="ghost mini" id="reportTranslationSheet" data-i18n="translation.report.action">
-              Report issue
+              ×
             </button>
           </div>
         </div>

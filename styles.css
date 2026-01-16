@@ -2229,18 +2229,73 @@ button:disabled {
   left: 16px;
   right: 16px;
   bottom: calc(12px + env(safe-area-inset-bottom));
-  background: var(--panel);
-  border-radius: 24px;
-  padding: 16px 18px 18px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: none;
-  flex-direction: column;
-  gap: 6px;
   z-index: 5;
   animation: rise 0.4s ease;
   transition: transform 0.2s ease;
   touch-action: pan-y;
+  perspective: 1200px;
+}
+
+.bottom-sheet-inner {
+  display: grid;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+  min-height: 0;
+  width: 100%;
+}
+
+.bottom-sheet-face {
+  grid-area: 1 / 1;
+  transition: opacity 0.2s ease;
+  backface-visibility: hidden;
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   overflow: hidden;
+}
+
+.bottom-sheet-front {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.bottom-sheet-back {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotateY(180deg);
+}
+
+.bottom-sheet.is-ask {
+  top: calc(12px + env(safe-area-inset-top));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.bottom-sheet.is-ask .bottom-sheet-inner {
+  height: 100%;
+  transform: rotateY(180deg);
+}
+
+.bottom-sheet.is-ask .bottom-sheet-front {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bottom-sheet.is-ask .bottom-sheet-back {
+  min-height: 100%;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sheet-back-close {
+  margin-left: auto;
 }
 
 .bottom-sheet.is-dragging {
@@ -2248,11 +2303,11 @@ button:disabled {
 }
 
 .bottom-sheet.is-visible {
-  display: flex;
+  display: block;
 }
 
 .bottom-sheet.is-closing {
-  display: flex;
+  display: block;
   opacity: 0;
   transform: translateY(18px);
   transition: transform 0.36s cubic-bezier(0.22, 0.61, 0.36, 1),
@@ -2260,14 +2315,16 @@ button:disabled {
 }
 .is-standalone .bottom-sheet {
   corner-shape: squircle;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+}
+.is-standalone .bottom-sheet-face {
   border-radius: 55px;
   padding: 24px;
   padding-top: 18px;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
 }
 
 .bottom-sheet.is-hidden {
