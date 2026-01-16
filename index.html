@@ -800,15 +800,35 @@
             </div>
           </div>
           <div class="bottom-sheet-face bottom-sheet-back">
-            <button
-              class="ghost mini sheet-back-close"
-              type="button"
-              id="sheetAskClose"
-              aria-label="Close"
-              data-i18n-aria-label="action.close"
-            >
-              ×
-            </button>
+            <div class="sheet-ask-header">
+              <p class="sheet-ask-title" data-i18n="translation.ask.title">Ask about this word</p>
+              <button
+                class="ghost mini sheet-back-close"
+                type="button"
+                id="sheetAskClose"
+                aria-label="Close"
+                data-i18n-aria-label="action.close"
+              >
+                ×
+              </button>
+            </div>
+            <p class="sheet-ask-context" id="sheetAskContext"></p>
+            <div class="sheet-chat-log" id="sheetChatLog" aria-live="polite"></div>
+            <p class="sheet-chat-hint" id="sheetChatHint" data-i18n="translation.ask.hint">
+              Ask a question about the word in this sentence.
+            </p>
+            <form class="sheet-chat-form" id="sheetChatForm">
+              <textarea
+                class="sheet-chat-input"
+                id="sheetChatInput"
+                rows="2"
+                placeholder="Ask a question"
+                data-i18n-placeholder="translation.ask.placeholder"
+              ></textarea>
+              <button class="primary mini sheet-chat-send" type="submit" id="sheetChatSend" data-i18n="translation.ask.send">
+                Send
+              </button>
+            </form>
           </div>
         </div>
       </section>

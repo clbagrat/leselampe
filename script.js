@@ -57,6 +57,12 @@ const reportTranslationSheet = document.getElementById("reportTranslationSheet")
 const sheetTtsButton = document.getElementById("sheetTts");
 const sheetAskButton = document.getElementById("sheetAsk");
 const sheetAskClose = document.getElementById("sheetAskClose");
+const sheetAskContext = document.getElementById("sheetAskContext");
+const sheetChatLog = document.getElementById("sheetChatLog");
+const sheetChatHint = document.getElementById("sheetChatHint");
+const sheetChatForm = document.getElementById("sheetChatForm");
+const sheetChatInput = document.getElementById("sheetChatInput");
+const sheetChatSend = document.getElementById("sheetChatSend");
 const apiKeyInput = document.getElementById("apiKey");
 const apiKeyError = document.getElementById("apiKeyError");
 const saveKey = document.getElementById("saveKey");
@@ -260,6 +266,15 @@ const UI_COPY = {
     "translation.action.skip": "Do not add",
     "translation.action.listen": "Listen to German",
     "translation.action.ask": "Ask",
+    "translation.ask.title": "Ask about this word",
+    "translation.ask.placeholder": "Ask a question",
+    "translation.ask.send": "Send",
+    "translation.ask.hint": "Ask a question about the word in this sentence.",
+    "translation.ask.no_word": "Select a word in the reader to ask about it.",
+    "translation.ask.no_api": "Add your API key in settings to ask questions.",
+    "translation.ask.context.word": "Word",
+    "translation.ask.context.sentence": "Sentence",
+    "translation.ask.error": "Could not get a reply. Try again.",
     "translation.report.action": "Report issue",
     "translation.report.sending": "Sending...",
     "translation.report.sent": "Reported",
@@ -507,6 +522,15 @@ const UI_COPY = {
     "translation.action.skip": "Не добавлять",
     "translation.action.listen": "Слушать по-немецки",
     "translation.action.ask": "Спросить",
+    "translation.ask.title": "Спросить про это слово",
+    "translation.ask.placeholder": "Задайте вопрос",
+    "translation.ask.send": "Отправить",
+    "translation.ask.hint": "Спросите про слово в этом предложении.",
+    "translation.ask.no_word": "Выберите слово в тексте, чтобы спросить о нем.",
+    "translation.ask.no_api": "Добавьте API ключ в настройках, чтобы задавать вопросы.",
+    "translation.ask.context.word": "Слово",
+    "translation.ask.context.sentence": "Предложение",
+    "translation.ask.error": "Не удалось получить ответ. Попробуйте еще раз.",
     "translation.report.action": "Сообщить об ошибке",
     "translation.report.sending": "Отправка...",
     "translation.report.sent": "Отправлено",
@@ -1019,6 +1043,7 @@ const applyTranslations = (lang) => {
   }
   lemmaEmptyDefaultText = lemmaEmpty?.textContent || "";
   lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
+  updateSheetAskContext();
   updateReaderTtsLabel();
   updateSheetTtsState();
   updateLanguageButtons();
@@ -1137,8 +1162,9 @@ let sheetDragActive = false;
 let sheetDragMode = null;
 let sheetExpanded = false;
 let sheetAskPrevExpanded = null;
-let sheetAskPrevHeight = null;
-let sheetAskRestoreTimer = null;
+let sheetAskContextKey = "";
+let sheetChatHistory = [];
+let sheetAskViewportBound = false;
 let resetTranslationTimer = null;
 let pendingLemmaEntry = null;
 const STORY_STORAGE_KEY = "reader_texts_v1";
@@ -3976,6 +4002,9 @@ const syncReaderBottomPadding = () => {
   if (!readerPanel) {
     return;
   }
+  if (bottomSheet?.classList.contains("is-ask")) {
+    return;
+  }
   const panelVisible =
     translationPanel && !translationPanel.classList.contains("is-hidden");
   const sheetVisible = bottomSheet && !bottomSheet.classList.contains("is-hidden");
@@ -3993,6 +4022,9 @@ const getActiveReaderScrollContainer = (element) =>
 
 const getEffectiveReaderBottom = (containerRect) => {
   if (!bottomSheet || bottomSheet.classList.contains("is-hidden")) {
+    return containerRect.bottom;
+  }
+  if (bottomSheet.classList.contains("is-ask")) {
     return containerRect.bottom;
   }
   const sheetRect = bottomSheet.getBoundingClientRect();
@@ -4183,29 +4215,24 @@ const setSheetAskMode = (isAsk) => {
     if (sheetAskPrevExpanded === null) {
       sheetAskPrevExpanded = sheetExpanded;
     }
-    if (sheetAskPrevHeight === null) {
-      sheetAskPrevHeight = bottomSheet.getBoundingClientRect().height;
-    }
-    if (sheetAskRestoreTimer) {
-      window.clearTimeout(sheetAskRestoreTimer);
-      sheetAskRestoreTimer = null;
-    }
     bottomSheet.style.transform = "";
-    bottomSheet.style.height = "";
     setSheetExpanded(true);
     bottomSheet.classList.add("is-ask");
+    updateSheetAskContext();
+    updateAskViewportHeight();
+    if (window.visualViewport && !sheetAskViewportBound) {
+      window.visualViewport.addEventListener("resize", updateAskViewportHeight);
+      window.visualViewport.addEventListener("scroll", updateAskViewportHeight);
+      sheetAskViewportBound = true;
+    }
   } else {
     bottomSheet.classList.remove("is-ask");
     bottomSheet.style.transform = "";
-    if (sheetAskPrevHeight !== null) {
-      bottomSheet.style.height = `${sheetAskPrevHeight}px`;
-      sheetAskPrevHeight = null;
-      sheetAskRestoreTimer = window.setTimeout(() => {
-        if (bottomSheet) {
-          bottomSheet.style.height = "";
-        }
-        sheetAskRestoreTimer = null;
-      }, 460);
+    bottomSheet.style.removeProperty("--ask-keyboard-offset");
+    if (window.visualViewport && sheetAskViewportBound) {
+      window.visualViewport.removeEventListener("resize", updateAskViewportHeight);
+      window.visualViewport.removeEventListener("scroll", updateAskViewportHeight);
+      sheetAskViewportBound = false;
     }
     if (sheetAskPrevExpanded !== null) {
       setSheetExpanded(sheetAskPrevExpanded);
@@ -4214,6 +4241,129 @@ const setSheetAskMode = (isAsk) => {
   }
   syncReaderBottomPadding();
 };
+
+function getSheetAskContext() {
+  const isWord = lastTranslationType === "word";
+  const word = isWord ? (lastGerman || "").trim() : "";
+  const sentence = isWord ? (lastSentence || "").trim() : "";
+  const isPlaceholder =
+    word === t("translation.tap_word") ||
+    word === t("translation.tap_word_sentence");
+  return {
+    word: isPlaceholder ? "" : word,
+    sentence,
+  };
+}
+
+function updateSheetAskContext() {
+  if (!sheetAskContext || !sheetChatHint || !sheetChatInput || !sheetChatSend) {
+    return;
+  }
+  const { word, sentence } = getSheetAskContext();
+  const hasWord = Boolean(word && sentence);
+  const hasApiKey = Boolean(getApiKey());
+  if (hasWord) {
+    sheetAskContext.textContent = `${t("translation.ask.context.word")}: ${word}\n${t("translation.ask.context.sentence")}: ${sentence}`;
+  } else {
+    sheetAskContext.textContent = "";
+  }
+  const nextHint = !hasWord
+    ? t("translation.ask.no_word")
+    : !hasApiKey
+      ? t("translation.ask.no_api")
+      : t("translation.ask.hint");
+  sheetChatHint.textContent = nextHint;
+  sheetChatInput.disabled = !hasWord || !hasApiKey;
+  sheetChatSend.disabled = !hasWord || !hasApiKey;
+  const nextKey = hasWord ? `${word}::${sentence}` : "";
+  if (nextKey !== sheetAskContextKey) {
+    sheetAskContextKey = nextKey;
+    sheetChatHistory = [];
+    if (sheetChatLog) {
+      sheetChatLog.textContent = "";
+    }
+  }
+}
+
+function updateAskViewportHeight() {
+  if (!bottomSheet || !bottomSheet.classList.contains("is-ask")) {
+    return;
+  }
+  if (!window.visualViewport) {
+    return;
+  }
+  const viewport = window.visualViewport;
+  const keyboardOffset = Math.max(
+    0,
+    Math.round(window.innerHeight - viewport.height - viewport.offsetTop)
+  );
+  bottomSheet.style.setProperty("--ask-keyboard-offset", `${keyboardOffset}px`);
+}
+
+function appendSheetChatMessage(role, text, options = {}) {
+  if (!sheetChatLog) {
+    return null;
+  }
+  const message = document.createElement("div");
+  message.className = `sheet-chat-message is-${role}`;
+  if (options.isLoading) {
+    message.classList.add("is-loading");
+  }
+  message.textContent = text;
+  sheetChatLog.appendChild(message);
+  sheetChatLog.scrollTop = sheetChatLog.scrollHeight;
+  return message;
+}
+
+function buildSheetAskMessages(context) {
+  const nativeLanguageName =
+    NATIVE_LANGUAGE_NAMES[currentUiLang] || "English";
+  const system = {
+    role: "system",
+    content:
+      `You are a patient German teacher. Respond in ${nativeLanguageName}. ` +
+      "Answer concisely with clear grammar explanations. " +
+      "Ground your answer in the provided sentence and word. " +
+      "If helpful, include a short German example and its translation.",
+  };
+  const contextMessage = {
+    role: "user",
+    content:
+      `Context:\nWord: ${context.word}\nSentence: ${context.sentence}\n` +
+      `UI language: ${nativeLanguageName}`,
+  };
+  const history = sheetChatHistory.slice(-6).map((item) => ({
+    role: item.role,
+    content: item.content,
+  }));
+  return [system, contextMessage, ...history];
+}
+
+async function askTeacherWithChatGPT(context) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const messages = buildSheetAskMessages(context);
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0.4,
+      messages,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Ask failed");
+  }
+  const raw = data.choices?.[0]?.message?.content?.trim();
+  return raw || null;
+}
 
 const updateTranslation = (type, german, translation, grammar, meta, options = {}) => {
   lastGerman = german;
@@ -4319,6 +4469,7 @@ const updateTranslation = (type, german, translation, grammar, meta, options = {
   updateCopyButtonLabel(type);
   syncPageDots();
   syncReaderBottomPadding();
+  updateSheetAskContext();
 
   const hasMeta =
     meta &&
@@ -7218,6 +7369,63 @@ sheetAskClose?.addEventListener("click", () => {
   setSheetAskMode(false);
 });
 
+const handleSheetChatSubmit = async (event) => {
+  event.preventDefault();
+  if (!sheetChatInput || !sheetChatSend) {
+    return;
+  }
+  const question = sheetChatInput.value.trim();
+  if (!question) {
+    return;
+  }
+  const context = getSheetAskContext();
+  if (!context.word || !context.sentence) {
+    updateSheetAskContext();
+    return;
+  }
+  sheetChatInput.value = "";
+  const userMessage = appendSheetChatMessage("user", question);
+  if (userMessage) {
+    sheetChatHistory.push({ role: "user", content: question });
+  }
+  const loadingMessage = appendSheetChatMessage("assistant", "...", { isLoading: true });
+  try {
+    const response = await askTeacherWithChatGPT(context);
+    if (!response) {
+      throw new Error("Empty response");
+    }
+    if (loadingMessage) {
+      loadingMessage.classList.remove("is-loading");
+      loadingMessage.textContent = response;
+    }
+    sheetChatHistory.push({ role: "assistant", content: response });
+    sheetChatHistory = sheetChatHistory.slice(-12);
+  } catch (error) {
+    if (loadingMessage) {
+      loadingMessage.classList.remove("is-loading");
+      loadingMessage.textContent = t("translation.ask.error");
+    }
+  }
+};
+
+sheetChatForm?.addEventListener("submit", handleSheetChatSubmit);
+
+sheetChatInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sheetChatForm?.requestSubmit();
+  }
+});
+
+sheetChatInput?.addEventListener("focus", () => {
+  bottomSheet?.classList.add("is-ask-focused");
+});
+
+sheetChatInput?.addEventListener("blur", () => {
+  bottomSheet?.classList.remove("is-ask-focused");
+});
+
+
 skipLemma?.addEventListener("click", () => {
   resetTranslation({ commitLemma: false });
 });
@@ -7587,6 +7795,7 @@ saveKey.addEventListener("click", async () => {
     apiKeyInput.value = apiKey;
     setApiKeyRequirement(false);
     setApiKeyError("");
+    updateSheetAskContext();
     saveKey.textContent = originalText;
     saveKey.disabled = false;
     closeSettingsScreen("smooth", true);
@@ -7613,6 +7822,7 @@ clearKey.addEventListener("click", () => {
   apiKeyInput.value = "";
   setApiKeyError("");
   setKeyVisibility(false);
+  updateSheetAskContext();
   startWelcomeFlow("auto");
 });
 
