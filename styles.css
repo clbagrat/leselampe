@@ -906,6 +906,9 @@ h1 {
 .book-header h1 {
   font-size: clamp(20px, 2.3vw, 28px);
   cursor: pointer;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+  hyphens: auto;
 }
 
 .chips {

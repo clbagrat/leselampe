@@ -896,7 +896,12 @@ const updateReaderTtsLabel = () => {
   const key = readerTtsState.isSpeaking
     ? "reader.action.stop"
     : "reader.action.listen";
-  readerTtsButton.textContent = t(key);
+  const label = t(key);
+  readerTtsButton.setAttribute("aria-label", label);
+  const labelEl = document.getElementById("readerTtsLabel");
+  if (labelEl) {
+    labelEl.textContent = label;
+  }
 };
 
 const setReaderTtsActiveWord = (index) => {
