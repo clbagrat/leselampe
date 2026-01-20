@@ -294,7 +294,7 @@
                     </div>
                     <div class="rss-feed-meta">
                       <span class="rss-feed-source" data-i18n="trainings.item.label">Training</span>
-                      <span class="rss-feed-check" id="trainingSessionSizeLabel">—</span>
+                      <span class="rss-feed-check" data-training-session-size>—</span>
                     </div>
                     <p
                       class="home-item-excerpt"
@@ -304,19 +304,57 @@
                     </p>
                     <div
                       class="rss-item-loading-row training-item-status is-hidden"
-                      id="trainingItemStatus"
                     >
                       <p
                         class="helper-text training-item-status-label"
-                        id="trainingItemStatusLabel"
                         data-i18n="trainings.status.generating_short"
                       >
                         Generating
                       </p>
                       <button
-                        class="rss-item-abort is-hidden"
+                        class="rss-item-abort training-item-abort is-hidden"
                         type="button"
-                        id="trainingAbort"
+                        data-i18n="trainings.action.abort"
+                      >
+                        Abort
+                      </button>
+                    </div>
+                  </div>
+                  <div class="home-item-actions">
+                    <button class="home-action" type="button" data-training-count="3">3</button>
+                    <button class="home-action" type="button" data-training-count="5">5</button>
+                    <button class="home-action" type="button" data-training-count="10">10</button>
+                    <button class="home-action" type="button" data-training-count="15">15</button>
+                    <button class="home-action" type="button" data-training-count="20">20</button>
+                  </div>
+                </article>
+                <article class="home-item" data-training-id="adjective-endings">
+                  <div class="home-item-content" role="button" tabindex="0">
+                    <div class="home-item-head">
+                      <p class="home-item-title" data-i18n="training.adj_endings.title">
+                        Adjective Endings
+                      </p>
+                    </div>
+                    <div class="rss-feed-meta">
+                      <span class="rss-feed-source" data-i18n="trainings.item.label">Training</span>
+                      <span class="rss-feed-check" data-training-session-size>—</span>
+                    </div>
+                    <p
+                      class="home-item-excerpt"
+                      data-i18n="training.adj_endings.description"
+                    >
+                      Pick the case and adjective ending.
+                    </p>
+                    <div class="rss-item-loading-row training-item-status is-hidden">
+                      <p
+                        class="helper-text training-item-status-label"
+                        data-i18n="trainings.status.generating_short"
+                      >
+                        Generating
+                      </p>
+                      <button
+                        class="rss-item-abort training-item-abort is-hidden"
+                        type="button"
                         data-i18n="trainings.action.abort"
                       >
                         Abort
@@ -336,10 +374,18 @@
             <div class="training-detail-view is-hidden" id="trainingDetailView">
               <div class="training-detail-header">
                 <div class="training-detail-heading">
-                  <h2 class="training-screen-title" data-i18n="training.dativ_akk.title">
+                  <h2
+                    class="training-screen-title"
+                    id="trainingScreenTitle"
+                    data-i18n="training.dativ_akk.title"
+                  >
                     Dativ oder Akkusativ
                   </h2>
-                  <p class="training-screen-subtitle" data-i18n="training.dativ_akk.description">
+                  <p
+                    class="training-screen-subtitle"
+                    id="trainingScreenSubtitle"
+                    data-i18n="training.dativ_akk.description"
+                  >
                     Choose the case, then the article.
                   </p>
                 </div>
@@ -379,24 +425,7 @@
               </div>
               <div class="training-card training-case-card" id="trainingCaseCard">
                 <div class="training-controls" id="trainingControls">
-                  <div class="training-options" id="trainingCaseOptions">
-                    <button
-                      class="option-button"
-                      type="button"
-                      data-case="dative"
-                      data-i18n="training.case.dative"
-                    >
-                      Dativ
-                    </button>
-                    <button
-                      class="option-button"
-                      type="button"
-                      data-case="accusative"
-                      data-i18n="training.case.accusative"
-                    >
-                      Akkusativ
-                    </button>
-                  </div>
+                  <div class="training-options" id="trainingCaseOptions"></div>
                 </div>
               </div>
               <div class="training-card training-article-card" id="trainingArticleCard">

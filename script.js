@@ -201,7 +201,7 @@ const UI_COPY = {
     "lemmas.action.clear": "Clear history",
     "trainings.section": "Training sessions",
     "trainings.title": "Trainings",
-    "trainings.subtitle": "Short drills for cases and articles.",
+    "trainings.subtitle": "Short drills for cases, articles, and adjective endings.",
     "trainings.action.back": "Close",
     "trainings.action.next": "Next",
     "trainings.action.skip": "Skip",
@@ -226,6 +226,9 @@ const UI_COPY = {
     "trainings.item.label": "Training",
     "training.dativ_akk.title": "Dativ oder Akkusativ",
     "training.dativ_akk.description": "Choose the case, then the article.",
+    "training.adj_endings.title": "Adjective Endings",
+    "training.adj_endings.description": "Pick the case and adjective ending.",
+    "training.case.nominative": "Nominative",
     "training.case.dative": "Dativ",
     "training.case.accusative": "Akkusativ",
     "training.gender.masculine": "Masculine",
@@ -237,6 +240,11 @@ const UI_COPY = {
     "training.feedback.wrong_case": "Not quite. Try the other case.",
     "training.feedback.correct_article": "Great job. Sentence completed.",
     "training.feedback.wrong_article": "Not quite. Try another article.",
+    "training.feedback.correct_case_ending": "Good. Now choose the ending.",
+    "training.feedback.wrong_case_ending": "Not quite. Try another case.",
+    "training.feedback.correct_ending": "Great job. Sentence completed.",
+    "training.feedback.correct_ending_partial": "Nice. Next ending.",
+    "training.feedback.wrong_ending": "Not quite. Try another ending.",
     "translation.tap_word": "Tap a word",
     "translation.tap_word_sentence": "Tap a word or sentence",
     "translation.placeholder": "Translation will appear here.",
@@ -463,7 +471,7 @@ const UI_COPY = {
     "lemmas.action.clear": "Очистить историю",
     "trainings.section": "Тренировки",
     "trainings.title": "Тренировки",
-    "trainings.subtitle": "Короткие упражнения на падежи и артикли.",
+    "trainings.subtitle": "Короткие упражнения на падежи, артикли и окончания прилагательных.",
     "trainings.action.back": "Закрыть",
     "trainings.action.next": "Далее",
     "trainings.action.skip": "Пропустить",
@@ -488,6 +496,9 @@ const UI_COPY = {
     "trainings.item.label": "Тренировка",
     "training.dativ_akk.title": "Датив или аккузатив",
     "training.dativ_akk.description": "Сначала выберите падеж, потом артикль.",
+    "training.adj_endings.title": "Окончания прилагательных",
+    "training.adj_endings.description": "Сначала выберите падеж и окончание.",
+    "training.case.nominative": "Номинатив",
     "training.case.dative": "Датив",
     "training.case.accusative": "Аккузатив",
     "training.gender.masculine": "Мужской",
@@ -499,6 +510,11 @@ const UI_COPY = {
     "training.feedback.wrong_case": "Не совсем. Попробуйте другой падеж.",
     "training.feedback.correct_article": "Отлично. Предложение собрано.",
     "training.feedback.wrong_article": "Не совсем. Попробуйте другой артикль.",
+    "training.feedback.correct_case_ending": "Хорошо. Теперь выберите окончание.",
+    "training.feedback.wrong_case_ending": "Не совсем. Попробуйте другой падеж.",
+    "training.feedback.correct_ending": "Отлично. Предложение собрано.",
+    "training.feedback.correct_ending_partial": "Хорошо. Следующее окончание.",
+    "training.feedback.wrong_ending": "Не совсем. Попробуйте другое окончание.",
     "translation.tap_word": "Нажмите на слово",
     "translation.tap_word_sentence": "Нажмите на слово или предложение",
     "translation.placeholder": "Перевод появится здесь.",
@@ -696,6 +712,8 @@ const NATIVE_LANGUAGE_NAMES = {
 const TRAINING_TOKEN = "__ARTICLE__";
 const TRAINING_BLANK = "__";
 const TRAINING_GENDERS = ["masculine", "feminine", "neuter", "plural"];
+const TRAINING_CASES_DA = ["dative", "accusative"];
+const TRAINING_CASES_ADJ = ["nominative", "accusative", "dative"];
 const TRAINING_POSSESSIVE_BASES = ["mein", "dein", "sein", "ihr", "unser"];
 const TRAINING_CONTRACTIONS = {
   im: { preposition: "in", article: "dem" },
@@ -719,6 +737,24 @@ const TRAINING_POSSESSIVE_ENDINGS = {
   dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
   accusative: { masculine: "en", feminine: "e", neuter: "", plural: "e" },
 };
+const TRAINING_ADJECTIVE_ENDINGS = {
+  strong: {
+    nominative: { masculine: "er", feminine: "e", neuter: "es", plural: "e" },
+    accusative: { masculine: "en", feminine: "e", neuter: "es", plural: "e" },
+    dative: { masculine: "em", feminine: "er", neuter: "em", plural: "en" },
+  },
+  weak: {
+    nominative: { masculine: "e", feminine: "e", neuter: "e", plural: "en" },
+    accusative: { masculine: "en", feminine: "e", neuter: "e", plural: "en" },
+    dative: { masculine: "en", feminine: "en", neuter: "en", plural: "en" },
+  },
+  mixed: {
+    nominative: { masculine: "er", feminine: "e", neuter: "es", plural: "en" },
+    accusative: { masculine: "en", feminine: "e", neuter: "es", plural: "en" },
+    dative: { masculine: "en", feminine: "en", neuter: "en", plural: "en" },
+  },
+};
+const TRAINING_ADJ_ENDING_OPTIONS = ["e", "en", "er", "es", "em"];
 const TRAINING_DEFAULT_ITEMS = [];
 
 const getBrowserUiLang = () => {
@@ -750,6 +786,7 @@ let trainingPhase = "case";
 let trainingActiveItem = null;
 let trainingGenerationController = null;
 let trainingGenerationAbortRequested = false;
+let trainingGenerationActiveId = "";
 let trainingGapIndex = 0;
 let trainingAnswers = [];
 let trainingHadMistake = false;
@@ -758,6 +795,8 @@ let trainingSentenceScored = false;
 let trainingCorrectCount = 0;
 let trainingTotalCount = 0;
 let trainingSessionSize = 10;
+let activeTrainingId = "dativ-akkusativ";
+const trainingListItems = {};
 const trainingExplanationCache = new Map();
 let trainingExplanationController = null;
 
@@ -1108,6 +1147,7 @@ const refreshUiCollections = () => {
   renderRssSubscriptions();
   refreshRssFeedItems();
   renderRssSearchResults(rssSearchItems);
+  initializeTrainingList();
   syncPageDots();
   const type = translationPanel?.classList.contains("is-sentence")
     ? "sentence"
@@ -1197,6 +1237,9 @@ const STORY_PROGRESS_KEY = "reader_story_progress_v1";
 const TRAINING_DA_ITEMS_KEY = "training_dative_accusative_v1";
 const TRAINING_DA_LEARNED_KEY = "training_dative_accusative_learned_v1";
 const TRAINING_DA_SESSION_SIZE_KEY = "training_dative_accusative_size_v1";
+const TRAINING_ADJ_ITEMS_KEY = "training_adjective_endings_v1";
+const TRAINING_ADJ_LEARNED_KEY = "training_adjective_endings_learned_v1";
+const TRAINING_ADJ_SESSION_SIZE_KEY = "training_adjective_endings_size_v1";
 const RSS_STORAGE_KEY = "reader_rss_urls_v1";
 const RSS_ARCHIVE_STORAGE_KEY = "reader_rss_archive_v1";
 const RSS_LEVELS_KEY = "reader_rss_levels_v1";
@@ -1219,6 +1262,9 @@ const RESET_STORAGE_KEYS = [
   TRAINING_DA_ITEMS_KEY,
   TRAINING_DA_LEARNED_KEY,
   TRAINING_DA_SESSION_SIZE_KEY,
+  TRAINING_ADJ_ITEMS_KEY,
+  TRAINING_ADJ_LEARNED_KEY,
+  TRAINING_ADJ_SESSION_SIZE_KEY,
   RSS_STORAGE_KEY,
   RSS_ARCHIVE_STORAGE_KEY,
   RSS_LEVELS_KEY,
@@ -1245,6 +1291,8 @@ const readerScreen = document.querySelector('[data-screen="reader"]');
 const readerPanel = document.querySelector(".reader-panel");
 const lemmasScreen = document.querySelector('[data-screen="lemmas"]');
 const trainingsScreen = document.querySelector('[data-screen="trainings"]');
+const trainingScreenTitle = document.getElementById("trainingScreenTitle");
+const trainingScreenSubtitle = document.getElementById("trainingScreenSubtitle");
 const trainingSentence = document.getElementById("trainingSentence");
 const trainingCaseOptions = document.getElementById("trainingCaseOptions");
 const trainingArticleOptions = document.getElementById("trainingArticleOptions");
@@ -1260,7 +1308,6 @@ const trainingProgressBar = document.getElementById("trainingProgressBar");
 const trainingListView = document.getElementById("trainingListView");
 const trainingDetailView = document.getElementById("trainingDetailView");
 const trainingClose = document.getElementById("trainingClose");
-const trainingDativAkkItem = document.getElementById("trainingDativAkkItem");
 const trainingCaseCard = document.getElementById("trainingCaseCard");
 const trainingArticleCard = document.getElementById("trainingArticleCard");
 const trainingBody = document.getElementById("trainingBody");
@@ -1268,11 +1315,30 @@ const trainingSummary = document.getElementById("trainingSummary");
 const trainingSummaryScore = document.getElementById("trainingSummaryScore");
 const trainingSummaryNote = document.getElementById("trainingSummaryNote");
 const trainingSummaryClose = document.getElementById("trainingSummaryClose");
-const trainingSessionSizeLabel = document.getElementById("trainingSessionSizeLabel");
-const trainingItemStatus = document.getElementById("trainingItemStatus");
-const trainingItemStatusLabel = document.getElementById("trainingItemStatusLabel");
-const trainingAbort = document.getElementById("trainingAbort");
 const trainingList = document.getElementById("trainingList");
+
+const collectTrainingListItems = () => {
+  if (!trainingList) {
+    return;
+  }
+  trainingList.querySelectorAll("[data-training-id]").forEach((item) => {
+    const id = item.dataset.trainingId;
+    if (!id) {
+      return;
+    }
+    trainingListItems[id] = {
+      item,
+      content: item.querySelector(".home-item-content"),
+      actions: item.querySelector(".home-item-actions"),
+      sessionSizeLabel: item.querySelector("[data-training-session-size]"),
+      status: item.querySelector(".training-item-status"),
+      statusLabel: item.querySelector(".training-item-status-label"),
+      abort: item.querySelector(".training-item-abort"),
+    };
+  });
+};
+
+collectTrainingListItems();
 
 const updateScreenScrollLock = () => {
   if (!screenLayout) {
@@ -1516,6 +1582,9 @@ const normalizeTrainingCase = (value) =>
 const normalizeTrainingGender = (value) =>
   String(value || "").trim().toLowerCase();
 
+const normalizeTrainingDeterminerType = (value) =>
+  String(value || "").trim().toLowerCase();
+
 const getTrainingItemId = (item) => {
   if (!item?.template || !Array.isArray(item.gaps)) {
     return "";
@@ -1524,9 +1593,12 @@ const getTrainingItemId = (item) => {
     .map((gap) =>
       [
         gap.article,
+        gap.base,
+        gap.suffix,
         gap.case,
         gap.gender,
         gap.noun,
+        gap.determinerType,
       ]
         .map((value) => String(value || "").trim().toLowerCase())
         .join(":")
@@ -1535,10 +1607,10 @@ const getTrainingItemId = (item) => {
   return `${item.template}||${gaps}`.trim();
 };
 
-const loadTrainingLearnedSet = () => {
+const loadTrainingLearnedSet = (key = TRAINING_DA_LEARNED_KEY) => {
   try {
     const stored = JSON.parse(
-      localStorage.getItem(TRAINING_DA_LEARNED_KEY) || "[]"
+      localStorage.getItem(key) || "[]"
     );
     if (!Array.isArray(stored)) {
       return new Set();
@@ -1549,10 +1621,10 @@ const loadTrainingLearnedSet = () => {
   }
 };
 
-const saveTrainingLearnedSet = (set) => {
+const saveTrainingLearnedSet = (set, key = TRAINING_DA_LEARNED_KEY) => {
   try {
     localStorage.setItem(
-      TRAINING_DA_LEARNED_KEY,
+      key,
       JSON.stringify(Array.from(set))
     );
   } catch (error) {
@@ -1560,18 +1632,18 @@ const saveTrainingLearnedSet = (set) => {
   }
 };
 
-const loadTrainingSessionSize = () => {
+const loadTrainingSessionSize = (key = TRAINING_DA_SESSION_SIZE_KEY) => {
   try {
-    const stored = Number(localStorage.getItem(TRAINING_DA_SESSION_SIZE_KEY));
+    const stored = Number(localStorage.getItem(key));
     return Number.isFinite(stored) && stored > 0 ? stored : 5;
   } catch (error) {
     return 5;
   }
 };
 
-const saveTrainingSessionSize = (size) => {
+const saveTrainingSessionSize = (size, key = TRAINING_DA_SESSION_SIZE_KEY) => {
   try {
-    localStorage.setItem(TRAINING_DA_SESSION_SIZE_KEY, String(size));
+    localStorage.setItem(key, String(size));
   } catch (error) {
     console.warn("Failed to save training session size.", error);
   }
@@ -1579,50 +1651,51 @@ const saveTrainingSessionSize = (size) => {
 
 const setTrainingListStatus = (
   message,
-  { isError = false, isLoading = false } = {}
+  { isError = false, isLoading = false, trainingId = activeTrainingId } = {}
 ) => {
-  if (!trainingItemStatus || !trainingItemStatusLabel) {
+  const item = trainingListItems[trainingId];
+  if (!item?.status || !item?.statusLabel) {
     return;
   }
   const nextMessage = isLoading ? t("trainings.status.generating_short") : message || "";
-  trainingItemStatusLabel.textContent = nextMessage;
-  trainingItemStatusLabel.classList.toggle("rss-item-loading", isLoading);
-  trainingItemStatus.classList.toggle("is-hidden", !nextMessage);
-  trainingItemStatus.classList.toggle("is-error", isError);
-  if (trainingAbort) {
-    trainingAbort.classList.toggle("is-hidden", !isLoading);
+  item.statusLabel.textContent = nextMessage;
+  item.statusLabel.classList.toggle("rss-item-loading", isLoading);
+  item.status.classList.toggle("is-hidden", !nextMessage);
+  item.status.classList.toggle("is-error", isError);
+  if (item.abort) {
+    item.abort.classList.toggle("is-hidden", !isLoading);
   }
 };
 
-const abortTrainingGeneration = () => {
+const abortTrainingGeneration = (trainingId = trainingGenerationActiveId) => {
   if (!trainingGenerationController) {
     return;
   }
   trainingGenerationAbortRequested = true;
   trainingGenerationController.abort();
-  setTrainingListStatus("");
+  setTrainingListStatus("", { trainingId });
 };
 
 
-const updateTrainingSessionSizeLabel = () => {
-  if (!trainingSessionSizeLabel) {
+const updateTrainingSessionSizeLabel = (trainingId, size) => {
+  const item = trainingListItems[trainingId];
+  if (!item?.sessionSizeLabel) {
     return;
   }
-  trainingSessionSizeLabel.textContent = t("trainings.count.label", {
-    count: trainingSessionSize,
+  item.sessionSizeLabel.textContent = t("trainings.count.label", {
+    count: size,
   });
 };
 
-const updateTrainingSessionSizeButtons = () => {
-  if (!trainingDativAkkItem) {
+const updateTrainingSessionSizeButtons = (trainingId, size) => {
+  const item = trainingListItems[trainingId];
+  if (!item?.actions) {
     return;
   }
-  trainingDativAkkItem
-    .querySelectorAll("button[data-training-count]")
-    .forEach((button) => {
-      const count = Number(button.dataset.trainingCount);
-      button.classList.toggle("is-active", count === trainingSessionSize);
-    });
+  item.actions.querySelectorAll("button[data-training-count]").forEach((button) => {
+    const count = Number(button.dataset.trainingCount);
+    button.classList.toggle("is-active", count === size);
+  });
 };
 
 const getTrainingContractionInfo = (article) => {
@@ -1882,28 +1955,107 @@ const normalizeTrainingItem = (item) => {
   };
 };
 
-const loadTrainingItems = () => {
+const buildAdjectiveTemplate = (sentence, adjectiveBase, ending) => {
+  if (!sentence || !adjectiveBase || typeof ending !== "string") {
+    return "";
+  }
+  const adjective = `${adjectiveBase}${ending}`;
+  const escaped = escapeRegExp(adjective);
+  const regex = new RegExp(`\\b${escaped}\\b`, "i");
+  if (!regex.test(sentence)) {
+    return "";
+  }
+  return sentence.replace(regex, TRAINING_TOKEN);
+};
+
+const normalizeAdjectiveTrainingItem = (item) => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const sentence = String(item.sentence || "").trim();
+  if (!sentence) {
+    return null;
+  }
+  const adjectiveBase = String(
+    item.adjective_base ?? item.adjectiveBase ?? item.adjective ?? ""
+  ).trim();
+  const ending = String(item.ending ?? "").trim().toLowerCase();
+  const itemCase = normalizeTrainingCase(item.case);
+  const gender = normalizeTrainingGender(item.gender);
+  const noun = String(item.noun || "").trim();
+  const determinerType = normalizeTrainingDeterminerType(
+    item.determiner_type ?? item.determinerType
+  );
+  if (!adjectiveBase || !ending) {
+    return null;
+  }
+  if (!TRAINING_CASES_ADJ.includes(itemCase)) {
+    return null;
+  }
+  if (!TRAINING_GENDERS.includes(gender)) {
+    return null;
+  }
+  const determinerTypes = ["definite", "indefinite", "possessive", "none"];
+  if (!determinerTypes.includes(determinerType)) {
+    return null;
+  }
+  if (!TRAINING_ADJ_ENDING_OPTIONS.includes(ending)) {
+    return null;
+  }
+  const expectedEnding =
+    getAdjectiveEndingTable({ determinerType })?.[itemCase]?.[gender];
+  if (expectedEnding && expectedEnding !== ending) {
+    return null;
+  }
+  const template = buildAdjectiveTemplate(sentence, adjectiveBase, ending);
+  if (!template || hasAdjacentTrainingTokens(template)) {
+    return null;
+  }
+  return {
+    sentence,
+    gaps: [
+      {
+        base: adjectiveBase,
+        suffix: ending,
+        case: itemCase,
+        gender,
+        noun,
+        determinerType,
+      },
+    ],
+    template,
+  };
+};
+
+const loadTrainingItems = (
+  key = TRAINING_DA_ITEMS_KEY,
+  normalize = normalizeTrainingItem
+) => {
   try {
-    const stored = JSON.parse(localStorage.getItem(TRAINING_DA_ITEMS_KEY) || "[]");
+    const stored = JSON.parse(localStorage.getItem(key) || "[]");
     if (!Array.isArray(stored)) {
       return [];
     }
-    return stored.map(normalizeTrainingItem).filter(Boolean);
+    return stored.map(normalize).filter(Boolean);
   } catch (error) {
     return [];
   }
 };
 
-const saveTrainingItems = (items) => {
+const saveTrainingItems = (items, key = TRAINING_DA_ITEMS_KEY) => {
   try {
-    localStorage.setItem(TRAINING_DA_ITEMS_KEY, JSON.stringify(items));
+    localStorage.setItem(key, JSON.stringify(items));
   } catch (error) {
     console.warn("Failed to save training items.", error);
   }
 };
 
-const getFallbackTrainingItems = () =>
-  TRAINING_DEFAULT_ITEMS.map(normalizeTrainingItem).filter(Boolean);
+const getFallbackTrainingItems = (config) => {
+  if (config?.id !== "dativ-akkusativ") {
+    return [];
+  }
+  return TRAINING_DEFAULT_ITEMS.map(normalizeTrainingItem).filter(Boolean);
+};
 
 const setTrainingFeedback = (message, { isError = false } = {}) => {
   if (!trainingFeedback) {
@@ -1939,28 +2091,25 @@ const setTrainingButtonsEnabled = (container, isEnabled) => {
   if (!container) {
     return;
   }
-  container.classList.toggle("is-hidden", !isEnabled);
-  if (isEnabled) {
-    container.querySelectorAll("button").forEach((button) => {
-      button.disabled = false;
-    });
-  }
+  container.querySelectorAll("button").forEach((button) => {
+    button.disabled = !isEnabled;
+  });
 };
 
 const setTrainingStepVisibility = (step) => {
   const showCase = step === "case";
-  const showArticle = step === "article";
+  const showAnswer = step === "article" || step === "ending";
   if (trainingCaseOptions) {
     trainingCaseOptions.classList.toggle("is-hidden", !showCase);
   }
   if (trainingArticleOptions) {
-    trainingArticleOptions.classList.toggle("is-hidden", !showArticle);
+    trainingArticleOptions.classList.toggle("is-hidden", !showAnswer);
   }
   if (trainingCaseCard) {
     trainingCaseCard.classList.toggle("is-hidden", !showCase);
   }
   if (trainingArticleCard) {
-    trainingArticleCard.classList.toggle("is-hidden", !showArticle);
+    trainingArticleCard.classList.toggle("is-hidden", !showAnswer);
   }
 };
 
@@ -2016,6 +2165,24 @@ const renderTrainingGender = (item) => {
   trainingGender.classList.remove("is-hidden");
 };
 
+const renderTrainingCaseOptions = (cases) => {
+  if (!trainingCaseOptions) {
+    return;
+  }
+  trainingCaseOptions.innerHTML = "";
+  const list = Array.isArray(cases) && cases.length ? cases : TRAINING_CASES_DA;
+  list.forEach((itemCase) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-button";
+    button.dataset.case = itemCase;
+    const key = `training.case.${itemCase}`;
+    button.dataset.i18n = key;
+    button.textContent = t(key);
+    trainingCaseOptions.appendChild(button);
+  });
+};
+
 const buildTrainingArticleOptionsForBase = (gap) => {
   if (!gap?.base || !gap?.case) {
     return [];
@@ -2023,8 +2190,7 @@ const buildTrainingArticleOptionsForBase = (gap) => {
   const options = [];
   if (gap.preposition) {
     const preposition = gap.preposition;
-    const cases = ["dative", "accusative"];
-    cases.forEach((itemCase) => {
+    TRAINING_CASES_DA.forEach((itemCase) => {
       const endingsTable = TRAINING_DEFINITE_ENDINGS[itemCase];
       TRAINING_GENDERS.forEach((gender) => {
         const ending = endingsTable?.[gender];
@@ -2039,8 +2205,7 @@ const buildTrainingArticleOptionsForBase = (gap) => {
     return Array.from(new Set(options));
   }
   const base = gap.base;
-  const cases = ["dative", "accusative"];
-  cases.forEach((itemCase) => {
+  TRAINING_CASES_DA.forEach((itemCase) => {
     let endingsTable = null;
     if (base === "d") {
       endingsTable = TRAINING_DEFINITE_ENDINGS[itemCase];
@@ -2060,12 +2225,42 @@ const buildTrainingArticleOptionsForBase = (gap) => {
   return Array.from(new Set(options));
 };
 
+const getAdjectiveEndingTable = (gap) => {
+  const type = String(gap?.determinerType || "").trim().toLowerCase();
+  if (type === "definite") {
+    return TRAINING_ADJECTIVE_ENDINGS.weak;
+  }
+  if (type === "indefinite" || type === "possessive") {
+    return TRAINING_ADJECTIVE_ENDINGS.mixed;
+  }
+  return TRAINING_ADJECTIVE_ENDINGS.strong;
+};
+
+const renderTrainingEndingOptions = () => {
+  if (!trainingArticleOptions) {
+    return;
+  }
+  trainingArticleOptions.innerHTML = "";
+  TRAINING_ADJ_ENDING_OPTIONS.forEach((ending) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-button";
+    button.dataset.article = ending;
+    button.textContent = ending;
+    trainingArticleOptions.appendChild(button);
+  });
+};
+
 const renderTrainingArticleOptions = (gap) => {
   if (!trainingArticleOptions) {
     return;
   }
   trainingArticleOptions.innerHTML = "";
   if (!gap) {
+    return;
+  }
+  if (getTrainingConfig().answerMode === "ending") {
+    renderTrainingEndingOptions();
     return;
   }
   const options = buildTrainingArticleOptionsForBase(gap);
@@ -2080,21 +2275,24 @@ const renderTrainingArticleOptions = (gap) => {
 };
 
 const resetTrainingUi = () => {
+  const config = getTrainingConfig();
   trainingBody?.classList.remove("is-hidden");
   trainingSummary?.classList.add("is-hidden");
   trainingDetailView?.classList.remove("is-summary");
   if (trainingGender) {
     trainingGender.classList.add("is-hidden");
   }
+  renderTrainingCaseOptions(config.cases);
   if (trainingArticleOptions) {
     trainingArticleOptions.innerHTML = "";
   }
-  setTrainingStepVisibility("case");
+  setTrainingStepVisibility(trainingPhase);
   setTrainingFeedback("");
   setTrainingStatus("");
   resetTrainingExplanation();
   updateTrainingNextButton();
   setTrainingButtonsEnabled(trainingCaseOptions, true);
+  setTrainingButtonsEnabled(trainingArticleOptions, true);
 };
 
 const updateTrainingNextButton = () => {
@@ -2121,12 +2319,13 @@ const markTrainingItemLearned = (item) => {
   if (!id) {
     return;
   }
-  const learnedSet = loadTrainingLearnedSet();
+  const config = getTrainingConfig();
+  const learnedSet = loadTrainingLearnedSet(config.learnedKey);
   if (learnedSet.has(id)) {
     return;
   }
   learnedSet.add(id);
-  saveTrainingLearnedSet(learnedSet);
+  saveTrainingLearnedSet(learnedSet, config.learnedKey);
 };
 
 const resetTrainingExplanation = () => {
@@ -2205,7 +2404,21 @@ const generateTrainingExplanation = async (item) => {
     noun: gap.noun,
     gender: gap.gender,
     case: gap.case,
+    determinerType: gap.determinerType,
   }));
+  const config = getTrainingConfig();
+  const systemPrompt =
+    config.answerMode === "ending"
+      ? `You are a German grammar tutor. ` +
+        `Explain how each case is determined ` +
+        `and why the adjective ending matches the determiner type, gender, and case. ` +
+        `Write in ${nativeLanguageName}, concise (2-4 sentences). ` +
+        `Mention each target adjective ending in order.`
+      : `You are a German grammar tutor. ` +
+        `Explain how each case is determined (question, preposition, or verb) ` +
+        `and why the article form matches the noun's gender. ` +
+        `Write in ${nativeLanguageName}, concise (2-4 sentences). ` +
+        `Mention each target article in order.`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -2220,12 +2433,7 @@ const generateTrainingExplanation = async (item) => {
         messages: [
           {
             role: "system",
-            content:
-              `You are a German grammar tutor. ` +
-              `Explain how each case is determined (question, preposition, or verb) ` +
-              `and why the article form matches the noun's gender. ` +
-              `Write in ${nativeLanguageName}, concise (2-4 sentences). ` +
-              `Mention each target article in order.`,
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -2261,14 +2469,18 @@ const generateTrainingExplanation = async (item) => {
 };
 
 const setTrainingItem = (item) => {
+  const config = getTrainingConfig();
   trainingActiveItem = item;
-  trainingPhase = "case";
+  trainingPhase = config.steps[0] || "case";
   trainingGapIndex = 0;
   trainingAnswers = new Array(item?.gaps?.length || 0).fill(false);
   trainingHadMistake = false;
   trainingSessionComplete = false;
   trainingSentenceScored = false;
   resetTrainingUi();
+  if (config.answerMode === "ending") {
+    renderTrainingGender(item);
+  }
   renderTrainingSentence(item, { activeGapIndex: trainingGapIndex });
   updateTrainingProgress();
 };
@@ -2325,56 +2537,73 @@ const updateTrainingProgress = () => {
   trainingProgressBar.style.width = `${percent}%`;
 };
 
-const filterTrainingPool = (items) => {
+const filterTrainingPool = (items, config) => {
   const normalized = Array.isArray(items) ? items : [];
-  const fallback = getFallbackTrainingItems();
+  const fallback = getFallbackTrainingItems(config);
   const combined = [...normalized, ...fallback].filter(Boolean);
-  const learnedSet = loadTrainingLearnedSet();
+  const learnedSet = loadTrainingLearnedSet(config.learnedKey);
   return combined.filter((item) => {
     const id = getTrainingItemId(item);
     return !id || !learnedSet.has(id);
   });
 };
 
-const buildTrainingSet = (items, count) => {
-  const filtered = filterTrainingPool(items);
+const buildTrainingSet = (items, count, config) => {
+  const filtered = filterTrainingPool(items, config);
   const limit = Number.isFinite(count) && count > 0 ? count : 10;
   return filtered.slice(0, limit);
 };
 
-const ensureTrainingPoolSize = async (targetCount, statusHandler) => {
+const ensureTrainingPoolSize = async (targetCount, statusHandler, config) => {
   const desiredCount = Number.isFinite(targetCount) && targetCount > 0 ? targetCount : 10;
-  const currentPool = filterTrainingPool(loadTrainingItems());
+  const currentPool = filterTrainingPool(
+    loadTrainingItems(config.itemsKey, config.normalizeItem),
+    config
+  );
   if (currentPool.length >= desiredCount) {
     return currentPool;
   }
   if (!getApiKey()) {
-    statusHandler?.(t("trainings.status.api_required"), { isError: true });
+    statusHandler?.(t("trainings.status.api_required"), {
+      isError: true,
+      trainingId: config.id,
+    });
     return null;
   }
-  statusHandler?.(t("trainings.status.need_generate"), { isLoading: true });
-  const generated = await generateTrainingItemsWithChatGPT(desiredCount * 2);
+  statusHandler?.(t("trainings.status.need_generate"), {
+    isLoading: true,
+    trainingId: config.id,
+  });
+  const generated = await config.generateItems(desiredCount * 2);
   if (trainingGenerationAbortRequested) {
     trainingGenerationAbortRequested = false;
-    statusHandler?.("");
+    statusHandler?.("", { trainingId: config.id });
     return currentPool;
   }
   if (!generated?.length) {
-    statusHandler?.(t("trainings.status.failed"), { isError: true });
+    statusHandler?.(t("trainings.status.failed"), {
+      isError: true,
+      trainingId: config.id,
+    });
     return null;
   }
-  const stored = loadTrainingItems();
+  const stored = loadTrainingItems(config.itemsKey, config.normalizeItem);
   const merged = [...generated, ...stored];
-  saveTrainingItems(merged);
-  statusHandler?.(t("trainings.status.ready"));
-  return filterTrainingPool(merged);
+  saveTrainingItems(merged, config.itemsKey);
+  statusHandler?.(t("trainings.status.ready"), { trainingId: config.id });
+  return filterTrainingPool(merged, config);
 };
 
 const initializeTraining = () => {
-  trainingSessionSize = loadTrainingSessionSize();
-  updateTrainingSessionSizeLabel();
-  updateTrainingSessionSizeButtons();
-  trainingItems = buildTrainingSet(loadTrainingItems(), trainingSessionSize);
+  const config = getTrainingConfig();
+  trainingSessionSize = loadTrainingSessionSize(config.sessionSizeKey);
+  updateTrainingSessionSizeLabel(config.id, trainingSessionSize);
+  updateTrainingSessionSizeButtons(config.id, trainingSessionSize);
+  trainingItems = buildTrainingSet(
+    loadTrainingItems(config.itemsKey, config.normalizeItem),
+    trainingSessionSize,
+    config
+  );
   trainingTotalCount = trainingItems.length;
   trainingCorrectCount = 0;
   if (trainingItems.length) {
@@ -2385,13 +2614,16 @@ const initializeTraining = () => {
   }
 };
 
-const openTrainingDetail = () => {
+const openTrainingDetail = (trainingId) => {
+  setActiveTraining(trainingId);
+  const config = getTrainingConfig();
+  trainingSessionSize = loadTrainingSessionSize(config.sessionSizeKey);
   trainingListView?.classList.add("is-hidden");
   trainingDetailView?.classList.remove("is-hidden");
   trainingsScreen?.classList.add("is-training-active");
   setTrainingStatus("");
-  setTrainingListStatus("");
-  applyTrainingSessionSize(trainingSessionSize);
+  setTrainingListStatus("", { trainingId: activeTrainingId });
+  applyTrainingSessionSize(trainingSessionSize, { trainingId: activeTrainingId });
 };
 
 const closeTrainingDetail = () => {
@@ -2404,25 +2636,35 @@ const closeTrainingDetail = () => {
 
 const applyTrainingSessionSize = async (
   size,
-  { ensurePool = false, autoStart = false } = {}
+  { ensurePool = false, autoStart = false, trainingId = activeTrainingId } = {}
 ) => {
+  const config = getTrainingConfig(trainingId);
   const nextSize = Number(size);
   if (!Number.isFinite(nextSize) || nextSize <= 0) {
     return;
   }
   trainingSessionSize = nextSize;
-  saveTrainingSessionSize(nextSize);
-  updateTrainingSessionSizeLabel();
-  updateTrainingSessionSizeButtons();
-  setTrainingListStatus("");
-  let pool = filterTrainingPool(loadTrainingItems());
+  saveTrainingSessionSize(nextSize, config.sessionSizeKey);
+  updateTrainingSessionSizeLabel(config.id, nextSize);
+  updateTrainingSessionSizeButtons(config.id, nextSize);
+  setTrainingListStatus("", { trainingId: config.id });
+  let pool = filterTrainingPool(
+    loadTrainingItems(config.itemsKey, config.normalizeItem),
+    config
+  );
   if (ensurePool && pool.length < trainingSessionSize) {
-    pool = await ensureTrainingPoolSize(trainingSessionSize, setTrainingListStatus);
+    trainingGenerationActiveId = config.id;
+    pool = await ensureTrainingPoolSize(
+      trainingSessionSize,
+      setTrainingListStatus,
+      config
+    );
+    trainingGenerationActiveId = "";
   }
   if (!pool || !pool.length) {
     return;
   }
-  trainingItems = buildTrainingSet(pool, trainingSessionSize);
+  trainingItems = buildTrainingSet(pool, trainingSessionSize, config);
   trainingTotalCount = trainingItems.length;
   trainingCorrectCount = 0;
   trainingIndex = 0;
@@ -2435,7 +2677,7 @@ const applyTrainingSessionSize = async (
       setTrainingStatus(t("trainings.status.completed"));
     }
   } else if (autoStart) {
-    openTrainingDetail();
+    openTrainingDetail(config.id);
     if (trainingItems.length) {
       setTrainingItem(trainingItems[0]);
     } else {
@@ -2530,6 +2772,145 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
   }
 };
 
+const generateAdjectiveTrainingItemsWithChatGPT = async (count = 10) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const lemmaSeeds = getTrainingLemmaList(5);
+  if (lemmaSeeds.length) {
+    markTrainingLemmasSent(lemmaSeeds);
+  }
+  if (trainingGenerationController) {
+    trainingGenerationController.abort();
+  }
+  trainingGenerationAbortRequested = false;
+  trainingGenerationController = new AbortController();
+
+  const lemmaInstruction = lemmaSeeds.length
+    ? ` Only include the following terms if they are nouns; use each noun at least once and no more than once: ${lemmaSeeds.join(
+        ", "
+      )}.`
+    : "";
+
+  try {
+    const seed = Date.now();
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You create short German grammar drills. Respond with strict JSON: " +
+              "{\"items\":[{\"sentence\":\"...\",\"adjective_base\":\"gut\",\"ending\":\"e\",\"case\":\"nominative\",\"gender\":\"feminine\",\"noun\":\"Frau\",\"determiner_type\":\"definite\"}]} " +
+              `Rules: Write ${count} short, natural German sentences (max 12 words) for A2 learners. ` +
+              "Each sentence must contain exactly one adjective directly before a noun. " +
+              "Use only these cases: nominative, accusative, dative. " +
+              "Determiner types: definite (der/die/das forms), indefinite (ein-), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). " +
+              "If determiner_type is none, do not include any article or possessive in the sentence. " +
+              "Do NOT include any other determiners (no dieser/jeder/welcher/kein). " +
+              "Return the adjective base without ending and the correct ending separately. " +
+              "Ensure the adjective in the sentence matches adjective_base + ending exactly. " +
+              "Return gender as masculine, feminine, neuter, or plural. " +
+              `Random seed: ${seed}.` +
+              lemmaInstruction,
+          },
+          {
+            role: "user",
+            content: "Generate a new set.",
+          },
+        ],
+      }),
+      signal: trainingGenerationController.signal,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Training generation failed");
+    }
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("Empty training data");
+    }
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed?.items) ? parsed.items : parsed;
+    const normalized = Array.isArray(items)
+      ? items.map(normalizeAdjectiveTrainingItem).filter(Boolean)
+      : [];
+    if (!normalized.length) {
+      throw new Error("Malformed training data");
+    }
+    return normalized;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    return null;
+  } finally {
+    trainingGenerationController = null;
+  }
+};
+
+const TRAINING_CONFIGS = {
+  "dativ-akkusativ": {
+    id: "dativ-akkusativ",
+    titleKey: "training.dativ_akk.title",
+    descriptionKey: "training.dativ_akk.description",
+    itemsKey: TRAINING_DA_ITEMS_KEY,
+    learnedKey: TRAINING_DA_LEARNED_KEY,
+    sessionSizeKey: TRAINING_DA_SESSION_SIZE_KEY,
+    cases: TRAINING_CASES_DA,
+    steps: ["case", "article"],
+    answerMode: "article",
+    normalizeItem: normalizeTrainingItem,
+    generateItems: generateTrainingItemsWithChatGPT,
+  },
+  "adjective-endings": {
+    id: "adjective-endings",
+    titleKey: "training.adj_endings.title",
+    descriptionKey: "training.adj_endings.description",
+    itemsKey: TRAINING_ADJ_ITEMS_KEY,
+    learnedKey: TRAINING_ADJ_LEARNED_KEY,
+    sessionSizeKey: TRAINING_ADJ_SESSION_SIZE_KEY,
+    cases: TRAINING_CASES_ADJ,
+    steps: ["case", "ending"],
+    answerMode: "ending",
+    normalizeItem: normalizeAdjectiveTrainingItem,
+    generateItems: generateAdjectiveTrainingItemsWithChatGPT,
+  },
+};
+
+const getTrainingConfig = (trainingId = activeTrainingId) =>
+  TRAINING_CONFIGS[trainingId] || TRAINING_CONFIGS["dativ-akkusativ"];
+
+const setActiveTraining = (trainingId) => {
+  activeTrainingId = trainingId || "dativ-akkusativ";
+  const config = getTrainingConfig(activeTrainingId);
+  if (trainingScreenTitle) {
+    trainingScreenTitle.dataset.i18n = config.titleKey;
+    trainingScreenTitle.textContent = t(config.titleKey);
+  }
+  if (trainingScreenSubtitle) {
+    trainingScreenSubtitle.dataset.i18n = config.descriptionKey;
+    trainingScreenSubtitle.textContent = t(config.descriptionKey);
+  }
+};
+
+const initializeTrainingList = () => {
+  Object.values(TRAINING_CONFIGS).forEach((config) => {
+    const size = loadTrainingSessionSize(config.sessionSizeKey);
+    updateTrainingSessionSizeLabel(config.id, size);
+    updateTrainingSessionSizeButtons(config.id, size);
+  });
+};
+
 const handleTrainingCaseSelection = (caseValue) => {
   if (!trainingActiveItem || trainingPhase !== "case") {
     return;
@@ -2538,7 +2919,18 @@ const handleTrainingCaseSelection = (caseValue) => {
   if (!gap) {
     return;
   }
+  const config = getTrainingConfig();
   if (caseValue === gap.case) {
+    if (config.answerMode === "ending") {
+      trainingPhase = "ending";
+      setTrainingFeedback(t("training.feedback.correct_case_ending"));
+      setTrainingButtonsEnabled(trainingCaseOptions, false);
+      renderTrainingGender(trainingActiveItem);
+      renderTrainingArticleOptions(gap);
+      setTrainingButtonsEnabled(trainingArticleOptions, true);
+      setTrainingStepVisibility("ending");
+      return;
+    }
     trainingPhase = "article";
     setTrainingFeedback(t("training.feedback.correct_case"));
     setTrainingButtonsEnabled(trainingCaseOptions, false);
@@ -2549,18 +2941,27 @@ const handleTrainingCaseSelection = (caseValue) => {
     return;
   }
   trainingHadMistake = true;
-  setTrainingFeedback(t("training.feedback.wrong_case"), { isError: true });
+  const feedbackKey =
+    config.answerMode === "ending"
+      ? "training.feedback.wrong_case_ending"
+      : "training.feedback.wrong_case";
+  setTrainingFeedback(t(feedbackKey), { isError: true });
 };
 
 const handleTrainingArticleSelection = (articleValue) => {
-  if (!trainingActiveItem || trainingPhase !== "article") {
+  if (!trainingActiveItem || !["article", "ending"].includes(trainingPhase)) {
     return;
   }
   const gap = trainingActiveItem.gaps?.[trainingGapIndex];
   if (!gap) {
     return;
   }
-  if (articleValue === gap.article) {
+  const config = getTrainingConfig();
+  const isCorrect =
+    config.answerMode === "ending"
+      ? articleValue === gap.suffix
+      : articleValue === gap.article;
+  if (isCorrect) {
     trainingAnswers[trainingGapIndex] = true;
     setTrainingButtonsEnabled(trainingArticleOptions, false);
     renderTrainingSentence(trainingActiveItem, {
@@ -2568,12 +2969,20 @@ const handleTrainingArticleSelection = (articleValue) => {
     });
     if (trainingGapIndex < trainingActiveItem.gaps.length - 1) {
       trainingGapIndex += 1;
-      trainingPhase = "case";
-      setTrainingFeedback(t("training.feedback.correct_article_partial"));
+      trainingPhase = config.steps[0] || "case";
+      const partialKey =
+        config.answerMode === "ending"
+          ? "training.feedback.correct_ending_partial"
+          : "training.feedback.correct_article_partial";
+      setTrainingFeedback(t(partialKey));
       updateTrainingNextButton();
-      trainingGender?.classList.add("is-hidden");
+      if (config.answerMode === "ending") {
+        renderTrainingGender(trainingActiveItem);
+      } else {
+        trainingGender?.classList.add("is-hidden");
+      }
       setTrainingButtonsEnabled(trainingCaseOptions, true);
-      setTrainingStepVisibility("case");
+      setTrainingStepVisibility(trainingPhase);
       renderTrainingSentence(trainingActiveItem, {
         activeGapIndex: trainingGapIndex,
       });
@@ -2581,7 +2990,11 @@ const handleTrainingArticleSelection = (articleValue) => {
     }
     trainingPhase = "complete";
     setTrainingStepVisibility("complete");
-    setTrainingFeedback(t("training.feedback.correct_article"));
+    const completeKey =
+      config.answerMode === "ending"
+        ? "training.feedback.correct_ending"
+        : "training.feedback.correct_article";
+    setTrainingFeedback(t(completeKey));
     if (!trainingHadMistake && !trainingSentenceScored) {
       markTrainingItemLearned(trainingActiveItem);
       trainingCorrectCount += 1;
@@ -2594,7 +3007,11 @@ const handleTrainingArticleSelection = (articleValue) => {
     return;
   }
   trainingHadMistake = true;
-  setTrainingFeedback(t("training.feedback.wrong_article"), { isError: true });
+  const wrongKey =
+    config.answerMode === "ending"
+      ? "training.feedback.wrong_ending"
+      : "training.feedback.wrong_article";
+  setTrainingFeedback(t(wrongKey), { isError: true });
 };
 
 const loadRssUrls = () => {
@@ -8196,6 +8613,8 @@ const initializeStories = () => {
   renderLemmaList();
   renderRssSubscriptions();
   loadRssItems();
+  initializeTrainingList();
+  setActiveTraining(activeTrainingId);
   initializeTraining();
   if (!stories.length) {
     storyTitle.textContent = "";
@@ -8424,28 +8843,34 @@ if (trainingSummaryClose) {
   });
 }
 
-if (trainingAbort) {
-  trainingAbort.addEventListener("click", (event) => {
-    event.stopPropagation();
-    abortTrainingGeneration();
-  });
-  trainingAbort.addEventListener("pointerdown", (event) => {
-    event.stopPropagation();
-  });
-}
-
-if (trainingDativAkkItem) {
-  const content = trainingDativAkkItem.querySelector(".home-item-content");
-  if (content) {
+Object.values(trainingListItems).forEach((entry) => {
+  const trainingId = entry.item?.dataset?.trainingId;
+  if (!trainingId) {
+    return;
+  }
+  if (entry.abort) {
+    entry.abort.addEventListener("click", (event) => {
+      event.stopPropagation();
+      abortTrainingGeneration(trainingId);
+    });
+    entry.abort.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+  }
+  if (entry.content) {
     const openTraining = async () => {
       closeAllHomeMenus(undefined, trainingList);
-      await applyTrainingSessionSize(trainingSessionSize, {
+      const size = loadTrainingSessionSize(
+        getTrainingConfig(trainingId).sessionSizeKey
+      );
+      await applyTrainingSessionSize(size, {
         ensurePool: true,
         autoStart: true,
+        trainingId,
       });
     };
-    content.addEventListener("click", openTraining);
-    content.addEventListener("keydown", (event) => {
+    entry.content.addEventListener("click", openTraining);
+    entry.content.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") {
         return;
       }
@@ -8453,21 +8878,24 @@ if (trainingDativAkkItem) {
       openTraining();
     });
   }
-  const actions = trainingDativAkkItem.querySelector(".home-item-actions");
-  if (actions) {
-    actions.addEventListener("click", async (event) => {
+  if (entry.actions) {
+    entry.actions.addEventListener("click", async (event) => {
       const button = event.target.closest("button[data-training-count]");
       if (!button) {
         return;
       }
       event.stopPropagation();
       const count = Number(button.dataset.trainingCount);
-      await applyTrainingSessionSize(count, { ensurePool: true, autoStart: true });
+      await applyTrainingSessionSize(count, {
+        ensurePool: true,
+        autoStart: true,
+        trainingId,
+      });
       closeAllHomeMenus(undefined, trainingList);
     });
   }
-  setupHomeItemLongPress(trainingDativAkkItem, trainingList);
-}
+  setupHomeItemLongPress(entry.item, trainingList);
+});
 
 
 if (screenLayout) {
