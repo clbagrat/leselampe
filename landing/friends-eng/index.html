@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Leselampe — Friends</title>
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+    <link rel="stylesheet" href="./landing.css" />
+    <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png" />
+  </head>
+  <body class="landing">
+    <header class="top-bar landing-top">
+      <div class="brand">
+        <span class="brand-mark">✦</span>
+        <div>
+          <p class="brand-title">Leselampe</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="landing-shell">
+      <section class="landing-hero">
+        <p class="landing-kicker">For friends</p>
+        <h1>Hi!</h1>
+        <p class="landing-lede">
+          We're all, one way or another, learning German. This year I decided
+          to take it seriously and even built a special app for myself. I
+          really liked it, and I want to share it with you.
+        </p>
+        <div class="landing-media landing-hero-gif">
+          <img
+            src="./hero-gif.gif"
+            alt="Demo of reading a story in the app"
+            loading="lazy"
+          />
+        </div>
+        <div class="landing-divider" aria-hidden="true"></div>
+        <div class="landing-hero-card">
+          <h3 class="landing-hero-subtitle">How it works</h3>
+          <p class="landing-hero-description">
+            The main idea is that you read entertaining, level-appropriate
+            content and gradually encounter new words and reinforce them in
+            context. To do that, the app supports two use cases:
+          </p>
+          <div class="landing-hero-usecases">
+            <span>Story generation</span>
+            <span class="landing-hero-separator">and</span>
+            <span>RSS feed</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-panel landing-feature" aria-labelledby="stories-title">
+        <div class="landing-panel-header">
+          <h2 id="stories-title">Story generation</h2>
+        </div>
+        <p class="landing-panel-copy">
+          Generate your own stories, choose the language level, length, and
+          style, set a prompt, and start reading.
+        </p>
+        <div class="landing-media">
+          <img
+            src="./story-generator.gif"
+            alt="Demo of story generation in the app"
+            loading="lazy"
+          />
+        </div>
+        <p class="landing-panel-copy landing-panel-note">
+          You don't have to invent a story hook yourself - just use the suggest
+          button.
+        </p>
+        <div class="landing-media">
+          <img
+            src="./story-suggest.gif"
+            alt="Demo of story prompt suggestion with the suggest button"
+            loading="lazy"
+          />
+        </div>
+      </section>
+
+      <section class="landing-panel landing-feature" aria-labelledby="rss-title">
+        <div class="landing-panel-header">
+          <h2 id="rss-title">RSS feed</h2>
+        </div>
+        <p class="landing-panel-copy">
+          Read current news or articles from your favorite publications via RSS.
+        </p>
+        <p class="landing-panel-copy landing-panel-note">
+          You don't need to know the RSS link - just type the site address into
+          search.
+        </p>
+        <div class="landing-media">
+          <img
+            src="./rss-search.gif"
+            alt="Demo of RSS search by website address"
+            loading="lazy"
+          />
+        </div>
+        <p class="landing-panel-copy landing-panel-note">
+          Any RSS subscription can be adapted to your level.
+        </p>
+        <div class="landing-media">
+          <img
+            src="./rss-levels.gif"
+            alt="Demo of setting a level for an RSS subscription"
+            loading="lazy"
+          />
+        </div>
+        <p class="landing-panel-copy landing-panel-note">
+          Feeds in any language are supported.
+        </p>
+        <div class="landing-media">
+          <img
+            src="./rss-languages.gif"
+            alt="Demo of feeds in different languages"
+            loading="lazy"
+          />
+        </div>
+      </section>
+
+      <section class="landing-panel landing-feature" aria-labelledby="install-title">
+        <div class="landing-panel-header">
+          <h2 id="install-title">How to install</h2>
+        </div>
+        <p class="landing-panel-copy">
+          My app is actually just a website, but you can add it to your home
+          screen and it will feel very close to a real app.
+        </p>
+        <p class="landing-panel-copy">
+          To do this, open this link in Safari and follow the instructions in
+          the video below.
+        </p>
+        <div class="landing-cta-stack">
+          <a class="landing-button primary" href="../../">Open app</a>
+          <span class="landing-cta-note">watch the video below</span>
+        </div>
+        <div class="landing-divider" aria-hidden="true"></div>
+        <p class="landing-panel-copy landing-panel-note">
+          Unfortunately, I can only record the video for iPhone, but I'm sure
+          Android has similar functionality.
+        </p>
+        <div class="landing-media">
+          <video controls muted playsinline>
+            <source src="./install-iphone.mp4" type="video/mp4" />
+            Your browser does not support video.
+          </video>
+        </div>
+      </section>
+
+      <section class="landing-cta" aria-labelledby="cta-title">
+        <div>
+          <h2 id="cta-title">Feedback</h2>
+          <p class="landing-panel-copy">
+            If this app sounds interesting, please try it out and share your
+            feedback - it might grow into something bigger for me :)
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
