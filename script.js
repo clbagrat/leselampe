@@ -866,6 +866,7 @@ const shadowingPlaybackState = {
   wordIndex: -1,
   storyId: null,
   timings: [],
+  useTimers: false,
   objectUrlCleanup: null,
 };
 
@@ -1154,9 +1155,66 @@ const updateReaderShadowingLabel = () => {
   }
 };
 
+const SHADOWING_HIGHLIGHT_HOLD_MS = 100;
+const SHADOWING_HIGHLIGHT_FADE_MS = 300;
+const shadowingHighlightTimers = new WeakMap();
+const shadowingPlaybackTimers = [];
+
+const clearShadowingHighlightTimer = (word) => {
+  const timer = shadowingHighlightTimers.get(word);
+  if (timer) {
+    clearTimeout(timer);
+    shadowingHighlightTimers.delete(word);
+  }
+};
+
+const startShadowingFade = (word) => {
+  if (!word) {
+    return;
+  }
+  clearShadowingHighlightTimer(word);
+  if (!word.classList.contains("tts-active")) {
+    word.classList.remove("tts-fade");
+    return;
+  }
+  word.classList.add("tts-fade");
+  word.classList.remove("tts-active");
+  const timeout = window.setTimeout(() => {
+    word.classList.remove("tts-fade");
+    shadowingHighlightTimers.delete(word);
+  }, SHADOWING_HIGHLIGHT_FADE_MS);
+  shadowingHighlightTimers.set(word, timeout);
+};
+
+const setShadowingWordActive = (word, isActive) => {
+  if (!word) {
+    return;
+  }
+  if (isActive) {
+    clearShadowingHighlightTimer(word);
+    word.classList.remove("tts-fade");
+    if (!word.classList.contains("tts-active")) {
+      word.classList.add("tts-active");
+    }
+    return;
+  }
+  if (!word.classList.contains("tts-active")) {
+    clearShadowingHighlightTimer(word);
+    word.classList.remove("tts-fade");
+    return;
+  }
+  if (shadowingHighlightTimers.has(word)) {
+    return;
+  }
+  const timeout = window.setTimeout(() => {
+    startShadowingFade(word);
+  }, SHADOWING_HIGHLIGHT_HOLD_MS);
+  shadowingHighlightTimers.set(word, timeout);
+};
+
 const clearShadowingHighlight = () => {
   document.querySelectorAll(".word.tts-active").forEach((word) => {
-    word.classList.remove("tts-active");
+    setShadowingWordActive(word, false);
   });
   shadowingPlaybackState.wordIndex = -1;
 };
@@ -1170,9 +1228,9 @@ const setShadowingActiveWord = (index) => {
   const next = words[index].el;
   const prev = words[shadowingPlaybackState.wordIndex]?.el;
   if (prev && prev !== next) {
-    prev.classList.remove("tts-active");
+    setShadowingWordActive(prev, false);
   }
-  next.classList.add("tts-active");
+  setShadowingWordActive(next, true);
   shadowingPlaybackState.wordIndex = index;
 };
 
@@ -1182,13 +1240,16 @@ const updateShadowingHighlight = () => {
   if (!audio) {
     return;
   }
+  if (shadowingPlaybackState.useTimers) {
+    return;
+  }
   if (shadowingPlaybackState.timings?.length) {
     const time = audio.currentTime;
     const timings = shadowingPlaybackState.timings;
     let firstActive = -1;
     timings.forEach((word, index) => {
       const isActive = word.start <= time && time < word.end;
-      word.el.classList.toggle("tts-active", isActive);
+      setShadowingWordActive(word.el, isActive);
       if (isActive && firstActive === -1) {
         firstActive = index;
       }
@@ -1215,6 +1276,33 @@ const updateShadowingHighlight = () => {
   }
 };
 
+const clearShadowingTimers = () => {
+  shadowingPlaybackTimers.splice(0).forEach((timer) => clearTimeout(timer));
+};
+
+const scheduleShadowingHighlights = () => {
+  clearShadowingTimers();
+  const timings = shadowingPlaybackState.timings;
+  if (!timings.length) {
+    return;
+  }
+  timings.forEach((word) => {
+    const startMs = Math.max(0, Number(word.start) * 1000 || 0);
+    const durationMs = Math.max(
+      SHADOWING_HIGHLIGHT_HOLD_MS,
+      (Number(word.end) - Number(word.start)) * 1000 || 0
+    );
+    const showTimer = window.setTimeout(() => {
+      setShadowingWordActive(word.el, true);
+      const hideTimer = window.setTimeout(() => {
+        startShadowingFade(word.el);
+      }, durationMs);
+      shadowingPlaybackTimers.push(hideTimer);
+    }, startMs);
+    shadowingPlaybackTimers.push(showTimer);
+  });
+};
+
 const stopShadowingPlayback = ({ resetTime = true, release = false } = {}) => {
   const audio = shadowingPlaybackState.audio;
   if (audio) {
@@ -1223,6 +1311,7 @@ const stopShadowingPlayback = ({ resetTime = true, release = false } = {}) => {
       audio.currentTime = 0;
     }
   }
+  clearShadowingTimers();
   if (release && shadowingPlaybackState.objectUrlCleanup) {
     shadowingPlaybackState.objectUrlCleanup();
     shadowingPlaybackState.objectUrlCleanup = null;
@@ -1280,6 +1369,7 @@ const ensureShadowingPlayback = async (story) => {
     });
     shadowingPlaybackState.audio.addEventListener("ended", () => {
       shadowingPlaybackState.isPlaying = false;
+      clearShadowingTimers();
       clearShadowingHighlight();
       updateReaderShadowingLabel();
       shadowingPlaybackState.audio.currentTime = 0;
@@ -1288,6 +1378,7 @@ const ensureShadowingPlayback = async (story) => {
   shadowingPlaybackState.payload = buildReaderShadowingPayload();
   shadowingPlaybackState.wordIndex = -1;
   shadowingPlaybackState.timings = [];
+  shadowingPlaybackState.useTimers = false;
   const timings = normalizeWordTimings(story.audio?.words || []);
   if (timings.length && reader) {
     const readerText = reader.textContent || "";
@@ -1300,6 +1391,7 @@ const ensureShadowingPlayback = async (story) => {
           end: Number(entry.end) || 0,
           el: wordEls[index],
         }));
+        shadowingPlaybackState.useTimers = true;
       }
     }
   }
@@ -1326,9 +1418,14 @@ const startShadowingPlayback = async () => {
   shadowingPlaybackState.wordIndex = -1;
   clearShadowingHighlight();
   audio.currentTime = 0;
-  audio.play().catch(() => {
+  audio.play().then(() => {
+    if (shadowingPlaybackState.useTimers) {
+      scheduleShadowingHighlights();
+    }
+  }).catch(() => {
     shadowingPlaybackState.isPlaying = false;
     updateReaderShadowingLabel();
+    clearShadowingTimers();
   });
 };
 
