@@ -43,16 +43,18 @@ This document describes the Add Story modal UX and custom story generation flow 
   - Shows status messages for scanning, success, “no text”, or failure.
 
 ## Shadowing Mode (audio + transcription)
-- Uploads an audio file, transcribes it, and stores both transcript + audio locally.
+- Uploads an audio file, transcribes it, and stores the transcript + audio locally.
 - Transcription flow:
   - Requires an API key. If absent, the welcome flow opens.
-  - Uses `POST https://api.openai.com/v1/audio/transcriptions` with `gpt-4o-transcribe`.
-  - Stores audio as a data URL (limited to ~4 MB before encoding).
-- Automatic transcript formatting:
-  - The transcript is sent to ChatGPT to insert line breaks between speakers or
-    long pauses, without adding speaker labels.
+  - Uses `POST https://api.openai.com/v1/audio/transcriptions` with `whisper-1`,
+    `response_format=verbose_json`, `language=de`, and word timestamps.
+  - Stores audio in IndexedDB (limited to ~4 MB), plus word-level timing data on
+    the `audio` payload (`audio.words`, `audio.audioId`).
 - “Add to reader” saves the transcript as a story and attaches the audio payload
-  to the story object (`audio`, `source: "shadowing"`).
+  to the story object (`audio`, `source: "shadowing"`). The OpenAI call happens only
+  during “Transcribe”; “Add to reader” never re-requests transcription. Timing
+  alignment is best-effort: if word timings cannot be aligned to the final transcript,
+  the story still saves without timing data.
 
 ## UI Inputs + Preferences
 - Word count, level, and style are set via `applyStoryWordCount`, `applyStoryLevel`, and

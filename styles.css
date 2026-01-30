@@ -715,6 +715,24 @@ body {
   gap: 12px;
 }
 
+.home-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.06);
+  flex: 0 0 auto;
+}
+
+.home-item-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .home-item-progress {
   height: 6px;
   border-radius: 999px;

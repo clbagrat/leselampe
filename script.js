@@ -128,6 +128,7 @@ const homeEmptyAdd = document.getElementById("homeEmptyAdd");
 const homeAddText = document.getElementById("homeAddText");
 const openReaderAppearance = document.getElementById("openReaderAppearance");
 const readerTtsButton = document.getElementById("readerTts");
+const readerShadowAudioButton = document.getElementById("readerShadowAudio");
 const readerFinish = document.getElementById("readerFinish");
 const readerEnd = document.getElementById("readerEnd");
 const readerView = document.getElementById("readerView");
@@ -192,6 +193,8 @@ const UI_COPY = {
     "reader.action.font": "Font",
     "reader.action.listen": "Listen",
     "reader.action.stop": "Stop",
+    "reader.action.play_audio": "Play audio",
+    "reader.action.stop_audio": "Stop audio",
     "reader.action.finish": "I finish reading",
     "reader.status.read": "Marked as read.",
     "lemmas.section": "Lemmas",
@@ -481,6 +484,8 @@ const UI_COPY = {
     "reader.action.font": "Шрифт",
     "reader.action.listen": "Слушать",
     "reader.action.stop": "Остановить",
+    "reader.action.play_audio": "Воспроизвести аудио",
+    "reader.action.stop_audio": "Остановить аудио",
     "reader.action.finish": "Я закончил чтение",
     "reader.status.read": "Отмечено как прочитанное.",
     "lemmas.section": "Леммы",
@@ -854,6 +859,16 @@ const readerTtsState = {
   queueIndex: 0,
 };
 
+const shadowingPlaybackState = {
+  isPlaying: false,
+  audio: null,
+  payload: null,
+  wordIndex: -1,
+  storyId: null,
+  timings: [],
+  objectUrlCleanup: null,
+};
+
 const isTtsSupported = () =>
   "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 
@@ -897,6 +912,14 @@ const buildReaderSpeechPayload = () => {
   }
   if (reader?.textContent?.trim()) {
     appendSection(reader);
+  }
+  return payload;
+};
+
+const buildReaderShadowingPayload = () => {
+  const payload = { text: "", words: [] };
+  if (reader?.textContent?.trim()) {
+    appendSpeechFromNode(reader, payload);
   }
   return payload;
 };
@@ -1009,12 +1032,11 @@ const clearReaderTtsHighlight = () => {
   readerTtsState.wordIndex = -1;
 };
 
-const findReaderTtsWordIndex = (charIndex) => {
-  const words = readerTtsState.wordOffsets;
+const findWordIndexByChar = (words, currentIndex, charIndex) => {
   if (!words.length) {
     return -1;
   }
-  let index = readerTtsState.wordIndex;
+  let index = currentIndex;
   if (index < 0 || charIndex < words[index]?.start) {
     index = 0;
   }
@@ -1029,6 +1051,13 @@ const findReaderTtsWordIndex = (charIndex) => {
   }
   return -1;
 };
+
+const findReaderTtsWordIndex = (charIndex) =>
+  findWordIndexByChar(
+    readerTtsState.wordOffsets,
+    readerTtsState.wordIndex,
+    charIndex
+  );
 
 const stopReaderTts = () => {
   if (!isTtsSupported()) {
@@ -1110,6 +1139,224 @@ const startReaderTts = () => {
   speakReaderQueueItem(queue[0]);
 };
 
+const updateReaderShadowingLabel = () => {
+  if (!readerShadowAudioButton) {
+    return;
+  }
+  const key = shadowingPlaybackState.isPlaying
+    ? "reader.action.stop_audio"
+    : "reader.action.play_audio";
+  const label = t(key);
+  readerShadowAudioButton.setAttribute("aria-label", label);
+  const labelEl = document.getElementById("readerShadowAudioLabel");
+  if (labelEl) {
+    labelEl.textContent = label;
+  }
+};
+
+const clearShadowingHighlight = () => {
+  document.querySelectorAll(".word.tts-active").forEach((word) => {
+    word.classList.remove("tts-active");
+  });
+  shadowingPlaybackState.wordIndex = -1;
+};
+
+const setShadowingActiveWord = (index) => {
+  const timingWords = shadowingPlaybackState.timings || [];
+  const words = timingWords.length ? timingWords : shadowingPlaybackState.payload?.words || [];
+  if (!words.length || index < 0 || index >= words.length) {
+    return;
+  }
+  const next = words[index].el;
+  const prev = words[shadowingPlaybackState.wordIndex]?.el;
+  if (prev && prev !== next) {
+    prev.classList.remove("tts-active");
+  }
+  next.classList.add("tts-active");
+  shadowingPlaybackState.wordIndex = index;
+};
+
+const updateShadowingHighlight = () => {
+  const audio = shadowingPlaybackState.audio;
+  const payload = shadowingPlaybackState.payload;
+  if (!audio) {
+    return;
+  }
+  if (shadowingPlaybackState.timings?.length) {
+    const time = audio.currentTime;
+    const timings = shadowingPlaybackState.timings;
+    let index = shadowingPlaybackState.wordIndex;
+    if (index < 0 || time < timings[index]?.start) {
+      index = 0;
+    }
+    while (index < timings.length && timings[index].end <= time) {
+      index += 1;
+    }
+    if (index < timings.length) {
+      const word = timings[index];
+      if (word.start <= time && time < word.end) {
+        if (index !== shadowingPlaybackState.wordIndex) {
+          setShadowingActiveWord(index);
+        }
+      }
+    }
+    return;
+  }
+  if (!payload?.text || !payload.words?.length) {
+    return;
+  }
+  const duration = audio.duration;
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return;
+  }
+  const progress = Math.min(Math.max(audio.currentTime / duration, 0), 1);
+  const charIndex = Math.floor(progress * payload.text.length);
+  const index = findWordIndexByChar(
+    payload.words,
+    shadowingPlaybackState.wordIndex,
+    charIndex
+  );
+  if (index !== -1 && index !== shadowingPlaybackState.wordIndex) {
+    setShadowingActiveWord(index);
+  }
+};
+
+const stopShadowingPlayback = ({ resetTime = true, release = false } = {}) => {
+  const audio = shadowingPlaybackState.audio;
+  if (audio) {
+    audio.pause();
+    if (resetTime) {
+      audio.currentTime = 0;
+    }
+  }
+  if (release && shadowingPlaybackState.objectUrlCleanup) {
+    shadowingPlaybackState.objectUrlCleanup();
+    shadowingPlaybackState.objectUrlCleanup = null;
+  }
+  shadowingPlaybackState.isPlaying = false;
+  if (release) {
+    shadowingPlaybackState.audio = null;
+    shadowingPlaybackState.payload = null;
+    shadowingPlaybackState.timings = [];
+    shadowingPlaybackState.storyId = null;
+  }
+  clearShadowingHighlight();
+  updateReaderShadowingLabel();
+};
+
+const getShadowAudioSource = async (audio) => {
+  if (!audio) {
+    return { src: "", cleanup: null };
+  }
+  if (audio.dataUrl) {
+    return { src: audio.dataUrl, cleanup: null };
+  }
+  if (audio.audioId) {
+    const entry = await getShadowAudioBlob(audio.audioId);
+    if (!entry?.blob) {
+      return { src: "", cleanup: null };
+    }
+    const url = URL.createObjectURL(entry.blob);
+    return { src: url, cleanup: () => URL.revokeObjectURL(url) };
+  }
+  return { src: "", cleanup: null };
+};
+
+const ensureShadowingPlayback = async (story) => {
+  if (
+    !story ||
+    story.source !== "shadowing" ||
+    (!story.audio?.dataUrl && !story.audio?.audioId)
+  ) {
+    return false;
+  }
+  const storyId = String(story.id);
+  if (shadowingPlaybackState.storyId !== storyId) {
+    stopShadowingPlayback({ release: true });
+    shadowingPlaybackState.storyId = storyId;
+    const source = await getShadowAudioSource(story.audio);
+    if (!source?.src) {
+      return false;
+    }
+    shadowingPlaybackState.objectUrlCleanup = source.cleanup || null;
+    shadowingPlaybackState.audio = new Audio(source.src);
+    shadowingPlaybackState.audio.preload = "metadata";
+    shadowingPlaybackState.audio.addEventListener("timeupdate", () => {
+      updateShadowingHighlight();
+    });
+    shadowingPlaybackState.audio.addEventListener("ended", () => {
+      shadowingPlaybackState.isPlaying = false;
+      clearShadowingHighlight();
+      updateReaderShadowingLabel();
+      shadowingPlaybackState.audio.currentTime = 0;
+    });
+  }
+  shadowingPlaybackState.payload = buildReaderShadowingPayload();
+  shadowingPlaybackState.wordIndex = -1;
+  shadowingPlaybackState.timings = [];
+  const timings = story.audio?.words || [];
+  if (timings.length && reader) {
+    const readerText = reader.textContent || "";
+    if (areTranscriptWordsAligned(readerText, timings)) {
+      const wordEls = Array.from(reader.querySelectorAll(".word"));
+      const count = Math.min(wordEls.length, timings.length);
+      if (count) {
+        shadowingPlaybackState.timings = timings.slice(0, count).map((entry, index) => ({
+          start: Number(entry.start) || 0,
+          end: Number(entry.end) || 0,
+          el: wordEls[index],
+        }));
+      }
+    }
+  }
+  return true;
+};
+
+const startShadowingPlayback = async () => {
+  const story = currentRenderedStory?.data;
+  if (!(await ensureShadowingPlayback(story))) {
+    return;
+  }
+  const audio = shadowingPlaybackState.audio;
+  if (!audio) {
+    return;
+  }
+  stopReaderTts();
+  shadowingPlaybackState.isPlaying = true;
+  updateReaderShadowingLabel();
+  shadowingPlaybackState.payload = buildReaderShadowingPayload();
+  shadowingPlaybackState.wordIndex = -1;
+  clearShadowingHighlight();
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    shadowingPlaybackState.isPlaying = false;
+    updateReaderShadowingLabel();
+  });
+};
+
+const toggleShadowingPlayback = () => {
+  if (shadowingPlaybackState.isPlaying) {
+    stopShadowingPlayback();
+    return;
+  }
+  startShadowingPlayback();
+};
+
+const updateReaderShadowingButton = (story) => {
+  if (!readerShadowAudioButton) {
+    return;
+  }
+  const hasAudio =
+    story?.source === "shadowing" &&
+    Boolean(story?.audio?.dataUrl || story?.audio?.audioId);
+  readerShadowAudioButton.classList.toggle("is-hidden", !hasAudio);
+  if (!hasAudio) {
+    stopShadowingPlayback({ release: true });
+  } else {
+    updateReaderShadowingLabel();
+  }
+};
+
 const applyTranslations = (lang) => {
   const nextLang = SUPPORTED_UI_LANGS.includes(lang) ? lang : "en";
   currentUiLang = nextLang;
@@ -1148,6 +1395,7 @@ const applyTranslations = (lang) => {
   lemmaLearnedEmptyDefaultText = lemmaLearnedEmpty?.textContent || "";
   updateSheetAskContext();
   updateReaderTtsLabel();
+  updateReaderShadowingLabel();
   updateSheetTtsState();
   updateLanguageButtons();
   refreshUiCollections();
@@ -5179,6 +5427,7 @@ const clearLongPress = () => {
 const setView = (view) => {
   if (view !== "reader") {
     stopReaderTts();
+    stopShadowingPlayback({ release: true });
   }
   document.body.classList.toggle("view-reader", view === "reader");
   document.body.classList.toggle("view-home", view === "home");
@@ -6086,6 +6335,9 @@ const renderHomeStories = (stories) => {
     if (isRead) {
       item.classList.add("is-read");
     }
+    if (story.source === "shadowing") {
+      item.classList.add("is-shadowing");
+    }
 
     const content = document.createElement("button");
     content.className = "home-item-content";
@@ -6099,6 +6351,31 @@ const renderHomeStories = (stories) => {
     title.textContent = story.title || t("story.untitled");
 
     head.appendChild(title);
+    if (story.source === "shadowing") {
+      const icon = document.createElement("span");
+      icon.className = "home-item-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = `
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M4 10v4h4l5 4V6l-5 4H4z" fill="currentColor" />
+          <path
+            d="M16 9.5c1.5 1.5 1.5 3.5 0 5"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M18.5 7c2.5 2.5 2.5 7.5 0 10"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+        </svg>
+      `;
+      head.appendChild(icon);
+    }
 
     const excerpt = document.createElement("p");
     excerpt.className = "home-item-excerpt";
@@ -6977,6 +7254,8 @@ const renderStory = (story) => {
   localStorage.setItem(LAST_STORY_KEY, String(story.id));
   currentStoryId = String(story.id);
   currentRenderedStory = { type: "story", data: story };
+  stopShadowingPlayback({ release: true });
+  updateReaderShadowingButton(story);
   storyTitle.innerHTML = "";
   if (story.title) {
     storyTitle.appendChild(buildSentenceSpan(story.title));
@@ -8791,6 +9070,11 @@ if (openReaderAppearance) {
     openReaderAppearanceModal();
   });
 }
+if (readerShadowAudioButton) {
+  readerShadowAudioButton.addEventListener("click", () => {
+    toggleShadowingPlayback();
+  });
+}
 if (brandButton) {
   brandButton.addEventListener("click", () => {
     showLibraryScreen("smooth");
@@ -8811,6 +9095,7 @@ if (readerTtsButton) {
 if (readerFinish) {
   readerFinish.addEventListener("click", () => {
     stopReaderTts();
+    stopShadowingPlayback({ release: true });
     if (currentStoryId) {
       markStoryRead(currentStoryId);
       setTimeout(() => {
@@ -9410,6 +9695,68 @@ const readFileAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const SHADOW_AUDIO_DB = "reader_shadow_audio_v1";
+const SHADOW_AUDIO_STORE = "audio";
+
+const openShadowAudioDb = () =>
+  new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB is not supported"));
+      return;
+    }
+    const request = indexedDB.open(SHADOW_AUDIO_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(SHADOW_AUDIO_STORE)) {
+        db.createObjectStore(SHADOW_AUDIO_STORE, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () =>
+      reject(new Error(request.error?.message || "IndexedDB open failed"));
+  });
+
+const saveShadowAudioBlob = async (id, file) => {
+  const db = await openShadowAudioDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SHADOW_AUDIO_STORE, "readwrite");
+    const store = tx.objectStore(SHADOW_AUDIO_STORE);
+    store.put({
+      id,
+      blob: file,
+      name: file.name,
+      type: file.type || "audio/mpeg",
+      size: file.size,
+      updatedAt: new Date().toISOString(),
+    });
+    tx.oncomplete = () => {
+      db.close();
+      resolve(true);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(new Error(tx.error?.message || "IndexedDB write failed"));
+    };
+  });
+};
+
+const getShadowAudioBlob = async (id) => {
+  const db = await openShadowAudioDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SHADOW_AUDIO_STORE, "readonly");
+    const store = tx.objectStore(SHADOW_AUDIO_STORE);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      db.close();
+      reject(new Error(request.error?.message || "IndexedDB read failed"));
+    };
+  });
+};
+
 const prepareShadowAudioPayload = async (file) => {
   if (!file) {
     return null;
@@ -9417,9 +9764,14 @@ const prepareShadowAudioPayload = async (file) => {
   if (file.size > MAX_SHADOW_AUDIO_BYTES) {
     return { error: "too_large" };
   }
-  const dataUrl = await readFileAsDataUrl(file);
+  const audioId = `shadow_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+  try {
+    await saveShadowAudioBlob(audioId, file);
+  } catch (error) {
+    return { error: "storage" };
+  }
   return {
-    dataUrl,
+    audioId,
     name: file.name,
     type: file.type || "audio/mpeg",
     size: file.size,
@@ -9433,8 +9785,10 @@ const transcribeAudioFile = async (file) => {
   }
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("model", "gpt-4o-transcribe");
-  formData.append("response_format", "json");
+  formData.append("model", "whisper-1");
+  formData.append("response_format", "verbose_json");
+  formData.append("timestamp_granularities[]", "word");
+  formData.append("language", "de");
   formData.append("temperature", "0");
   const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
@@ -9451,53 +9805,69 @@ const transcribeAudioFile = async (file) => {
   if (!text) {
     return null;
   }
-  return text;
+  const segments = Array.isArray(data.segments) ? data.segments : [];
+  const words =
+    (Array.isArray(data.words) && data.words) ||
+    segments.flatMap((segment) =>
+      Array.isArray(segment.words) ? segment.words : []
+    );
+  const wordTimings = Array.isArray(words)
+    ? words
+        .map((word) => ({
+          word: String(word.word || "").trim(),
+          start: Number(word.start),
+          end: Number(word.end),
+        }))
+        .filter((word) => word.word)
+    : [];
+  return { text, words: wordTimings };
 };
 
-const formatDialogTranscript = async (text) => {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return text;
-  }
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You format transcripts. Return strict JSON: {\"text\":\"...\"}. " +
-            "If there are different voices, separate each turn with a newline. " +
-            "If there is a long pause in a monologue, insert a newline at that pause. " +
-            "Do not add speaker labels or extra words. Preserve all original content.",
-        },
-        {
-          role: "user",
-          content: text,
-        },
-      ],
-    }),
+const normalizeTranscriptToken = (token) =>
+  String(token || "")
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss");
+
+const extractWordTokensFromText = (text) => {
+  const parts = String(text || "").match(/\s+|\S+/g) || [];
+  const words = [];
+  parts.forEach((part) => {
+    const cleanToken = stripTokenPunctuation(part);
+    if (isWordToken(cleanToken)) {
+      words.push(normalizeTranscriptToken(cleanToken));
+    }
   });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Formatting failed");
+  return words;
+};
+
+const areTranscriptWordsAligned = (text, wordTimings) => {
+  if (!Array.isArray(wordTimings) || !wordTimings.length) {
+    return false;
   }
-  const raw = data.choices?.[0]?.message?.content?.trim();
-  if (!raw) {
-    return text;
+  const tokens = extractWordTokensFromText(text);
+  if (tokens.length !== wordTimings.length) {
+    return false;
   }
-  try {
-    const parsed = JSON.parse(raw);
-    return String(parsed?.text || "").trim() || text;
-  } catch (error) {
-    return text;
+  for (let i = 0; i < tokens.length; i += 1) {
+    const timingWord = normalizeTranscriptToken(wordTimings[i]?.word || "");
+    if (!timingWord || tokens[i] !== timingWord) {
+      return false;
+    }
   }
+  return true;
+};
+
+const formatDialogTranscriptWithTimings = async (text, wordTimings) => {
+  if (!Array.isArray(wordTimings) || !wordTimings.length) {
+    return { text, aligned: false };
+  }
+  if (areTranscriptWordsAligned(text, wordTimings)) {
+    return { text, aligned: true };
+  }
+  return { text, aligned: false };
 };
 
 const extractTextFromImage = async (dataUrl) => {
@@ -9652,19 +10022,27 @@ if (shadowTranscribe) {
         setShadowStatus(t("modal.shadowing.status.too_large"), { isError: true });
         return;
       }
-      shadowAudioCache = payload;
-      const transcript = await transcribeAudioFile(file);
-      if (!transcript) {
+      if (payload?.error === "storage") {
+        setShadowStatus(
+          t("modal.shadowing.status.failed_detail", {
+            message: "Audio storage unavailable.",
+          }),
+          { isError: true }
+        );
+        return;
+      }
+      if (!payload?.audioId) {
         setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
         return;
       }
-      let nextTranscript = transcript;
-      setShadowStatus(t("modal.shadowing.status.formatting"));
-      try {
-        nextTranscript = await formatDialogTranscript(transcript);
-      } catch (error) {
-        nextTranscript = transcript;
+      shadowAudioCache = payload;
+      const transcriptResult = await transcribeAudioFile(file);
+      if (!transcriptResult?.text) {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+        return;
       }
+      shadowAudioCache.words = transcriptResult.words || [];
+      const nextTranscript = transcriptResult.text;
       if (shadowTranscript) {
         shadowTranscript.value = nextTranscript;
       }
@@ -9694,7 +10072,7 @@ if (shadowAdd) {
       updateShadowControls();
       return;
     }
-    const text = shadowTranscript?.value.trim();
+    let text = shadowTranscript?.value.trim();
     if (!text) {
       setShadowStatus(t("modal.shadowing.status.no_transcript"), { isError: true });
       updateShadowControls();
@@ -9703,18 +10081,48 @@ if (shadowAdd) {
     isShadowSaving = true;
     updateShadowControls();
     try {
-      const payload =
-        shadowAudioCache ||
-        (await prepareShadowAudioPayload(file));
+      const payload = shadowAudioCache?.audioId
+        ? shadowAudioCache
+        : await prepareShadowAudioPayload(file);
       if (payload?.error === "too_large") {
         setShadowStatus(t("modal.shadowing.status.too_large"), { isError: true });
         return;
       }
-      if (!payload?.dataUrl) {
-        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+      if (payload?.error === "storage") {
+        setShadowStatus(
+          t("modal.shadowing.status.failed_detail", {
+            message: "Audio storage unavailable.",
+          }),
+          { isError: true }
+        );
+        return;
+      }
+      if (!payload?.audioId) {
+        setShadowStatus(
+          t("modal.shadowing.status.failed_detail", { message: "No audio storage." }),
+          { isError: true }
+        );
         return;
       }
       shadowAudioCache = payload;
+      if (shadowAudioCache.words?.length) {
+        try {
+          if (!areTranscriptWordsAligned(text, shadowAudioCache.words)) {
+            const formatted = await formatDialogTranscriptWithTimings(
+              text,
+              shadowAudioCache.words
+            );
+            if (formatted.aligned) {
+              text = formatted.text;
+              if (shadowTranscript) {
+                shadowTranscript.value = text;
+              }
+            }
+          }
+        } catch (error) {
+          // If we can't align timings, still allow adding the story.
+        }
+      }
       const title = shadowTitle?.value.trim() || t("shadowing.default_title");
       const didAdd = addStoryFromText(title, text, t("shadowing.default_title"), {
         audio: shadowAudioCache,
@@ -9732,7 +10140,15 @@ if (shadowAdd) {
       resetShadowPanel();
       addTextModal.classList.add("is-hidden");
     } catch (error) {
-      setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+      const message = String(error?.message || "").trim();
+      if (message) {
+        setShadowStatus(
+          t("modal.shadowing.status.failed_detail", { message }),
+          { isError: true }
+        );
+      } else {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+      }
     } finally {
       isShadowSaving = false;
       updateShadowControls();
