@@ -1871,7 +1871,9 @@ h2 {
 
 #pasteTitle,
 #pasteBody,
-#promptBody {
+#promptBody,
+#shadowTitle,
+#shadowTranscript {
   width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -1883,7 +1885,8 @@ h2 {
 }
 
 #pasteBody,
-#promptBody {
+#promptBody,
+#shadowTranscript {
   resize: vertical;
   min-height: 110px;
 }

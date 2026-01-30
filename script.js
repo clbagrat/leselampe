@@ -94,6 +94,7 @@ const closeAddText = document.getElementById("closeAddText");
 const modeButtons = document.querySelectorAll("[data-mode]");
 const modePaste = document.getElementById("modePaste");
 const modeGenerate = document.getElementById("modeGenerate");
+const modeShadowing = document.getElementById("modeShadowing");
 const pasteTitle = document.getElementById("pasteTitle");
 const pasteBody = document.getElementById("pasteBody");
 const savePaste = document.getElementById("savePaste");
@@ -102,6 +103,12 @@ const generateStory = document.getElementById("generateStory");
 const suggestPrompt = document.getElementById("suggestPrompt");
 const scanInput = document.getElementById("scanInput");
 const scanStatus = document.getElementById("scanStatus");
+const shadowAudioInput = document.getElementById("shadowAudioInput");
+const shadowTitle = document.getElementById("shadowTitle");
+const shadowTranscript = document.getElementById("shadowTranscript");
+const shadowTranscribe = document.getElementById("shadowTranscribe");
+const shadowAdd = document.getElementById("shadowAdd");
+const shadowStatus = document.getElementById("shadowStatus");
 const lemmaList = document.getElementById("lemmaList");
 const lemmaEmpty = document.getElementById("lemmaEmpty");
 const lemmaLearnedList = document.getElementById("lemmaLearnedList");
@@ -337,6 +344,7 @@ const UI_COPY = {
     "modal.add_story.title": "Bring new stories",
     "modal.add_story.mode.generate": "Generate story",
     "modal.add_story.mode.paste": "Paste text",
+    "modal.add_story.mode.shadowing": "Shadowing",
     "modal.add_story.word_amount": "Word amount",
     "modal.add_story.level": "Level",
     "modal.add_story.style": "Style",
@@ -345,6 +353,23 @@ const UI_COPY = {
     "modal.add_story.prompt": "Story prompt",
     "modal.add_story.prompt_placeholder": "A short story about a student on a rainy day, level A2.",
     "modal.add_story.helper": "Uses your ChatGPT API key from above.",
+    "modal.shadowing.audio_label": "Audio file",
+    "modal.shadowing.audio_helper":
+      "We store your audio locally and transcribe it with your ChatGPT API key.",
+    "modal.shadowing.title": "Title",
+    "modal.shadowing.title_placeholder": "Shadowing practice",
+    "modal.shadowing.transcript_label": "Transcript",
+    "modal.shadowing.transcript_placeholder": "Transcript will appear here.",
+    "modal.shadowing.action.transcribe": "Transcribe",
+    "modal.shadowing.action.add": "Add to reader",
+    "modal.shadowing.status.transcribing": "Transcribing...",
+    "modal.shadowing.status.ready": "Transcript ready.",
+    "modal.shadowing.status.formatting": "Formatting transcript...",
+    "modal.shadowing.status.failed": "Couldn't transcribe this audio.",
+    "modal.shadowing.status.failed_detail": "Couldn't transcribe: {message}",
+    "modal.shadowing.status.no_audio": "Choose an audio file to transcribe.",
+    "modal.shadowing.status.too_large": "Audio file is too large to store locally.",
+    "modal.shadowing.status.no_transcript": "Add or generate a transcript first.",
     "modal.paste.title": "Title",
     "modal.paste.title_placeholder": "Your title",
     "modal.paste.body_label": "German text",
@@ -357,6 +382,7 @@ const UI_COPY = {
     "modal.scan.status.no_text": "No text found in this photo.",
     "modal.scan.status.failed": "Couldn't scan this photo.",
     "scan.default_title": "Scanned text",
+    "shadowing.default_title": "Shadowing audio",
     "modal.appearance.title": "Reader appearance",
     "modal.appearance.font": "Font",
     "modal.appearance.size": "Size",
@@ -607,6 +633,7 @@ const UI_COPY = {
     "modal.add_story.title": "Добавить истории",
     "modal.add_story.mode.generate": "Сгенерировать историю",
     "modal.add_story.mode.paste": "Вставить текст",
+    "modal.add_story.mode.shadowing": "Шэдоуинг",
     "modal.add_story.word_amount": "Количество слов",
     "modal.add_story.level": "Уровень",
     "modal.add_story.style": "Стиль",
@@ -615,6 +642,23 @@ const UI_COPY = {
     "modal.add_story.prompt": "Сюжетный запрос",
     "modal.add_story.prompt_placeholder": "Короткая история про студента в дождливый день, уровень A2.",
     "modal.add_story.helper": "Используется ChatGPT API ключ из настроек.",
+    "modal.shadowing.audio_label": "Аудиофайл",
+    "modal.shadowing.audio_helper":
+      "Мы сохраняем аудио локально и расшифровываем его через ваш ChatGPT API ключ.",
+    "modal.shadowing.title": "Заголовок",
+    "modal.shadowing.title_placeholder": "Практика шэдоуинга",
+    "modal.shadowing.transcript_label": "Транскрипт",
+    "modal.shadowing.transcript_placeholder": "Транскрипт появится здесь.",
+    "modal.shadowing.action.transcribe": "Расшифровать",
+    "modal.shadowing.action.add": "Добавить в читалку",
+    "modal.shadowing.status.transcribing": "Расшифровываем...",
+    "modal.shadowing.status.ready": "Транскрипт готов.",
+    "modal.shadowing.status.formatting": "Форматируем транскрипт...",
+    "modal.shadowing.status.failed": "Не удалось расшифровать это аудио.",
+    "modal.shadowing.status.failed_detail": "Не удалось расшифровать: {message}",
+    "modal.shadowing.status.no_audio": "Выберите аудиофайл для расшифровки.",
+    "modal.shadowing.status.too_large": "Аудиофайл слишком большой для локального хранения.",
+    "modal.shadowing.status.no_transcript": "Сначала добавьте или получите транскрипт.",
     "modal.paste.title": "Заголовок",
     "modal.paste.title_placeholder": "Ваш заголовок",
     "modal.paste.body_label": "Немецкий текст",
@@ -627,6 +671,7 @@ const UI_COPY = {
     "modal.scan.status.no_text": "На фото нет текста.",
     "modal.scan.status.failed": "Не удалось распознать текст.",
     "scan.default_title": "Сканированный текст",
+    "shadowing.default_title": "Аудио для шэдоуинга",
     "modal.appearance.title": "Внешний вид читалки",
     "modal.appearance.font": "Шрифт",
     "modal.appearance.size": "Размер",
@@ -8473,6 +8518,20 @@ const setScanStatus = (message, { isError = false } = {}) => {
   scanStatus.classList.toggle("is-error", isError);
 };
 
+const MAX_SHADOW_AUDIO_BYTES = 4 * 1024 * 1024;
+let isShadowTranscribing = false;
+let isShadowSaving = false;
+let shadowAudioCache = null;
+
+const setShadowStatus = (message, { isError = false } = {}) => {
+  if (!shadowStatus) {
+    return;
+  }
+  shadowStatus.textContent = message || "";
+  shadowStatus.classList.toggle("is-hidden", !message);
+  shadowStatus.classList.toggle("is-error", isError);
+};
+
 const updateScanControls = () => {
   if (!scanInput) {
     return;
@@ -8485,6 +8544,33 @@ const updateScanControls = () => {
   }
 };
 
+const updateShadowControls = () => {
+  if (!shadowAudioInput) {
+    return;
+  }
+  const hasFile = Boolean(shadowAudioInput.files?.length);
+  const isShadowingMode = modeShadowing && !modeShadowing.classList.contains("is-hidden");
+  const isBusy = isShadowTranscribing || isShadowSaving;
+  shadowAudioInput.disabled = !isShadowingMode || isBusy;
+  if (shadowTitle) {
+    shadowTitle.disabled = !isShadowingMode || isBusy;
+  }
+  if (shadowTranscript) {
+    shadowTranscript.disabled = !isShadowingMode || isBusy;
+  }
+  if (shadowTranscribe) {
+    shadowTranscribe.disabled = !isShadowingMode || isBusy || !hasFile;
+  }
+  if (shadowAdd) {
+    const hasTranscript = Boolean(shadowTranscript?.value.trim());
+    shadowAdd.disabled =
+      !isShadowingMode || isBusy || !hasFile || !hasTranscript;
+  }
+  if (!hasFile) {
+    setShadowStatus("");
+  }
+};
+
 const resetScanPanel = () => {
   if (scanInput) {
     scanInput.value = "";
@@ -8493,12 +8579,32 @@ const resetScanPanel = () => {
   updateScanControls();
 };
 
+const resetShadowPanel = () => {
+  if (shadowAudioInput) {
+    shadowAudioInput.value = "";
+  }
+  if (shadowTitle) {
+    shadowTitle.value = "";
+  }
+  if (shadowTranscript) {
+    shadowTranscript.value = "";
+  }
+  shadowAudioCache = null;
+  isShadowTranscribing = false;
+  setShadowStatus("");
+  updateShadowControls();
+};
+
 const setMode = (mode) => {
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
   modePaste.classList.toggle("is-hidden", mode !== "paste");
   modeGenerate.classList.toggle("is-hidden", mode !== "generate");
+  if (modeShadowing) {
+    modeShadowing.classList.toggle("is-hidden", mode !== "shadowing");
+    modeShadowing.setAttribute("aria-hidden", mode !== "shadowing");
+  }
   modePaste.setAttribute("aria-hidden", mode !== "paste");
   modeGenerate.setAttribute("aria-hidden", mode !== "generate");
   pasteTitle.disabled = mode !== "paste";
@@ -8516,6 +8622,7 @@ const setMode = (mode) => {
     button.disabled = mode !== "generate";
   });
   updateScanControls();
+  updateShadowControls();
 };
 
 const showAddTextModal = () => {
@@ -8957,6 +9064,7 @@ if (lemmaSearch) {
 const closeAddTextModal = () => {
   addTextModal.classList.add("is-hidden");
   resetScanPanel();
+  resetShadowPanel();
 };
 
 closeAddText.addEventListener("click", closeAddTextModal);
@@ -9276,7 +9384,7 @@ suggestPrompt.addEventListener("click", () => {
   fillPromptSuggestion();
 });
 
-const addStoryFromText = (title, text, fallbackTitle) => {
+const addStoryFromText = (title, text, fallbackTitle, extraFields = {}) => {
   if (!text) {
     return false;
   }
@@ -9284,6 +9392,7 @@ const addStoryFromText = (title, text, fallbackTitle) => {
     id: Date.now(),
     title: title || fallbackTitle,
     text,
+    ...extraFields,
   };
   const current = loadStories();
   const next = [newStory, ...current];
@@ -9300,6 +9409,96 @@ const readFileAsDataUrl = (file) =>
     reader.onerror = () => reject(new Error("File read failed"));
     reader.readAsDataURL(file);
   });
+
+const prepareShadowAudioPayload = async (file) => {
+  if (!file) {
+    return null;
+  }
+  if (file.size > MAX_SHADOW_AUDIO_BYTES) {
+    return { error: "too_large" };
+  }
+  const dataUrl = await readFileAsDataUrl(file);
+  return {
+    dataUrl,
+    name: file.name,
+    type: file.type || "audio/mpeg",
+    size: file.size,
+  };
+};
+
+const transcribeAudioFile = async (file) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("model", "gpt-4o-transcribe");
+  formData.append("response_format", "json");
+  formData.append("temperature", "0");
+  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Transcription failed");
+  }
+  const text = data.text?.trim();
+  if (!text) {
+    return null;
+  }
+  return text;
+};
+
+const formatDialogTranscript = async (text) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return text;
+  }
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You format transcripts. Return strict JSON: {\"text\":\"...\"}. " +
+            "If there are different voices, separate each turn with a newline. " +
+            "If there is a long pause in a monologue, insert a newline at that pause. " +
+            "Do not add speaker labels or extra words. Preserve all original content.",
+        },
+        {
+          role: "user",
+          content: text,
+        },
+      ],
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Formatting failed");
+  }
+  const raw = data.choices?.[0]?.message?.content?.trim();
+  if (!raw) {
+    return text;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return String(parsed?.text || "").trim() || text;
+  } catch (error) {
+    return text;
+  }
+};
 
 const extractTextFromImage = async (dataUrl) => {
   const apiKey = getApiKey();
@@ -9410,6 +9609,133 @@ if (scanInput) {
     } catch (error) {
       setScanStatus(t("modal.scan.status.failed"), { isError: true });
       updateScanControls();
+    }
+  });
+}
+
+if (shadowAudioInput) {
+  shadowAudioInput.addEventListener("change", () => {
+    shadowAudioCache = null;
+    if (shadowTranscript) {
+      shadowTranscript.value = "";
+    }
+    setShadowStatus("");
+    updateShadowControls();
+  });
+}
+
+if (shadowTranscript) {
+  shadowTranscript.addEventListener("input", () => {
+    updateShadowControls();
+  });
+}
+
+if (shadowTranscribe) {
+  shadowTranscribe.addEventListener("click", async () => {
+    const file = shadowAudioInput?.files?.[0];
+    if (!file) {
+      setShadowStatus(t("modal.shadowing.status.no_audio"), { isError: true });
+      updateShadowControls();
+      return;
+    }
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      startWelcomeFlow("smooth");
+      return;
+    }
+    isShadowTranscribing = true;
+    setShadowStatus(t("modal.shadowing.status.transcribing"));
+    updateShadowControls();
+    try {
+      const payload = await prepareShadowAudioPayload(file);
+      if (payload?.error === "too_large") {
+        setShadowStatus(t("modal.shadowing.status.too_large"), { isError: true });
+        return;
+      }
+      shadowAudioCache = payload;
+      const transcript = await transcribeAudioFile(file);
+      if (!transcript) {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+        return;
+      }
+      let nextTranscript = transcript;
+      setShadowStatus(t("modal.shadowing.status.formatting"));
+      try {
+        nextTranscript = await formatDialogTranscript(transcript);
+      } catch (error) {
+        nextTranscript = transcript;
+      }
+      if (shadowTranscript) {
+        shadowTranscript.value = nextTranscript;
+      }
+      setShadowStatus(t("modal.shadowing.status.ready"));
+    } catch (error) {
+      const message = String(error?.message || "").trim();
+      if (message) {
+        setShadowStatus(
+          t("modal.shadowing.status.failed_detail", { message }),
+          { isError: true }
+        );
+      } else {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+      }
+    } finally {
+      isShadowTranscribing = false;
+      updateShadowControls();
+    }
+  });
+}
+
+if (shadowAdd) {
+  shadowAdd.addEventListener("click", async () => {
+    const file = shadowAudioInput?.files?.[0];
+    if (!file) {
+      setShadowStatus(t("modal.shadowing.status.no_audio"), { isError: true });
+      updateShadowControls();
+      return;
+    }
+    const text = shadowTranscript?.value.trim();
+    if (!text) {
+      setShadowStatus(t("modal.shadowing.status.no_transcript"), { isError: true });
+      updateShadowControls();
+      return;
+    }
+    isShadowSaving = true;
+    updateShadowControls();
+    try {
+      const payload =
+        shadowAudioCache ||
+        (await prepareShadowAudioPayload(file));
+      if (payload?.error === "too_large") {
+        setShadowStatus(t("modal.shadowing.status.too_large"), { isError: true });
+        return;
+      }
+      if (!payload?.dataUrl) {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+        return;
+      }
+      shadowAudioCache = payload;
+      const title = shadowTitle?.value.trim() || t("shadowing.default_title");
+      const didAdd = addStoryFromText(title, text, t("shadowing.default_title"), {
+        audio: shadowAudioCache,
+        source: "shadowing",
+      });
+      if (!didAdd) {
+        return;
+      }
+      if (shadowTitle) {
+        shadowTitle.value = "";
+      }
+      if (shadowTranscript) {
+        shadowTranscript.value = "";
+      }
+      resetShadowPanel();
+      addTextModal.classList.add("is-hidden");
+    } catch (error) {
+      setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+    } finally {
+      isShadowSaving = false;
+      updateShadowControls();
     }
   });
 }

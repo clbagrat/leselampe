@@ -5,7 +5,7 @@ This document describes the Add Story modal UX and custom story generation flow 
 ## Modal UX (user-facing)
 - Entry points: the “Add text” buttons on Home/Library call `showAddTextModal`.
 - If there is no API key, the modal does not open; it triggers the welcome/settings flow instead.
-- The modal has two modes: `Generate` and `Paste/Scan`.
+- The modal has three modes: `Generate`, `Paste/Scan`, and `Shadowing`.
   - Switching modes toggles visibility and enables/disables inputs.
 - The modal closes when:
   - Clicking the ✕ button.
@@ -41,6 +41,18 @@ This document describes the Add Story modal UX and custom story generation flow 
   - Requires an API key. If absent, the welcome flow opens.
   - Reads the image as a data URL, calls `extractTextFromImage`, and fills title/body.
   - Shows status messages for scanning, success, “no text”, or failure.
+
+## Shadowing Mode (audio + transcription)
+- Uploads an audio file, transcribes it, and stores both transcript + audio locally.
+- Transcription flow:
+  - Requires an API key. If absent, the welcome flow opens.
+  - Uses `POST https://api.openai.com/v1/audio/transcriptions` with `gpt-4o-transcribe`.
+  - Stores audio as a data URL (limited to ~4 MB before encoding).
+- Automatic transcript formatting:
+  - The transcript is sent to ChatGPT to insert line breaks between speakers or
+    long pauses, without adding speaker labels.
+- “Add to reader” saves the transcript as a story and attaches the audio payload
+  to the story object (`audio`, `source: "shadowing"`).
 
 ## UI Inputs + Preferences
 - Word count, level, and style are set via `applyStoryWordCount`, `applyStoryLevel`, and
