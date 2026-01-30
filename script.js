@@ -1185,21 +1185,15 @@ const updateShadowingHighlight = () => {
   if (shadowingPlaybackState.timings?.length) {
     const time = audio.currentTime;
     const timings = shadowingPlaybackState.timings;
-    let index = shadowingPlaybackState.wordIndex;
-    if (index < 0 || time < timings[index]?.start) {
-      index = 0;
-    }
-    while (index < timings.length && timings[index].end <= time) {
-      index += 1;
-    }
-    if (index < timings.length) {
-      const word = timings[index];
-      if (word.start <= time && time < word.end) {
-        if (index !== shadowingPlaybackState.wordIndex) {
-          setShadowingActiveWord(index);
-        }
+    let firstActive = -1;
+    timings.forEach((word, index) => {
+      const isActive = word.start <= time && time < word.end;
+      word.el.classList.toggle("tts-active", isActive);
+      if (isActive && firstActive === -1) {
+        firstActive = index;
       }
-    }
+    });
+    shadowingPlaybackState.wordIndex = firstActive;
     return;
   }
   if (!payload?.text || !payload.words?.length) {
@@ -1294,7 +1288,7 @@ const ensureShadowingPlayback = async (story) => {
   shadowingPlaybackState.payload = buildReaderShadowingPayload();
   shadowingPlaybackState.wordIndex = -1;
   shadowingPlaybackState.timings = [];
-  const timings = story.audio?.words || [];
+  const timings = normalizeWordTimings(story.audio?.words || []);
   if (timings.length && reader) {
     const readerText = reader.textContent || "";
     if (areTranscriptWordsAligned(readerText, timings)) {
@@ -1320,6 +1314,10 @@ const startShadowingPlayback = async () => {
   const audio = shadowingPlaybackState.audio;
   if (!audio) {
     return;
+  }
+  if (shadowingPlaybackState.timings?.length) {
+    // Helpful for debugging alignment issues in shadowing audio.
+    console.log("Shadowing word timings:", shadowingPlaybackState.timings);
   }
   stopReaderTts();
   shadowingPlaybackState.isPlaying = true;
@@ -9820,7 +9818,7 @@ const transcribeAudioFile = async (file) => {
         }))
         .filter((word) => word.word)
     : [];
-  return { text, words: wordTimings };
+  return { text, words: normalizeWordTimings(wordTimings) };
 };
 
 const normalizeTranscriptToken = (token) =>
@@ -9830,6 +9828,38 @@ const normalizeTranscriptToken = (token) =>
     .replace(/ö/g, "oe")
     .replace(/ü/g, "ue")
     .replace(/ß/g, "ss");
+
+const isTimingWordToken = (token) => /[\p{L}\d]/u.test(token);
+
+const normalizeWordTimings = (words, minDuration = 0.12) => {
+  if (!Array.isArray(words) || !words.length) {
+    return [];
+  }
+  return words
+    .filter((word) => isTimingWordToken(word.word || ""))
+    .map((word, index, filtered) => {
+      const next = filtered[index + 1];
+      let start = Number(word.start);
+      let end = Number(word.end);
+      if (!Number.isFinite(start)) {
+        start = 0;
+      }
+      if (!Number.isFinite(end) || end <= start) {
+        end = start + minDuration;
+      }
+      if (next && Number.isFinite(next.start)) {
+        const nextStart = Number(next.start);
+        if (end > nextStart) {
+          end = Math.max(start + minDuration, nextStart);
+        }
+      }
+      return {
+        ...word,
+        start,
+        end,
+      };
+    });
+};
 
 const extractWordTokensFromText = (text) => {
   const parts = String(text || "").match(/\s+|\S+/g) || [];
