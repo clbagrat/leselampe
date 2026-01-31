@@ -1810,7 +1810,7 @@ body[data-reader-justify="justify"] .reader {
 }
 
 .is-hidden {
-  display: none;
+  display: none !important;
 }
 
 .modal.is-hidden {

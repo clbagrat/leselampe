@@ -4347,6 +4347,7 @@ const renderRssStory = (title, blocks, itemId) => {
     type: "rss",
     data: { title, blocks, itemId },
   };
+  updateReaderShadowingButton(null);
   storyTitle.innerHTML = "";
   if (title) {
     storyTitle.appendChild(buildSentenceSpan(title));
@@ -4396,6 +4397,10 @@ const openRssReaderScreen = (
   itemId,
   { behavior = "smooth", usedLemmas = [] } = {}
 ) => {
+  if (readerShadowAudioButton) {
+    readerShadowAudioButton.classList.add("is-hidden");
+  }
+  stopShadowingPlayback({ release: true });
   if (readerStatus) {
     readerStatus.classList.add("is-hidden");
     readerStatus.classList.remove("is-visible");
@@ -4417,6 +4422,7 @@ const openRssReaderScreen = (
 const showRssLoading = (title, message = t("rss.reader.loading_article")) => {
   currentStoryId = null;
   currentRenderedStory = null;
+  updateReaderShadowingButton(null);
   readerPanel?.classList.remove("is-hidden");
   syncPageDots();
   storyTitle.innerHTML = "";
@@ -5638,6 +5644,9 @@ const requestPageDotsUpdate = () => {
 const openReaderScreen = (story, { behavior = "smooth" } = {}) => {
   if (!story) {
     return;
+  }
+  if (readerShadowAudioButton) {
+    readerShadowAudioButton.classList.add("is-hidden");
   }
   stopReaderTts();
   markStoryUnread(story.id);
