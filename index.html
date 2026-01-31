@@ -1066,36 +1066,10 @@
                 accept=".mp3,audio/mpeg,.m4a,audio/mp4,audio/x-m4a,.wav,audio/wav,.webm,audio/webm"
               />
             </div>
-            <p class="helper-text" data-i18n="modal.shadowing.audio_helper">
-              We store your audio locally and transcribe it with your ChatGPT API key.
-            </p>
             <p class="helper-text scan-status is-hidden" id="shadowStatus"></p>
-            <label class="form-label" for="shadowTitle" data-i18n="modal.shadowing.title">
-              Title
-            </label>
-            <input
-              id="shadowTitle"
-              type="text"
-              placeholder="Shadowing practice"
-              data-i18n-placeholder="modal.shadowing.title_placeholder"
-            />
-            <label class="form-label" for="shadowTranscript" data-i18n="modal.shadowing.transcript_label">
-              Transcript
-            </label>
-            <textarea
-              id="shadowTranscript"
-              rows="6"
-              placeholder="Transcript will appear here."
-              data-i18n-placeholder="modal.shadowing.transcript_placeholder"
-            ></textarea>
-            <div class="form-row">
-              <button class="ghost" type="button" id="shadowTranscribe" data-i18n="modal.shadowing.action.transcribe">
-                Transcribe
-              </button>
-              <button class="primary" type="button" id="shadowAdd" data-i18n="modal.shadowing.action.add">
-                Add to reader
-              </button>
-            </div>
+            <button class="primary" type="button" id="shadowAdd" data-i18n="modal.shadowing.action.add">
+              Add to library
+            </button>
           </div>
 
         </div>

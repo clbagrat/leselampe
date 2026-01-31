@@ -104,9 +104,6 @@ const suggestPrompt = document.getElementById("suggestPrompt");
 const scanInput = document.getElementById("scanInput");
 const scanStatus = document.getElementById("scanStatus");
 const shadowAudioInput = document.getElementById("shadowAudioInput");
-const shadowTitle = document.getElementById("shadowTitle");
-const shadowTranscript = document.getElementById("shadowTranscript");
-const shadowTranscribe = document.getElementById("shadowTranscribe");
 const shadowAdd = document.getElementById("shadowAdd");
 const shadowStatus = document.getElementById("shadowStatus");
 const lemmaList = document.getElementById("lemmaList");
@@ -357,22 +354,13 @@ const UI_COPY = {
     "modal.add_story.prompt_placeholder": "A short story about a student on a rainy day, level A2.",
     "modal.add_story.helper": "Uses your ChatGPT API key from above.",
     "modal.shadowing.audio_label": "Audio file",
-    "modal.shadowing.audio_helper":
-      "We store your audio locally and transcribe it with your ChatGPT API key.",
-    "modal.shadowing.title": "Title",
-    "modal.shadowing.title_placeholder": "Shadowing practice",
-    "modal.shadowing.transcript_label": "Transcript",
-    "modal.shadowing.transcript_placeholder": "Transcript will appear here.",
-    "modal.shadowing.action.transcribe": "Transcribe",
-    "modal.shadowing.action.add": "Add to reader",
+    "modal.shadowing.action.add": "Add to library",
     "modal.shadowing.status.transcribing": "Transcribing...",
-    "modal.shadowing.status.ready": "Transcript ready.",
-    "modal.shadowing.status.formatting": "Formatting transcript...",
+    "modal.shadowing.status.generating_title": "Creating a title...",
     "modal.shadowing.status.failed": "Couldn't transcribe this audio.",
     "modal.shadowing.status.failed_detail": "Couldn't transcribe: {message}",
-    "modal.shadowing.status.no_audio": "Choose an audio file to transcribe.",
+    "modal.shadowing.status.no_audio": "Choose an audio file to add.",
     "modal.shadowing.status.too_large": "Audio file is too large to store locally.",
-    "modal.shadowing.status.no_transcript": "Add or generate a transcript first.",
     "modal.paste.title": "Title",
     "modal.paste.title_placeholder": "Your title",
     "modal.paste.body_label": "German text",
@@ -648,22 +636,13 @@ const UI_COPY = {
     "modal.add_story.prompt_placeholder": "Короткая история про студента в дождливый день, уровень A2.",
     "modal.add_story.helper": "Используется ChatGPT API ключ из настроек.",
     "modal.shadowing.audio_label": "Аудиофайл",
-    "modal.shadowing.audio_helper":
-      "Мы сохраняем аудио локально и расшифровываем его через ваш ChatGPT API ключ.",
-    "modal.shadowing.title": "Заголовок",
-    "modal.shadowing.title_placeholder": "Практика шэдоуинга",
-    "modal.shadowing.transcript_label": "Транскрипт",
-    "modal.shadowing.transcript_placeholder": "Транскрипт появится здесь.",
-    "modal.shadowing.action.transcribe": "Расшифровать",
-    "modal.shadowing.action.add": "Добавить в читалку",
+    "modal.shadowing.action.add": "Добавить в библиотеку",
     "modal.shadowing.status.transcribing": "Расшифровываем...",
-    "modal.shadowing.status.ready": "Транскрипт готов.",
-    "modal.shadowing.status.formatting": "Форматируем транскрипт...",
+    "modal.shadowing.status.generating_title": "Придумываем заголовок...",
     "modal.shadowing.status.failed": "Не удалось расшифровать это аудио.",
     "modal.shadowing.status.failed_detail": "Не удалось расшифровать: {message}",
-    "modal.shadowing.status.no_audio": "Выберите аудиофайл для расшифровки.",
+    "modal.shadowing.status.no_audio": "Выберите аудиофайл для добавления.",
     "modal.shadowing.status.too_large": "Аудиофайл слишком большой для локального хранения.",
-    "modal.shadowing.status.no_transcript": "Сначала добавьте или получите транскрипт.",
     "modal.paste.title": "Заголовок",
     "modal.paste.title_placeholder": "Ваш заголовок",
     "modal.paste.body_label": "Немецкий текст",
@@ -8926,19 +8905,8 @@ const updateShadowControls = () => {
   const isShadowingMode = modeShadowing && !modeShadowing.classList.contains("is-hidden");
   const isBusy = isShadowTranscribing || isShadowSaving;
   shadowAudioInput.disabled = !isShadowingMode || isBusy;
-  if (shadowTitle) {
-    shadowTitle.disabled = !isShadowingMode || isBusy;
-  }
-  if (shadowTranscript) {
-    shadowTranscript.disabled = !isShadowingMode || isBusy;
-  }
-  if (shadowTranscribe) {
-    shadowTranscribe.disabled = !isShadowingMode || isBusy || !hasFile;
-  }
   if (shadowAdd) {
-    const hasTranscript = Boolean(shadowTranscript?.value.trim());
-    shadowAdd.disabled =
-      !isShadowingMode || isBusy || !hasFile || !hasTranscript;
+    shadowAdd.disabled = !isShadowingMode || isBusy || !hasFile;
   }
   if (!hasFile) {
     setShadowStatus("");
@@ -8956,12 +8924,6 @@ const resetScanPanel = () => {
 const resetShadowPanel = () => {
   if (shadowAudioInput) {
     shadowAudioInput.value = "";
-  }
-  if (shadowTitle) {
-    shadowTitle.value = "";
-  }
-  if (shadowTranscript) {
-    shadowTranscript.value = "";
   }
   shadowAudioCache = null;
   isShadowTranscribing = false;
@@ -9918,6 +9880,57 @@ const transcribeAudioFile = async (file) => {
   return { text, words: normalizeWordTimings(wordTimings) };
 };
 
+const generateShadowingTitle = async (text) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  const cleanedText = String(text || "").trim();
+  if (!cleanedText) {
+    return null;
+  }
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You generate short titles for German shadowing transcripts. " +
+            "Return strict JSON: {\"title\":\"...\"}. " +
+            "Use 3-6 words, sentence case, no quotes or trailing punctuation.",
+        },
+        {
+          role: "user",
+          content: cleanedText.slice(0, 2000),
+        },
+      ],
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Title generation failed");
+  }
+  const raw = data.choices?.[0]?.message?.content?.trim();
+  if (!raw) {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+  const title = String(parsed?.title || "").trim();
+  return title || null;
+};
+
 const normalizeTranscriptToken = (token) =>
   String(token || "")
     .toLowerCase()
@@ -10113,81 +10126,8 @@ if (scanInput) {
 if (shadowAudioInput) {
   shadowAudioInput.addEventListener("change", () => {
     shadowAudioCache = null;
-    if (shadowTranscript) {
-      shadowTranscript.value = "";
-    }
     setShadowStatus("");
     updateShadowControls();
-  });
-}
-
-if (shadowTranscript) {
-  shadowTranscript.addEventListener("input", () => {
-    updateShadowControls();
-  });
-}
-
-if (shadowTranscribe) {
-  shadowTranscribe.addEventListener("click", async () => {
-    const file = shadowAudioInput?.files?.[0];
-    if (!file) {
-      setShadowStatus(t("modal.shadowing.status.no_audio"), { isError: true });
-      updateShadowControls();
-      return;
-    }
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      startWelcomeFlow("smooth");
-      return;
-    }
-    isShadowTranscribing = true;
-    setShadowStatus(t("modal.shadowing.status.transcribing"));
-    updateShadowControls();
-    try {
-      const payload = await prepareShadowAudioPayload(file);
-      if (payload?.error === "too_large") {
-        setShadowStatus(t("modal.shadowing.status.too_large"), { isError: true });
-        return;
-      }
-      if (payload?.error === "storage") {
-        setShadowStatus(
-          t("modal.shadowing.status.failed_detail", {
-            message: "Audio storage unavailable.",
-          }),
-          { isError: true }
-        );
-        return;
-      }
-      if (!payload?.audioId) {
-        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
-        return;
-      }
-      shadowAudioCache = payload;
-      const transcriptResult = await transcribeAudioFile(file);
-      if (!transcriptResult?.text) {
-        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
-        return;
-      }
-      shadowAudioCache.words = transcriptResult.words || [];
-      const nextTranscript = transcriptResult.text;
-      if (shadowTranscript) {
-        shadowTranscript.value = nextTranscript;
-      }
-      setShadowStatus(t("modal.shadowing.status.ready"));
-    } catch (error) {
-      const message = String(error?.message || "").trim();
-      if (message) {
-        setShadowStatus(
-          t("modal.shadowing.status.failed_detail", { message }),
-          { isError: true }
-        );
-      } else {
-        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
-      }
-    } finally {
-      isShadowTranscribing = false;
-      updateShadowControls();
-    }
   });
 }
 
@@ -10199,13 +10139,14 @@ if (shadowAdd) {
       updateShadowControls();
       return;
     }
-    let text = shadowTranscript?.value.trim();
-    if (!text) {
-      setShadowStatus(t("modal.shadowing.status.no_transcript"), { isError: true });
-      updateShadowControls();
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      startWelcomeFlow("smooth");
       return;
     }
     isShadowSaving = true;
+    isShadowTranscribing = true;
+    setShadowStatus(t("modal.shadowing.status.transcribing"));
     updateShadowControls();
     try {
       const payload = shadowAudioCache?.audioId
@@ -10232,6 +10173,17 @@ if (shadowAdd) {
         return;
       }
       shadowAudioCache = payload;
+      const transcriptResult = await transcribeAudioFile(file);
+      if (!transcriptResult?.text) {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+        return;
+      }
+      let text = transcriptResult.text.trim();
+      if (!text) {
+        setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
+        return;
+      }
+      shadowAudioCache.words = transcriptResult.words || [];
       if (shadowAudioCache.words?.length) {
         try {
           if (!areTranscriptWordsAligned(text, shadowAudioCache.words)) {
@@ -10241,28 +10193,22 @@ if (shadowAdd) {
             );
             if (formatted.aligned) {
               text = formatted.text;
-              if (shadowTranscript) {
-                shadowTranscript.value = text;
-              }
             }
           }
         } catch (error) {
           // If we can't align timings, still allow adding the story.
         }
       }
-      const title = shadowTitle?.value.trim() || t("shadowing.default_title");
+      isShadowTranscribing = false;
+      setShadowStatus(t("modal.shadowing.status.generating_title"));
+      const generatedTitle = await generateShadowingTitle(text);
+      const title = generatedTitle || t("shadowing.default_title");
       const didAdd = addStoryFromText(title, text, t("shadowing.default_title"), {
         audio: shadowAudioCache,
         source: "shadowing",
       });
       if (!didAdd) {
         return;
-      }
-      if (shadowTitle) {
-        shadowTitle.value = "";
-      }
-      if (shadowTranscript) {
-        shadowTranscript.value = "";
       }
       resetShadowPanel();
       addTextModal.classList.add("is-hidden");
@@ -10277,6 +10223,7 @@ if (shadowAdd) {
         setShadowStatus(t("modal.shadowing.status.failed"), { isError: true });
       }
     } finally {
+      isShadowTranscribing = false;
       isShadowSaving = false;
       updateShadowControls();
     }
