@@ -2809,7 +2809,7 @@ const generateTrainingExplanation = async (item) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.2",
+        model: "gpt-4o-mini",
         temperature: 0.2,
         messages: [
           {
