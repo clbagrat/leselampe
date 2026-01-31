@@ -1751,7 +1751,7 @@ const loadStoryProgress = () => {
       storyProgressCache = {};
       return storyProgressCache;
     }
-    const parsed = JSON.parse(raw);
+    const parsed = parseModelJson(raw);
     if (!parsed || typeof parsed !== "object") {
       storyProgressCache = {};
       return storyProgressCache;
@@ -1951,6 +1951,20 @@ const normalizeTrainingGender = (value) =>
 
 const normalizeTrainingDeterminerType = (value) =>
   String(value || "").trim().toLowerCase();
+
+const parseModelJson = (raw) => {
+  if (!raw) {
+    return null;
+  }
+  let cleaned = String(raw).trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?/i, "").trim();
+    if (cleaned.endsWith("```")) {
+      cleaned = cleaned.slice(0, -3).trim();
+    }
+  }
+  return JSON.parse(cleaned);
+};
 
 const getTrainingItemId = (item) => {
   if (!item?.template || !Array.isArray(item.gaps)) {
@@ -3075,6 +3089,15 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
     : "";
 
   try {
+    const targetNominative = Math.round(count * 0.25);
+    const targetAccusative = Math.round(count * 0.55);
+    const targetDative = Math.max(0, count - targetNominative - targetAccusative);
+    const targetDefinite = Math.round(count * 0.25);
+    const determinerRemaining = Math.max(0, count - targetDefinite);
+    const targetIndefinite = Math.floor(determinerRemaining / 3);
+    const targetPossessive = Math.floor((determinerRemaining - targetIndefinite) / 2);
+    const targetNone =
+      determinerRemaining - targetIndefinite - targetPossessive;
     const seed = Date.now();
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -3120,7 +3143,7 @@ const generateTrainingItemsWithChatGPT = async (count = 10) => {
     if (!raw) {
       throw new Error("Empty training data");
     }
-    const parsed = JSON.parse(raw);
+    const parsed = parseModelJson(raw);
     const items = Array.isArray(parsed?.items) ? parsed.items : parsed;
     const normalized = Array.isArray(items)
       ? items.map(normalizeTrainingItem).filter(Boolean)
@@ -3161,6 +3184,15 @@ const generateAdjectiveTrainingItemsWithChatGPT = async (count = 10) => {
     : "";
 
   try {
+    const targetNominative = Math.round(count * 0.25);
+    const targetAccusative = Math.round(count * 0.55);
+    const targetDative = Math.max(0, count - targetNominative - targetAccusative);
+    const targetDefinite = Math.round(count * 0.25);
+    const determinerRemaining = Math.max(0, count - targetDefinite);
+    const targetIndefinite = Math.floor(determinerRemaining / 3);
+    const targetPossessive = Math.floor((determinerRemaining - targetIndefinite) / 2);
+    const targetNone =
+      determinerRemaining - targetIndefinite - targetPossessive;
     const seed = Date.now();
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -3178,14 +3210,23 @@ const generateAdjectiveTrainingItemsWithChatGPT = async (count = 10) => {
               "You create short German grammar drills. Respond with strict JSON: " +
               "{\"items\":[{\"sentence\":\"...\",\"adjective_base\":\"gut\",\"ending\":\"e\",\"case\":\"nominative\",\"gender\":\"feminine\",\"noun\":\"Frau\",\"determiner_type\":\"definite\"}]} " +
               `Rules: Write ${count} short, natural German sentences (max 12 words) for A2 learners. ` +
-              "Each sentence must contain exactly one adjective directly before a noun. " +
+              "Exactly one sentence per item. " +
+              "Each sentence must contain exactly one adjective directly before exactly one noun. " +
               "Use only these cases: nominative, accusative, dative. " +
-              "Determiner types: definite (der/die/das forms), indefinite (ein-), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). " +
-              "If determiner_type is none, do not include any article or possessive in the sentence. " +
-              "Do NOT include any other determiners (no dieser/jeder/welcher/kein). " +
+              "Determiner types: definite (der/die/das and der-words like dieser/jeder/welcher), " +
+              "indefinite (ein- words like ein/kein and plural without ending), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). " +
+              "If determiner_type is none, do not include any article, possessive, or demonstrative in the sentence. " +
+              `Distribution targets in this batch of ${count}: ` +
+              `${targetNominative} nominative, ${targetAccusative} accusative, ${targetDative} dative. ` +
+              `Determiners in this batch: ${targetDefinite} definite, ` +
+              `${targetIndefinite} indefinite, ${targetPossessive} possessive, ${targetNone} none. ` +
+              "Double-check counts before returning. " +
+              "Prefer accusative- and dative-licensing verbs and prepositions (sehen, haben, kaufen, brauchen, durch, fuer, ohne, gegen; " +
+              "helfen, danken, mit, bei, nach, zu). " +
               "Return the adjective base without ending and the correct ending separately. " +
               "Ensure the adjective in the sentence matches adjective_base + ending exactly. " +
-              "Return gender as masculine, feminine, neuter, or plural. " +
+              "Return gender as masculine, feminine, neuter, or plural (do not include gender markers in the sentence). " +
+              "No explanations, no English. " +
               `Random seed: ${seed}.` +
               lemmaInstruction,
           },

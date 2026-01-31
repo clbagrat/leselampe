@@ -1,0 +1,129 @@
+{
+  "run_started": "2026-01-31T11:37:13.534571+00:00",
+  "model": "gpt-4o-mini",
+  "temperature": 0.4,
+  "target": 100,
+  "batch": 40,
+  "prompt": "You create short German grammar drills. Respond with strict JSON: {\"items\":[{\"sentence\":\"...\",\"adjective_base\":\"gut\",\"ending\":\"e\",\"case\":\"nominative\",\"gender\":\"feminine\",\"noun\":\"Frau\",\"determiner_type\":\"definite\"}]} Rules: Write 5 short, natural German sentences (max 12 words) for A2 learners. Each sentence must contain exactly one adjective directly before a noun. Use only these cases: nominative, accusative, dative. Determiner types: definite (der/die/das and der-words like dieser/jeder/welcher), indefinite (ein- words like ein/kein and plural without ending), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). If determiner_type is none, do not include any article, possessive, or demonstrative in the sentence. Distribution targets per batch: nominative 25%, accusative 55%, dative 20% (round to whole items). Determiners: definite 25%, remaining split evenly across indefinite, possessive, none. Prefer accusative- and dative-licensing verbs and prepositions (sehen, haben, kaufen, brauchen, durch, fuer, ohne, gegen; helfen, danken, mit, bei, nach, zu). Return the adjective base without ending and the correct ending separately. Ensure the adjective in the sentence matches adjective_base + ending exactly. Return gender as masculine, feminine, neuter, or plural. Random seed: 1769859433629.",
+  "counts": {
+    "cases": {
+      "accusative": 43,
+      "dative": 21,
+      "nominative": 36
+    },
+    "genders": {
+      "feminine": 33,
+      "masculine": 35,
+      "neuter": 25,
+      "plural": 7
+    },
+    "determiners": {
+      "definite": 52,
+      "indefinite": 36,
+      "none": 2,
+      "possessive": 10
+    }
+  },
+  "deltas": {
+    "cases": {
+      "nominative": 11,
+      "accusative": -12,
+      "dative": -4
+    },
+    "determiners": {
+      "definite": 27
+    }
+  },
+  "samples": [
+    {
+      "sentence": "Die nette Frau hilft dem alten Mann.",
+      "adjective_base": "nett",
+      "ending": "e",
+      "case": "dative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich sehe einen kleinen Hund im Park.",
+      "adjective_base": "klein",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Hund",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Mein sch\u00f6ner Garten w\u00e4chst schnell.",
+      "adjective_base": "sch\u00f6n",
+      "ending": "er",
+      "case": "nominative",
+      "gender": "masculine",
+      "noun": "Garten",
+      "determiner_type": "possessive"
+    },
+    {
+      "sentence": "Die gro\u00dfe Stadt hat viele Touristen.",
+      "adjective_base": "gro\u00df",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Stadt",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich brauche frisches Gem\u00fcse f\u00fcr das Abendessen.",
+      "adjective_base": "frisch",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Gem\u00fcse",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Er gibt der jungen Frau ein Geschenk.",
+      "adjective_base": "jung",
+      "ending": "e",
+      "case": "dative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Wir haben einen alten Tisch im Wohnzimmer.",
+      "adjective_base": "alt",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Tisch",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Das kleine Kind spielt im Garten.",
+      "adjective_base": "klein",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "neuter",
+      "noun": "Kind",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich danke dir f\u00fcr das gute Essen.",
+      "adjective_base": "gut",
+      "ending": "e",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Essen",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Die alte Frau hat einen Hund.",
+      "adjective_base": "alt",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    }
+  ]
+}

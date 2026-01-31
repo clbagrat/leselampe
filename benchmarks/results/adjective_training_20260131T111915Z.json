@@ -1,0 +1,129 @@
+{
+  "run_started": "2026-01-31T11:17:46.865987+00:00",
+  "model": "gpt-4o-mini",
+  "temperature": 0.4,
+  "target": 100,
+  "batch": 40,
+  "prompt": "You create short German grammar drills. Respond with strict JSON: {\"items\":[{\"sentence\":\"...\",\"adjective_base\":\"gut\",\"ending\":\"e\",\"case\":\"nominative\",\"gender\":\"feminine\",\"noun\":\"Frau\",\"determiner_type\":\"definite\"}]} Rules: Write 4 short, natural German sentences (max 12 words) for A2 learners. Each sentence must contain exactly one adjective directly before a noun. Use only these cases: nominative, accusative, dative. Determiner types: definite (der/die/das and der-words like dieser/jeder/welcher), indefinite (ein- words like ein/kein and plural without ending), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). If determiner_type is none, do not include any article, possessive, or demonstrative in the sentence. Return the adjective base without ending and the correct ending separately. Ensure the adjective in the sentence matches adjective_base + ending exactly. Return gender as masculine, feminine, neuter, or plural. Random seed: 1769858266961.",
+  "counts": {
+    "cases": {
+      "accusative": 22,
+      "dative": 7,
+      "nominative": 71
+    },
+    "genders": {
+      "feminine": 28,
+      "masculine": 38,
+      "neuter": 28,
+      "plural": 6
+    },
+    "determiners": {
+      "definite": 50,
+      "indefinite": 36,
+      "none": 2,
+      "possessive": 12
+    }
+  },
+  "deltas": {
+    "cases": {
+      "nominative": 46,
+      "accusative": -33,
+      "dative": -18
+    },
+    "determiners": {
+      "definite": 25
+    }
+  },
+  "samples": [
+    {
+      "sentence": "Die sch\u00f6ne Frau liest ein Buch.",
+      "adjective_base": "sch\u00f6n",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich sehe einen alten Mann im Park.",
+      "adjective_base": "alt",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Mann",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Das kleine Kind spielt mit dem Ball.",
+      "adjective_base": "klein",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "neuter",
+      "noun": "Kind",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Er gibt seiner netten Freundin ein Geschenk.",
+      "adjective_base": "nett",
+      "ending": "en",
+      "case": "dative",
+      "gender": "feminine",
+      "noun": "Freundin",
+      "determiner_type": "possessive"
+    },
+    {
+      "sentence": "Ich habe keinen roten Apfel.",
+      "adjective_base": "rot",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Apfel",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Die kluge Sch\u00fclerin l\u00f6st die Aufgabe schnell.",
+      "adjective_base": "klug",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Sch\u00fclerin",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Wir essen frisches Gem\u00fcse zum Abendessen.",
+      "adjective_base": "frisch",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Gem\u00fcse",
+      "determiner_type": "none"
+    },
+    {
+      "sentence": "Er hat ein neues Auto gekauft.",
+      "adjective_base": "neu",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Auto",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Die alte Stadt hat viele Touristen.",
+      "adjective_base": "alt",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Stadt",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich brauche einen gro\u00dfen Tisch.",
+      "adjective_base": "gro\u00df",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Tisch",
+      "determiner_type": "indefinite"
+    }
+  ]
+}

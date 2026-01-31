@@ -34,6 +34,10 @@
 - When working on the Add Story modal (Generate/Paste/Scan), read `CUSTOM_STORY_GENERATION.md` first.
 - After making any related changes, update `CUSTOM_STORY_GENERATION.md` to keep the documentation current.
 
+## Training Docs
+- When working on trainings, read `TRAININGS.md` at the start of the task.
+- At the start of any task, and after each commit, update `TRAININGS.md` if training behavior, UI, or storage changes.
+
 ## Configuration & Deployment Notes
 - GitHub Pages deploys from `main` via GitHub Actions (see `README.md`).
 - RSS requires a server-side proxy to avoid CORS; configure and deploy the Worker as described above.

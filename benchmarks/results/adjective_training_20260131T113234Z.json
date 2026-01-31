@@ -1,0 +1,128 @@
+{
+  "run_started": "2026-01-31T11:31:04.539858+00:00",
+  "model": "gpt-4o-mini",
+  "temperature": 0.4,
+  "target": 100,
+  "batch": 40,
+  "prompt": "You create short German grammar drills. Respond with strict JSON: {\"items\":[{\"sentence\":\"...\",\"adjective_base\":\"gut\",\"ending\":\"e\",\"case\":\"nominative\",\"gender\":\"feminine\",\"noun\":\"Frau\",\"determiner_type\":\"definite\"}]} Rules: Write 19 short, natural German sentences (max 12 words) for A2 learners. Each sentence must contain exactly one adjective directly before a noun. Use only these cases: nominative, accusative, dative. Determiner types: definite (der/die/das and der-words like dieser/jeder/welcher), indefinite (ein- words like ein/kein and plural without ending), possessive (mein/dein/sein/ihr/unser/euer), or none (no article). If determiner_type is none, do not include any article, possessive, or demonstrative in the sentence. Distribution targets per batch: nominative 25%, accusative 55%, dative 20% (round to whole items). Determiners: definite 25%, remaining split evenly across indefinite, possessive, none. Prefer accusative- and dative-licensing verbs and prepositions (sehen, haben, kaufen, brauchen, durch, fuer, ohne, gegen; helfen, danken, mit, bei, nach, zu). Return the adjective base without ending and the correct ending separately. Ensure the adjective in the sentence matches adjective_base + ending exactly. Return gender as masculine, feminine, neuter, or plural. Random seed: 1769859064620.",
+  "counts": {
+    "cases": {
+      "accusative": 44,
+      "dative": 24,
+      "nominative": 32
+    },
+    "genders": {
+      "feminine": 36,
+      "masculine": 37,
+      "neuter": 18,
+      "plural": 9
+    },
+    "determiners": {
+      "definite": 51,
+      "indefinite": 36,
+      "possessive": 13
+    }
+  },
+  "deltas": {
+    "cases": {
+      "nominative": 7,
+      "accusative": -11,
+      "dative": -1
+    },
+    "determiners": {
+      "definite": 26
+    }
+  },
+  "samples": [
+    {
+      "sentence": "Die sch\u00f6ne Frau sieht den alten Mann.",
+      "adjective_base": "sch\u00f6n",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich brauche einen neuen Stift.",
+      "adjective_base": "neu",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Stift",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Er gibt der netten Lehrerin ein Geschenk.",
+      "adjective_base": "nett",
+      "ending": "en",
+      "case": "dative",
+      "gender": "feminine",
+      "noun": "Lehrerin",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Wir haben ein interessantes Buch.",
+      "adjective_base": "interessant",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Buch",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Die alte Katze schl\u00e4ft auf dem Sofa.",
+      "adjective_base": "alt",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "feminine",
+      "noun": "Katze",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich sehe einen kleinen Hund im Park.",
+      "adjective_base": "klein",
+      "ending": "en",
+      "case": "accusative",
+      "gender": "masculine",
+      "noun": "Hund",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Sie hilft der jungen Frau mit dem Problem.",
+      "adjective_base": "jung",
+      "ending": "en",
+      "case": "dative",
+      "gender": "feminine",
+      "noun": "Frau",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Er hat kein rotes Auto.",
+      "adjective_base": "rot",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Auto",
+      "determiner_type": "indefinite"
+    },
+    {
+      "sentence": "Der gro\u00dfe Baum steht im Garten.",
+      "adjective_base": "gro\u00df",
+      "ending": "e",
+      "case": "nominative",
+      "gender": "masculine",
+      "noun": "Baum",
+      "determiner_type": "definite"
+    },
+    {
+      "sentence": "Ich brauche frisches Gem\u00fcse f\u00fcr den Salat.",
+      "adjective_base": "frisch",
+      "ending": "es",
+      "case": "accusative",
+      "gender": "neuter",
+      "noun": "Gem\u00fcse",
+      "determiner_type": "indefinite"
+    }
+  ]
+}
