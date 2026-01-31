@@ -38,6 +38,10 @@
 - When working on trainings, read `TRAININGS.md` at the start of the task.
 - At the start of any task, and after each commit, update `TRAININGS.md` if training behavior, UI, or storage changes.
 
+## Chat Mode Docs
+- When working on chat mode, read `CHAT_MODE.md` at the start of the task.
+- At the start of any task, and after each commit, update `CHAT_MODE.md` if chat mode behavior, UI, or storage changes.
+
 ## Configuration & Deployment Notes
 - GitHub Pages deploys from `main` via GitHub Actions (see `README.md`).
 - RSS requires a server-side proxy to avoid CORS; configure and deploy the Worker as described above.

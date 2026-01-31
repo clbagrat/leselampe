@@ -5341,23 +5341,31 @@ async function askTeacherWithChatGPT(context) {
     return null;
   }
   const messages = buildSheetAskMessages(context);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5",
+      model: "gpt-4.1",
       temperature: 0.4,
-      messages,
+      input: messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
     }),
   });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error?.message || "Ask failed");
   }
-  const raw = data.choices?.[0]?.message?.content?.trim();
+  const raw = (data.output || [])
+    .flatMap((item) => (item?.type === "message" ? item.content || [] : []))
+    .filter((part) => part?.type === "output_text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("\n")
+    .trim();
   return raw || null;
 }
 
