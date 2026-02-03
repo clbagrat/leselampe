@@ -114,7 +114,7 @@ Normalization ensures:
 - Explanation is available after completing a sentence (before advancing):
   - Uses OpenAI chat completion.
   - Model: `gpt-4o-mini`.
-  - Uses the user’s UI language in the response.
+  - Uses the user’s UI language in the response (English, Russian, Turkish).
   - Requires an API key in settings.
 - Adjective endings generation allows a wider set of determiners:
   - `definite`: der/die/das + der-words (e.g., dieser/jeder/welcher)
