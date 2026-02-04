@@ -87,6 +87,7 @@ const sheetActions = bottomSheet?.querySelector(".sheet-actions");
 const readerStatus = document.getElementById("readerStatus");
 const readerStatusLemmas = document.getElementById("readerStatusLemmas");
 const reloadApp = document.getElementById("reloadApp");
+const shareApp = document.getElementById("shareApp");
 const addTextButton = document.getElementById("addText");
 const openLemmasButton = document.getElementById("openLemmas");
 const addTextModal = document.getElementById("addTextModal");
@@ -381,6 +382,8 @@ const UI_COPY = {
     "action.add": "Add",
     "action.refresh": "Refresh",
     "action.search": "Search",
+    "action.share": "Share",
+    "action.share.copied": "Copied",
     "action.reload": "Reload",
     "action.reset_all": "Reset all data",
     "action.show": "Show",
@@ -664,6 +667,8 @@ const UI_COPY = {
     "action.add": "Добавить",
     "action.refresh": "Обновить",
     "action.search": "Поиск",
+    "action.share": "Поделиться",
+    "action.share.copied": "Скопировано",
     "action.reload": "Перезагрузить",
     "action.reset_all": "Сбросить все",
     "action.show": "Показать",
@@ -947,6 +952,8 @@ const UI_COPY = {
     "action.add": "Ekle",
     "action.refresh": "Yenile",
     "action.search": "Ara",
+    "action.share": "Paylaş",
+    "action.share.copied": "Kopyalandı",
     "action.reload": "Yeniden yükle",
     "action.reset_all": "Tüm verileri sıfırla",
     "action.show": "Göster",
@@ -9554,6 +9561,12 @@ if (rssFeedList) {
 if (reloadApp) {
   reloadApp.addEventListener("click", () => {
     window.location.reload();
+  });
+}
+if (shareApp) {
+  shareApp.addEventListener("click", async () => {
+    await copyTextToClipboard(window.location.href);
+    flashActionButton(shareApp, "action.share", "action.share.copied");
   });
 }
 
