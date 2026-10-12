@@ -68,6 +68,17 @@ body {
   gap: 16px;
 }
 
+.is-standalone .page {
+  background: var(--paper);
+}
+
+.is-standalone .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--paper);
+}
+
 .page-dots {
   display: flex;
   align-items: center;
