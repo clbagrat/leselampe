@@ -862,10 +862,9 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  transform: translate(-26px, -20px);
-  width: calc(100% + 46px);
+  transform: translateY(-20px);
   height: 3px;
-  margin: 0;
+  margin: 0 calc(-1 * var(--reader-panel-padding));
   background: transparent;
   border-radius: 999px;
   overflow: hidden;
@@ -880,7 +879,11 @@ body {
   transition: width 0.05s linear;
 }
 
-.reader-panel {
+.book-panel.reader-panel {
+  --reader-panel-padding: 26px;
+  min-width: 0;
+  padding-inline: var(--reader-panel-padding);
+  overflow-x: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -908,6 +911,11 @@ body {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.reader-view .book-header > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 h1 {
@@ -1445,6 +1453,7 @@ h1 {
   font-size: clamp(18px, 2.4vw, 22px);
   line-height: var(--reader-leading, 1.45);
   word-spacing: -0.02em;
+  overflow-wrap: anywhere;
   hyphens: auto;
   -webkit-hyphens: auto;
   -ms-hyphens: auto;
@@ -2848,6 +2857,10 @@ button:disabled {
 
   .book-panel {
     padding: 20px;
+  }
+
+  .book-panel.reader-panel {
+    --reader-panel-padding: 20px;
   }
 
   .library-panel {
